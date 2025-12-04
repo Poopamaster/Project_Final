@@ -1,8 +1,8 @@
 .navbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 1rem 2rem;
+  padding: 1rem 0.5rem;
   background-color: var(--bg-color);
   border-bottom: 1px solid #1f2937;
 }
@@ -58,6 +58,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
+  
 }
 
 .nav-login-btn:hover {

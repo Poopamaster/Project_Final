@@ -9,7 +9,7 @@ const Navbar = () => {
         <div className="brand-icon">
            <Film size={24} />
         </div>
-        <span className="brand-text">MCP CINEMA DEMO</span>
+        <a className="brand-text" href="Homepage">MCP CINEMA DEMO</a>
       </div>
 
       <div className="nav-links">
