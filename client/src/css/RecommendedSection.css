@@ -1,9 +1,9 @@
 .rec-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem 4rem;
+  width: 100%;
+  max-width: 1200px; /* จำกัดความกว้าง */
+  margin: 0 auto; /* จัดให้อยู่ตรงกลาง */
+  padding: 0 1rem 2rem;
 }
-
 .rec-header {
   font-size: 1.5rem;
   font-weight: 700;
@@ -12,7 +12,7 @@
 
 .rec-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* ปรับให้เต็มหน้าจอ */
   gap: 2rem;
 }
 
@@ -24,8 +24,4 @@
 }
 
 /* Desktop */
-@media (min-width: 1024px) {
-  .rec-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }

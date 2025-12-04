@@ -1,15 +1,18 @@
 import React from 'react';
 import { User, Film } from 'lucide-react';
-import '../css/Navbar.css';
+import '../css/navbar.css';
+import { useNavigate } from 'react-router-dom'; // ตรวจสอบว่ามีการ import useNavigate
 
 const Navbar = () => {
+  const navigate = useNavigate(); // เพิ่มการเรียก useNavigate
+
   return (
     <nav className="navbar">
       <div className="nav-brand">
         <div className="brand-icon">
-           <Film size={24} />
+          <Film size={24} />
         </div>
-        <a className="brand-text" href="Homepage">MCP CINEMA DEMO</a>
+        <a className="brand-text" href="/">MCP CINEMA DEMO</a>
       </div>
 
       <div className="nav-links">
@@ -19,7 +22,11 @@ const Navbar = () => {
         <a href="#" className="nav-link">ประวัติการจอง</a>
       </div>
 
-      <button className="nav-login-btn">
+      <button
+        type="button"
+        className="nav-login-btn"
+        onClick={() => navigate('/login')} // ใช้ navigate เพื่อเปลี่ยนเส้นทาง
+      >
         <User size={18} />
         <span>เข้าสู่ระบบ / สมัครสมาชิก</span>
       </button>

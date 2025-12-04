@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import Homepage from './pages/HomePage'
+import LoginPage from './pages/LoginPage'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+
 function App() {
   const [message, setMessage] = useState('')
 
@@ -11,9 +15,13 @@ function App() {
   }, [])
 
   return (
-    <div style={{ padding: '20px' }}>
-      <Homepage />
-    </div>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Homepage />} />
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    </Router>
   )
 }
 
