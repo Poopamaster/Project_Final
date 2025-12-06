@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Homepage from './pages/HomePage'
+import './style.css'
 function App() {
   const [message, setMessage] = useState('')
 
