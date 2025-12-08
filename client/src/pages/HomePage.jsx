@@ -6,7 +6,6 @@ import RecommendedSection from '../components/RecommendedSection';
 const Homepage = () => {
   return (
     <div className="min-h-screen bg-[#0B1120] font-sans">
-      <Navbar />
       <main>
         <HeroSection />
         <RecommendedSection />
