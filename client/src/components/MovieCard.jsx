@@ -1,39 +1,35 @@
 import React from 'react';
-import { Tag as TagIcon, Clock, Volume2 } from 'lucide-react';
 import '../css/MovieCard.css';
 
-const MovieCard = ({ title, posterUrl, isDetailed, genre, duration, lang }) => {
+const MovieCard = ({ movie }) => {
+  // 1. ให้แสดงข้อมูลที่ได้รับมาดูใน Console (กด F12 ดูได้)
+  console.log("Movie Data:", movie);
+
+  // 2. ถ้า movie เป็น undefined ให้สร้าง object ว่างๆ แทน จะได้ไม่ error และการ์ดไม่หาย
+  const safeMovie = movie || {};
+
   return (
-    <div className="movie-card">
-      <img src={posterUrl} alt={title} className="card-poster" />
-      
-      {/* Gradient Overlay */}
-      <div className="card-overlay" />
+    <div className="movie-card-custom">
+      <img 
+        // 3. ใส่รูปภาพสำรอง (Placeholder) ถ้าหา URL รูปไม่เจอ
+        src={safeMovie.image || "https://via.placeholder.com/300x450?text=No+Image"} 
+        alt={safeMovie.title || "Movie"} 
+        className="movie-img-custom" 
+      />
 
-      {isDetailed ? (
-        <div className="card-content">
-          <h3 className="card-title">{title}</h3>
-          
-          <div className="card-info">
-            <TagIcon size={14} color="#FACC15" />
-            <span>{genre}</span>
-          </div>
-          
-          <div className="card-info">
-            <Clock size={14} />
-            <span>{duration}</span>
-          </div>
-
-          <div className="card-info">
-            <Volume2 size={14} color="#C084FC" />
-            <span>{lang}</span>
-          </div>
-
-          <button className="card-btn">ดูเพิ่มเติม</button>
+      <div className="movie-overlay-custom">
+        <h3 className="movie-title-custom">
+          {safeMovie.title || "ไม่มีชื่อเรื่อง"}
+        </h3>
+        
+        <div className="movie-info-custom">
+          <div className="info-row">🏷️ {safeMovie.genre || "-"}</div>
+          <div className="info-row">🕒 {safeMovie.duration || "-"}</div>
+          <div className="info-row">🔊 {safeMovie.language || "-"}</div>
         </div>
-      ) : (
-        <h3 className="simple-title">{title}</h3>
-      )}
+        
+        <button className="btn-more-custom">ดูเพิ่มเติม</button>
+      </div>
     </div>
   );
 };

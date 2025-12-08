@@ -3,6 +3,7 @@ import Homepage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import './style.css';
 
 function App() {
   const [message, setMessage] = useState('')
