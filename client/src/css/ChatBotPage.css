@@ -1,0 +1,183 @@
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+/* Container หลัก */
+.chatbot-container {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background-color: #0B1120;
+  color: white;
+  font-family: 'Prompt', sans-serif;
+  overflow: hidden;
+}
+
+/* --- SIDEBAR (ซ้าย) --- */
+.chat-sidebar {
+  width: 320px;
+  background-color: #0F172A;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #1E293B;
+  flex-shrink: 0;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+}
+
+.user-profile {
+  display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+}
+.avatar-img {
+  width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #3b82f6;
+}
+.user-info h3 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.user-info p { margin: 0; font-size: 0.8rem; color: #94a3b8; }
+
+.divider { height: 1px; background-color: #334155; margin: 20px 0; }
+
+/* ✅ แก้ไข 1: คืนค่าหัวข้อเมนูเป็นสีเทา (เหมือนเดิม) */
+.menu-header {
+  font-size: 0.75rem;
+  color: #94a3b8;        /* สีเทา (ไม่ใช่สีน้ำเงินแล้ว) */
+  font-weight: bold;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.quick-menu ul { list-style: none; padding: 0; }
+.quick-menu li {
+  display: flex; align-items: center; gap: 12px; 
+  padding: 12px 0;
+  font-size: 0.95rem; color: #cbd5e1; cursor: pointer;
+  transition: 0.2s;
+}
+.quick-menu li:hover { 
+  color: #3b82f6; /* Hover แล้วเป็นสีฟ้า */
+}
+
+/* รายการหนัง */
+.movie-rank-item {
+  display: flex; gap: 12px; margin-bottom: 15px;
+  background-color: #1E293B; padding: 10px; border-radius: 12px;
+  position: relative; border: 1px solid #334155;
+}
+.rank-number {
+  position: absolute; top: -8px; left: -8px; width: 22px; height: 22px;
+  background: #cbd5e1; color: #000; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.75rem;
+}
+.movie-thumb { width: 50px; height: 75px; object-fit: cover; border-radius: 4px; }
+.movie-details h4 { margin: 0 0 5px 0; font-size: 0.85rem; color: #60a5fa; }
+.movie-details .showtime { font-size: 0.65rem; color: #cbd5e1; margin: 0; }
+.movie-details .price { font-size: 0.7rem; color: #ef4444; font-weight: bold; }
+
+/* --- CHAT WINDOW (ขวา) --- */
+.chat-window {
+  flex: 1;
+  display: flex; flex-direction: column;
+  background-color: #0B1120;
+  position: relative;
+  width: 100%;
+}
+
+/* Header */
+.chat-header {
+  padding: 15px 30px;
+  border-bottom: 1px solid #1E293B;
+  display: flex; justify-content: space-between; align-items: center;
+  background-color: #0B1120;
+  flex-shrink: 0;
+}
+.header-left { display: flex; align-items: center; gap: 15px; }
+.bot-avatar-header {
+  width: 40px; height: 40px; background-color: #3b82f6;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+}
+.header-text h2 { margin: 0; font-size: 1.1rem; }
+.header-text p { margin: 0; font-size: 0.75rem; color: #94a3b8; }
+
+.header-right { display: block; text-align: right; }
+
+/* ✅ แก้ไข 2: ปรับข้อความบนขวา (บรรทัดบนสีน้ำเงิน + เล็กลง) */
+.header-right p { 
+  margin: 0; 
+  color: #60a5fa;      /* สีน้ำเงินฟ้า (Blue) */
+  font-size: 0.85rem;  /* ขนาดเล็กลง */
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.header-right span { 
+  font-size: 0.7rem; 
+  color: #cbd5e1;      /* สีเทาอ่อน */
+}
+
+/* Chat Area */
+.messages-area {
+  flex: 1; padding: 20px 30px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.date-divider { text-align: center; margin: 10px 0; position: relative; }
+.date-divider span { background: #0B1120; padding: 0 10px; color: #64748b; font-size: 0.8rem; position: relative; z-index: 1; }
+.date-divider::before { content: ''; position: absolute; top: 50%; left: 10%; right: 10%; height: 1px; background: #1E293B; }
+
+.message-row { display: flex; gap: 10px; max-width: 70%; align-items: flex-start; }
+.message-row.user { align-self: flex-end; flex-direction: row-reverse; }
+.bot-icon-chat {
+  width: 32px; height: 32px; background: #3b82f6; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.message-bubble {
+  background: #1E293B; color: #e2e8f0; padding: 12px 18px;
+  border-radius: 0 15px 15px 15px; font-size: 0.95rem; line-height: 1.5;
+}
+
+/* Footer & Input */
+.chat-footer {
+  padding: 10px 30px 30px 30px;
+  display: flex; flex-direction: column; gap: 15px;
+  flex-shrink: 0;
+}
+.suggestion-chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.suggestion-chips button {
+  background: white; border: none; padding: 6px 16px; border-radius: 20px;
+  color: #0F172A; font-size: 0.8rem; cursor: pointer; transition: 0.2s;
+}
+.suggestion-chips button:hover { background: #e2e8f0; }
+
+.input-container {
+  background: #E2E8F0; border-radius: 50px; padding: 8px 10px 8px 20px;
+  display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  width: 100%; max-width: 800px; margin: 0 auto;
+}
+.input-container input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-size: 0.95rem; color: #334155; font-family: 'Prompt', sans-serif;
+}
+.input-actions { display: flex; align-items: center; gap: 10px; }
+.send-btn {
+  width: 40px; height: 40px; background: #3b82f6; border: none; border-radius: 50%;
+  color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* =========================================
+   📱 RESPONSIVE
+   ========================================= */
+@media screen and (max-width: 768px) {
+  .chat-sidebar { display: none; }
+  .chat-header { padding: 15px; }
+  .header-right { display: none; }
+  .header-text h2 { font-size: 1rem; }
+  .header-text p { font-size: 0.7rem; }
+  .messages-area { padding: 15px; }
+  .message-row { max-width: 85%; }
+  .chat-footer { padding: 10px 15px 20px 15px; }
+  .suggestion-chips { overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; padding-bottom: 5px; }
+  .suggestion-chips button { white-space: nowrap; flex-shrink: 0; }
+  .input-container { padding: 6px 6px 6px 15px; }
+}
