@@ -26,12 +26,19 @@ exports.getUser = async (req, res) => {
 
 exports.createUser = async (req, res) => {
     try {
-        const newUser = await require('../services/userService').createUser(req.body); 
+        const { name, email, phone, password } = req.body;
+
+        if (!name || !email || !phone || !password) {
+            return res.status(400).json({ message: "ข้อมูลไม่ครบถ้วน กรุณาใส่ ชื่อ, อีเมล, เบอร์โทรศัพท์ และรหัสผ่าน" });
+        }
         
+        const newUser = await require('../services/userService').createUser(req.body);
+
         const userResponse = newUser.toObject();
         delete userResponse.password;
 
         res.status(201).json(userResponse);
+        
     } catch (error) {
         if (error.code === 11000) {
             return res.status(400).json({ message: "Email already exists" });
