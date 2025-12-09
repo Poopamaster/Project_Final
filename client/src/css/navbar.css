@@ -65,6 +65,38 @@
   background-color: #0077c8;
 }
 
+/* ส่วนแสดงผล User Profile */
+.nav-user-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-name {
+  color: white;
+  font-family: 'Prompt', sans-serif;
+  font-weight: 500;
+}
+
+.nav-logout-btn {
+  background-color: #ef4444; /* สีแดง */
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-logout-btn:hover {
+  background-color: #dc2626;
+  transform: scale(1.1);
+}
+
 /* Responsive: Hide links on mobile */
 @media (max-width: 768px) {
   .nav-links {
