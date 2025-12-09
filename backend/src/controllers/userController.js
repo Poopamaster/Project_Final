@@ -1,5 +1,6 @@
 const userService = require('../services/userService');
-
+const axios = require('axios');
+const User = require('../models/userModel');
 // GET: /api/users
 exports.getUsers = async (req, res) => {
     try {
@@ -92,5 +93,53 @@ exports.login = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+exports.googleLogin = async (req, res) => {
+    // ใส่ Log ตรงนี้เพื่อยืนยันว่าเข้าฟังก์ชันได้
+    console.log('*** ENTERING GOOGLE LOGIN FUNCTION ***'); 
+
+    try {
+        const { accessToken } = req.body; 
+
+        const googleResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        
+        const googleUser = googleResponse.data;
+
+        let user = await User.findOne({ email: googleUser.email });
+
+        if (!user) {
+            console.log(`User not found. Creating new user: ${googleUser.email}`);
+            
+            user = await User.create({
+                name: googleUser.name,
+                email: googleUser.email,
+                phone: 'N/A', // ต้องระบุตาม Schema แม้จะไม่มีข้อมูลจาก Google
+                password: 'GOOGLE_AUTH_USER', // รหัสผ่านปลอมที่รู้กันว่ามาจาก Google
+            });
+        }
+
+        const userResponse = user.toObject();
+        delete userResponse.password;
+
+        return res.status(200).json({ 
+            message: "Google Login Successful", 
+            user: userResponse 
+        });
+        
+    } catch (error) {
+        console.error("DEBUG: Google Login Failed!");
+
+        if (error.response) {
+            console.error("Status Code:", error.response.status);
+            console.error("Google Error Data:", error.response.data);
+            return res.status(400).json({ message: "Google API Access Failed", details: error.response.data });
+        } else {
+            console.error("General/DB Error:", error.message);
+            return res.status(500).json({ message: "Internal Server Error during Google Login", details: error.message });
+        }
     }
 };

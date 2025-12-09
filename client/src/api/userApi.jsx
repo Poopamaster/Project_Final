@@ -11,3 +11,10 @@ export const loginUser = async (email, password) => {
   
   return response.data;
 };
+
+export const googleLoginUser = async (accessToken) => {
+  const response = await axios.post(`${BASE_URL}/google-login`, {
+    accessToken,
+  });
+  return response.data;
+};

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom"; // 1. เพิ่ม useLocation
+// แก้ไขการ import: ไม่ต้อง alias เป็น Router แล้ว เพราะใช้ BrowserRouter ใน main.jsx
+import { Routes, Route, useLocation } from "react-router-dom"; 
 import ChatBotPage from './pages/ChatBotPage';
 import Homepage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -16,8 +17,7 @@ const NavbarController = () => {
 
 function App() {
   return (
-    <Router>
-      {/* 3. เรียกใช้ตัวคุม Navbar แทนการใส่ <Navbar /> ตรงๆ */}
+    <> {/* ใช้ Fragment แทน Router */}
       <NavbarController />
       
       <Routes>
@@ -25,7 +25,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/chatbot" element={<ChatBotPage />} />
       </Routes>
-    </Router>
+    </>
   );
 }
 
