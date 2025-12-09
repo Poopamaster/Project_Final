@@ -1,0 +1,183 @@
+.payment-page-container {
+    min-height: 100vh;
+    background-color: #f3f4f6;
+    font-family: 'Prompt', sans-serif;
+}
+
+.payment-card-wrapper {
+    max-width: 450px;
+    margin: 50px auto;
+    padding: 20px;
+}
+
+.payment-card {
+    background-color: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.card-header h2 {
+    color: #1a1a1a;
+    margin-bottom: 10px;
+}
+
+.card-header p {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.card-separator {
+    margin: 20px 0;
+    border: none;
+    border-top: 1px solid #e5e7eb;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.input-label {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #374151;
+    text-align: left;
+}
+
+.input-field {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 1.2rem;
+    box-sizing: border-box;
+}
+
+.btn-primary {
+    background: #2563EB;
+    color: white;
+    padding: 14px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.qr-display-area {
+    animation: slideUp 0.3s;
+}
+
+.payment-summary {
+    background: #f0fdf4;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #bbf7d0;
+}
+
+.payment-summary p {
+    color: #166534;
+    font-weight: bold;
+}
+
+.qr-image-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.qr-image {
+    width: 250px;
+    height: 250px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.polling-indicator {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: white;
+    padding: 5px;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.scan-instruction {
+    margin-top: 20px;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.btn-cancel {
+    margin-top: 10px;
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.btn-simulate {
+    margin-top: 20px;
+    background: #10B981; 
+    color: white; 
+    padding: 10px 20px; 
+    border-radius: 8px; 
+    border: none; 
+    font-size: 0.9rem; 
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 20px auto 0;
+}
+
+.success-state, .failed-state {
+    padding: 40px 0;
+    animation: fadeIn 0.5s;
+}
+
+.success-state h3 {
+    color: #10B981;
+    font-size: 1.5rem;
+}
+
+.failed-state h3 {
+    color: #EF4444;
+    font-size: 1.5rem;
+}
+
+.state-message {
+    color: #6b7280;
+    margin-top: 10px;
+}
+
+.btn-proceed {
+    margin-top: 30px; 
+    padding: 12px 25px; 
+    border: none; 
+    background: #2563EB; /* เปลี่ยนเป็นสีน้ำเงินเพื่อให้ดูเป็นปุ่มดำเนินการหลัก */
+    color: white;
+    border-radius: 8px; 
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.spin-animation { animation: spin 2s linear infinite; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

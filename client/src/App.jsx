@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import Navbar from "./components/Navbar";
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import PaymentPage from './pages/PaymentPage';
 import './style.css';
 
 const NavbarController = () => {
@@ -20,8 +21,11 @@ const NavbarController = () => {
 
 function App() {
   return (
-    <> {/* ใช้ Fragment แทน Router */}
+    <>
+    <div style={{ backgroundColor: '#f3f4f6', fontFamily: 'Prompt, sans-serif' }}>
       <NavbarController />
+    </div>
+      
       
       <Routes>
         <Route path="/" element={<Homepage />} />
@@ -30,6 +34,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/chatbot" element={<ChatBotPage />} />
+        <Route path="/payment" element={<PaymentPage />} />
       </Routes>
     </>
   );
