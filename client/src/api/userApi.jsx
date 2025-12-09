@@ -24,3 +24,17 @@ export const registerUser = async (userData) => {
     const response = await axios.post(`${BASE_URL}`, userData); 
     return response.data;
 };
+
+export const forgotPassword = async (email) => {
+    // Endpoint นี้จะถูกสร้างใน Backend (Controller) ในขั้นตอนถัดไป
+    const response = await axios.post(`${BASE_URL}/forgot-password`, { email }); 
+    return response.data;
+};
+
+export const resetPassword = async (token, newPassword) => {
+    // Endpoint นี้จะถูกสร้างใน Backend
+    const response = await axios.put(`${BASE_URL}/reset-password/${token}`, { 
+        password: newPassword 
+    }); 
+    return response.data;
+};

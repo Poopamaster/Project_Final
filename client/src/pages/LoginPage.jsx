@@ -121,8 +121,7 @@ const LoginPage = () => {
           </div>
 
           <div className="remember-me">
-            <input type="checkbox" id="remember" />
-            <label htmlFor="remember">จดจำการเข้าสู่ระบบ</label>
+            <Link to="/forgot-password" className="register-link">ลืมรหัสผ่าน?</Link>
           </div>
 
           <button type="submit" className="btn-submit" disabled={loading}>
