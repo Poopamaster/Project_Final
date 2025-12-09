@@ -5,19 +5,15 @@ import { loginUser } from "../api/userApi";
 import { googleLoginUser } from "../api/userApi";
 import "../css/LoginPage.css";
 
-// Material UI Imports
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 
 const LoginPage = () => {
-  // State เก็บข้อมูล Form
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   });
 
-  // State สำหรับจัดการ Alert (เก็บทั้งประเภทและข้อความ)
-  // type: 'success' | 'error' | ''
   const [alertConfig, setAlertConfig] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +24,6 @@ const LoginPage = () => {
       ...formData,
       [e.target.id]: e.target.value
     });
-    // เมื่อเริ่มพิมพ์ใหม่ ให้ซ่อน Alert เดิม
     if (alertConfig.message) setAlertConfig({ type: '', message: '' });
   };
 
@@ -46,13 +41,11 @@ const LoginPage = () => {
       // บันทึกข้อมูล
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // หน่วงเวลาเล็กน้อยให้ User เห็น Alert ก่อนเปลี่ยนหน้า
       setTimeout(() => {
         navigate("/");
       }, 1500);
 
     } catch (err) {
-      // 2. Login พลาด -> แสดง Alert สีแดง
       const errorMsg = err.response?.data?.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
       setAlertConfig({ type: 'error', message: errorMsg });
     } finally {
@@ -64,10 +57,8 @@ const LoginPage = () => {
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
-        // ได้ Access Token มาแล้ว ส่งไปให้ Backend เราจัดการต่อ
         const data = await googleLoginUser(tokenResponse.access_token);
 
-        // ถ้า Backend ตอบกลับมาว่า OK (Login/Register สำเร็จ)
         setAlertConfig({ type: 'success', message: 'Google Login สำเร็จ!' });
         localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -89,13 +80,11 @@ const LoginPage = () => {
     <div className="login-page-bg">
       <div className="login-card-container">
 
-        {/* Header */}
         <div className="login-header">
           <h2 className="login-title">ยินดีต้อนรับการกลับมา!</h2>
           <p className="login-subtitle">เข้าสู่ระบบเพื่อเริ่มจองตั๋วหนัง</p>
         </div>
 
-        {/* Material UI Alert Area */}
         {alertConfig.message && (
           <Stack sx={{ width: '100%', marginBottom: '1rem' }} spacing={2}>
             <Alert variant="filled" severity={alertConfig.type}>
@@ -104,7 +93,6 @@ const LoginPage = () => {
           </Stack>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="email">อีเมลหรือเบอร์โทรศัพท์</label>
@@ -132,7 +120,6 @@ const LoginPage = () => {
             />
           </div>
 
-          {/* Remember Me Checkbox */}
           <div className="remember-me">
             <input type="checkbox" id="remember" />
             <label htmlFor="remember">จดจำการเข้าสู่ระบบ</label>
@@ -143,12 +130,10 @@ const LoginPage = () => {
           </button>
         </form>
 
-        {/* Divider */}
         <div className="divider">
           <span>หรือ</span>
         </div>
 
-        {/* Google Login Button (Visual Only) */}
         <button
           type="button"
           className="btn-google"
@@ -158,7 +143,6 @@ const LoginPage = () => {
           Sign in with Google
         </button>
 
-        {/* Footer */}
         <div className="login-footer">
           <Link to="/register" className="register-link">ยังไม่มีบัญชีใช่หรือไม่?</Link>
         </div>

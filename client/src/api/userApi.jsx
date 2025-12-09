@@ -18,3 +18,9 @@ export const googleLoginUser = async (accessToken) => {
   });
   return response.data;
 };
+
+export const registerUser = async (userData) => {
+    // ยิง POST request ไปที่ /api/users (Endpoint สำหรับ Create User)
+    const response = await axios.post(`${BASE_URL}`, userData); 
+    return response.data;
+};
