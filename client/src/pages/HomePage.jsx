@@ -1,7 +1,7 @@
 import React from 'react';
-import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
 import RecommendedSection from '../components/RecommendedSection';
+import MovieCard from '../components/MovieCard';
 
 const Homepage = () => {
   return (

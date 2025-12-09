@@ -1,7 +1,7 @@
 /* จัด Grid ให้การ์ดเรียงสวยงาม */
 .rec-container {
   width: 100%;
-  max-width: 1200px; /* จำกัดความกว้าง */
+  max-width: 80%; /* จำกัดความกว้าง */
   margin: 0 auto; /* จัดให้อยู่ตรงกลาง */
   padding: 0 1rem 2rem;
   color: white;

@@ -36,11 +36,11 @@ const LoginPage = () => {
     setAlertConfig({ type: '', message: '' });
 
     try {
-      const data = await loginUser(formData.email, formData.password);
+        const data = await loginUser(formData.email, formData.password);
 
       setAlertConfig({ type: 'success', message: 'เข้าสู่ระบบสำเร็จ! กำลังพาไปหน้าแรก...' });
 
-      login(data.token);
+      login(data.token, data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
 
       setTimeout(() => {

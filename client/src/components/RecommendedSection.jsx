@@ -1,41 +1,55 @@
-import React from 'react';
+// ไฟล์: src/components/RecommendedSection.jsx
+import React, { useState, useEffect } from 'react';
 import MovieCard from './MovieCard';
+import { getAllMovies } from '../api/movieApi'; 
 import '../css/RecommendedSection.css';
 
 const RecommendedSection = () => {
-  const movies = [
-    {
-      id: 1,
-      title: "โดราเอมอน เดอะมูฟวี่",
-      // เปลี่ยนชื่อจาก posterUrl เป็น image ให้ตรงกับที่ MovieCard รอรับ
-      image: "https://upload.wikimedia.org/wikipedia/th/2/27/ใบปิดภาพยนตร์_โดราเอมอน_ตอน_เรื่องราวในโลกภาพวาดของโนบิตะ.jpg",
-      genre: "ผจญภัย / ตลก",
-      duration: "01 ชม. 45 นาที",
-      language: "พากย์ไทย / ENG" // เพิ่มอันนี้เพราะใน Card มีช่องแสดงภาษา
-    },
-    {
-      id: 2,
-      title: "Avengers: Endgame",
-      image: "https://upload.wikimedia.org/wikipedia/en/0/0d/Avengers_Endgame_poster.jpg",
-      genre: "แอคชั่น / ไซไฟ",
-      duration: "03 ชม. 02 นาที",
-      language: "ENG / SUB"
-    },
-    {
-      id: 3,
-      title: "Avatar: The Way of Water",
-      image: "https://upload.wikimedia.org/wikipedia/en/5/54/Avatar_The_Way_of_Water_poster.jpg",
-      genre: "ไซไฟ / ผจญภัย",
-      duration: "03 ชม. 12 นาที",
-      language: "ENG / TH"
-    }
-  ];
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        const data = await getAllMovies();
+        
+        // ⚠️ จุดแก้ไข: Map ข้อมูลให้ชื่อตรงกับที่ MovieCard ต้องการ
+        const formattedMovies = data.map(movie => ({
+            id: movie._id,
+            title: movie.title_th, // ใช้ชื่อไทย
+            
+            // ✅ ส่ง poster_url ตรงๆ (ค่าจาก DB)
+            poster_url: movie.poster_url, 
+            
+            genre: movie.genre,
+            duration: convertDuration(movie.duration_min),
+            language: movie.language || "TH/EN"
+        }));
+
+        setMovies(formattedMovies);
+      } catch (error) {
+        console.error("ไม่สามารถโหลดข้อมูลหนังได้");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMovies();
+  }, []);
+
+  const convertDuration = (minutes) => {
+    if (!minutes) return "-";
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h} ชม. ${m} นาที`;
+  };
+
+  if (loading) return <div style={{color:'white', textAlign:'center'}}>กำลังโหลดข้อมูล...</div>;
 
   return (
     <div className="rec-container">
       <h2 className="rec-header">ภาพยนตร์แนะนำ</h2>
       <div className="rec-grid">
-        {/* แก้ตรงนี้: ส่งไปเป็นก้อน object ชื่อ movie={movie} */}
         {movies.map((movie) => (
           <MovieCard key={movie.id} movie={movie} />
         ))}
