@@ -62,3 +62,35 @@ exports.deleteUser = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+exports.login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // 1. ค้นหา User จาก Email
+        const user = await require('../services/userService').getAllUsers(); 
+        // *หมายเหตุ: เพื่อประสิทธิภาพที่ดี ควรสร้าง func getUserOne ใน service แต่เพื่อความง่าย เราจะใช้ logic นี้ก่อน
+        const foundUser = await require('../models/userModel').findOne({ email });
+
+        if (!foundUser) {
+            return res.status(404).json({ message: "ไม่พบผู้ใช้งานนี้ในระบบ" });
+        }
+
+        // 2. ตรวจสอบรหัสผ่าน (ในระบบจริงต้องใช้ bcrypt hash แต่ตอนนี้เทียบ string ตรงๆ ก่อน)
+        if (foundUser.password !== password) {
+            return res.status(401).json({ message: "รหัสผ่านไม่ถูกต้อง" });
+        }
+
+        // 3. Login สำเร็จ (ส่งข้อมูล User กลับไป ยกเว้น password)
+        const userResponse = foundUser.toObject();
+        delete userResponse.password;
+
+        res.status(200).json({ 
+            message: "Login Successful", 
+            user: userResponse 
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
