@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useContext } from "react";
+import { AuthContext } from "../App";
 import { User, Film, LogOut } from 'lucide-react'; // เพิ่ม icon LogOut
 import '../css/navbar.css';
-import { useNavigate, Link, useLocation } from 'react-router-dom'; 
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation(); // ใช้เพื่อเช็คสถานะทุกครั้งที่เปลี่ยนหน้า
   const [user, setUser] = useState(null);
+  const { logout } = useContext(AuthContext);
 
   // ฟังก์ชันโหลดข้อมูล User
   useEffect(() => {
@@ -22,11 +25,11 @@ const Navbar = () => {
     checkUser();
   }, [location]); // ใส่ location เพื่อให้เช็คใหม่ทุกครั้งที่เปลี่ยนหน้า
 
-  // ฟังก์ชัน Logout
   const handleLogout = () => {
-    localStorage.removeItem("user"); // ลบข้อมูลในเครื่อง
-    setUser(null); // เคลียร์ state
-    navigate('/login'); // เด้งไปหน้า login
+    logout();                 // ← ลบ jwtToken ที่ถูกต้อง
+    localStorage.removeItem("user");
+    setUser(null);
+    navigate('/login');
   };
 
   return (
@@ -48,8 +51,8 @@ const Navbar = () => {
       {user ? (
         <div className="nav-user-profile">
           <span className="user-name">{user.name}</span>
-          <button 
-            onClick={handleLogout} 
+          <button
+            onClick={handleLogout}
             className="nav-logout-btn"
             title="ออกจากระบบ"
           >
