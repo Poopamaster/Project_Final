@@ -45,10 +45,9 @@ const Navbar = () => {
         <a href="#" className="nav-link">ประวัติการจอง</a>
       </div>
 
-      {/* เงื่อนไข: ถ้ามี User ให้โชว์ชื่อและปุ่ม Logout, ถ้าไม่มีให้โชว์ปุ่ม Login */}
       {user ? (
         <div className="nav-user-profile">
-          <span className="user-name">สวัสดี, {user.name}</span>
+          <span className="user-name">{user.name}</span>
           <button 
             onClick={handleLogout} 
             className="nav-logout-btn"
