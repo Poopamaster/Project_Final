@@ -1,14 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useGoogleLogin } from '@react-oauth/google';
 import { loginUser } from "../api/userApi";
 import { googleLoginUser } from "../api/userApi";
 import "../css/LoginPage.css";
+import { AuthContext } from "../App"; 
 
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 
 const LoginPage = () => {
+  const { login } = useContext(AuthContext); 
+  
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -30,15 +33,14 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setAlertConfig({ type: '', message: '' }); // Clear alert ก่อนยิง API
+    setAlertConfig({ type: '', message: '' });
 
     try {
       const data = await loginUser(formData.email, formData.password);
 
-      // 1. Login สำเร็จ -> แสดง Alert สีเขียว
       setAlertConfig({ type: 'success', message: 'เข้าสู่ระบบสำเร็จ! กำลังพาไปหน้าแรก...' });
 
-      // บันทึกข้อมูล
+      login(data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
       setTimeout(() => {
@@ -60,6 +62,8 @@ const LoginPage = () => {
         const data = await googleLoginUser(tokenResponse.access_token);
 
         setAlertConfig({ type: 'success', message: 'Google Login สำเร็จ!' });
+        
+        login(data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
         setTimeout(() => {
@@ -97,7 +101,7 @@ const LoginPage = () => {
           <div className="form-group">
             <label htmlFor="email">อีเมลหรือเบอร์โทรศัพท์</label>
             <input
-              type="text" // ใช้ text เพื่อรองรับทั้ง email/เบอร์ ตามดีไซน์
+              type="text"
               id="email"
               placeholder="Example_123@gmail.com"
               value={formData.email}
@@ -136,7 +140,7 @@ const LoginPage = () => {
         <button
           type="button"
           className="btn-google"
-          onClick={() => loginWithGoogle()} // <-- ใส่ onClick ตรงนี้
+          onClick={() => loginWithGoogle()}
         >
           <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="google-icon" />
           Sign in with Google

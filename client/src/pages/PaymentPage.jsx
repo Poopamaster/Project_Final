@@ -15,13 +15,16 @@ const PaymentPage = () => {
     const [loading, setLoading] = useState(false);
     const [isChecking, setIsChecking] = useState(false); // สถานะสำหรับปุ่มตรวจสอบ
 
-    const handleGenerateQR = async () => {
+const handleGenerateQR = async () => {
         if (!amount || amount <= 0) return alert("กรุณาระบุจำนวนเงิน");
         
         setLoading(true);
         setStatus('idle');
         try {
-            const data = await createPromptPayQR(parseFloat(amount));
+            const mockBookingId = "6578a9b1c2d3e4f5a6b7c8d9"; // <--- เปลี่ยนเป็น ID จริงจาก DB คุณ
+
+            const data = await createPromptPayQR(parseFloat(amount), mockBookingId);
+            
             setQrCode(data.qrCodeUrl); 
             setChargeId(data.chargeId);
             setStatus('pending'); 
