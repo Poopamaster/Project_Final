@@ -1,36 +1,47 @@
-/* จัด Grid ให้การ์ดเรียงสวยงาม */
+/* ไฟล์: src/css/RecommendedSection.css */
+
+/* --- Container --- */
 .rec-container {
-  width: 100%;
-  max-width: 80%; /* จำกัดความกว้าง */
-  margin: 0 auto; /* จัดให้อยู่ตรงกลาง */
-  padding: 0 1rem 2rem;
+  width: 95%; /* มือถือให้กว้างเกือบเต็มจอ */
+  max-width: 1800px; /* ล็อกความกว้างสูงสุดสำหรับจอใหญ่ */
+  margin: 0 auto;
+  padding: 1rem 0 3rem; /* ลด padding ด้านข้าง ให้ content จัดการเอง */
   color: white;
 }
+
 .rec-header {
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
+  font-weight: bold;
+  padding-left: 0.5rem; /* ขยับหัวข้อเล็กน้อย */
+  border-left: 4px solid #3B82F6; /* ลูกเล่นเส้นข้างหัวข้อ */
+  line-height: 1.2;
 }
 
+/* --- Grid System (Responsive หัวใจสำคัญ) --- */
 .rec-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* ปรับให้เต็มหน้าจอ */
-  gap: 2rem;
-   
+  /* ปรับ minmax เป็น 200px เพื่อให้รองรับมือถือจอเล็กได้ดีขึ้น */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem; /* ระยะห่างระหว่างการ์ด */
 }
 
-/* --- ตัวการ์ด --- */
+/* --- Movie Card --- */
 .movie-card {
-  position: relative; /* สำคัญ! เป็นจุดอ้างอิงของ Overlay */
+  position: relative;
   border-radius: 12px;
   overflow: hidden;
-  height: 400px;
+  aspect-ratio: 2/3; /* บังคับสัดส่วนภาพเป็นแนวตั้งมาตรฐานโปสเตอร์หนัง (แทนการ fix height) */
+  background-color: #1e293b; /* สีพื้นหลังกันกรณีรูปโหลดไม่มา */
   cursor: pointer;
-  transition: transform 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .movie-card:hover {
-  transform: scale(1.02); /* ขยายตื่นเต้นนิดหน่อย */
+  transform: translateY(-5px); /* ลอยขึ้นนิดหน่อย */
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+  z-index: 2;
 }
 
 .movie-image {
@@ -40,55 +51,124 @@
   display: block;
 }
 
-/* --- ส่วน Overlay (แผ่นรายละเอียด) --- */
+/* --- Overlay --- */
 .movie-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(15, 23, 42, 0.9); /* สีพื้นหลังดำโปร่งแสง */
+  background: rgba(15, 23, 42, 0.95);
   display: flex;
   flex-direction: column;
-  justify-content: center; /* จัดกึ่งกลางแนวตั้ง */
-  align-items: center;     /* จัดกึ่งกลางแนวนอน */
+  justify-content: center;
+  align-items: center;
   text-align: center;
-  padding: 20px;
-  
-  /* เอฟเฟกต์การซ่อน/แสดง */
-  opacity: 0; /* ซ่อนไว้ก่อน */
+  padding: 15px;
+  opacity: 0;
   transition: opacity 0.3s ease;
 }
 
-/* คำสั่งวิเศษ: เมื่อเมาส์ชี้การ์ด ให้ Overlay โชว์ขึ้นมา */
 .movie-card:hover .movie-overlay {
   opacity: 1;
 }
 
-/* --- ตกแต่งข้อความข้างใน --- */
 .movie-title {
-  font-size: 1.2rem;
-  margin-bottom: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 8px;
   color: white;
+  line-height: 1.4;
 }
 
 .movie-info {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #cbd5e1;
-  margin: 5px 0;
+  margin: 4px 0;
 }
 
 .btn-view {
   margin-top: 15px;
-  padding: 8px 24px;
+  padding: 8px 20px;
   background-color: #3B82F6;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 50px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.2s;
 }
 
 .btn-view:hover {
   background-color: #2563EB;
+}
+
+/* --- Date Badges (ย้ายจาก Inline Style มาที่นี่) --- */
+.movie-item-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.date-badge {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: inline-block;
+  width: 100%; /* ให้เต็มความกว้างการ์ด */
+}
+
+/* สีแดง (ลาจอ) */
+.badge-expiring {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+/* สีเขียว (เข้าฉาย) */
+.badge-upcoming {
+  color: #4ade80;
+  background-color: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+  .genre-badge {
+  display: block;           /* ให้เต็มบรรทัด */
+  width: 100%;
+  margin-top: 8px;          /* ห่างจากรูปการ์ดนิดหน่อย */
+  padding: 6px 10px;        /* พื้นที่ภายในกรอบ */
+  
+  background-color: #334155; /* สีพื้นหลัง (เทาอมน้ำเงิน) */
+  color: #f1f5f9;           /* สีตัวอักษร (ขาวนวล) */
+  border: 1px solid #475569; /* เส้นขอบบางๆ */
+  
+  font-size: 0.8rem;        /* ขนาดตัวอักษร */
+  text-align: center;       /* จัดกลาง */
+  border-radius: 4px;       /* มุมมนนิดๆ (ถ้าอยากได้เหลี่ยมเป๊ะให้แก้เป็น 0px) */
+  
+  /* กรณีชื่อประเภทยาวเกินไป ให้ตัดคำ */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Media Queries สำหรับหน้าจอใหญ่ --- */
+@media (min-width: 768px) {
+  .rec-container {
+    width: 90%;
+    padding: 0 1rem 3rem;
+  }
+  
+  .rec-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); /* จอใหญ่ขยายการ์ดให้กว้างขึ้น */
+    gap: 2rem;
+  }
+
+  .rec-header {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+  }
 }
