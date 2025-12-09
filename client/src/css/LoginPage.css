@@ -1,117 +1,185 @@
-/* นำเข้าฟอนต์สวยๆ ให้ดูทันสมัย */
-@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap');
+/* นำเข้าฟอนต์ Prompt (ถ้ายังไม่ได้ใส่ใน index.css) */
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
 
-* {
-  box-sizing: border-box;
+.login-page-bg {
+    min-height: 100vh;
+    background-color: #0B1120; /* สีพื้นหลัง Dark Blue ตาม Theme หลัก */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    font-family: 'Prompt', sans-serif;
 }
 
-body {
-  font-family: 'Kanit', sans-serif;
-  margin: 0;
+.login-card-container {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 480px;
+    padding: 2.5rem 2rem;
+    border-radius: 16px; /* มุมโค้งมนตามรูป */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* รูปพื้นหลังให้เข้ากับธีมจอง (เช่น โรงแรม หรือ วิวสวยๆ) */
-  background-image: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
-  background-size: cover;
-  background-position: center;
-  position: relative;
+/* Header */
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
 }
 
-/* ใส่ Overlay สีดำจางๆ เพื่อให้อ่านตัวหนังสือออก */
-.login-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4); 
+.login-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
 }
 
-.login-card {
-  position: relative; /* เพื่อให้อยู่เหนือ Overlay */
-  background: rgba(255, 255, 255, 0.95);
-  padding: 40px;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  width: 100%;
-  max-width: 400px;
-  backdrop-filter: blur(5px); /* เอฟเฟกต์กระจก */
+.login-subtitle {
+    color: #6b7280;
+    font-size: 1rem;
+    font-weight: 400;
 }
 
-.title {
-  font-size: 28px;
-  color: #1a202c;
-  margin-bottom: 5px;
-  text-align: center;
+/* Form Styles */
+.login-form {
+    width: 100%;
 }
 
-.subtitle {
-  text-align: center;
-  color: #718096;
-  margin-bottom: 30px;
-  font-size: 14px;
+.form-group {
+    margin-bottom: 1.25rem;
+    text-align: left;
 }
 
-.input-group {
-  margin-bottom: 20px;
+.form-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
 }
 
-.input-group label {
-  display: block;
-  color: #4a5568;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px; /* Input มนๆ */
+    background-color: #f9fafb;
+    font-size: 1rem;
+    font-family: 'Prompt', sans-serif;
+    outline: none;
+    transition: all 0.2s;
+    box-sizing: border-box; /* สำคัญเพื่อไม่ให้ padding ดัน layout */
 }
 
-.input-group input {
-  width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 16px;
-  outline: none;
-  transition: all 0.3s ease;
+.form-input:focus {
+    border-color: #3b5bdb;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.1);
 }
 
-.input-group input:focus {
-  border-color: #3182ce;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+.form-input::placeholder {
+    color: #9ca3af;
 }
 
-.btn-login {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); /* สีฟ้าโทนธุรกิจจอง */
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s;
+/* Checkbox */
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: #6b7280;
 }
 
-.btn-login:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(49, 130, 206, 0.3);
+.remember-me input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
 }
 
-.footer-text {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 14px;
-  color: #718096;
+/* Submit Button */
+.btn-submit {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #2e3b55; /* สีน้ำเงินเข้มอมเทาตามรูป */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-family: 'Prompt', sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-.footer-text a {
-  color: #3182ce;
-  text-decoration: none;
-  font-weight: 600;
+.btn-submit:hover {
+    background-color: #1f2937;
+}
+
+.btn-submit:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Divider */
+.divider {
+    width: 100%;
+    text-align: center;
+    border-bottom: 1px solid #e5e7eb;
+    line-height: 0.1em;
+    margin: 2rem 0;
+}
+
+.divider span {
+    background: #fff;
+    padding: 0 10px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+}
+
+/* Google Button */
+.btn-google {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-family: 'Prompt', sans-serif;
+}
+
+.btn-google:hover {
+    background-color: #f9fafb;
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Footer */
+.login-footer {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.register-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+
+}
+
+.register-link:hover {
+    text-decoration: underline;
 }

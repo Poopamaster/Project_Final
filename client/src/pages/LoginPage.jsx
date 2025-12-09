@@ -1,16 +1,22 @@
 import React, { useState } from "react";
-// import axios from "axios";  <-- ลบบรรทัดนี้ออก ไม่ต้องใช้แล้วในหน้านี้
-import { useNavigate } from "react-router-dom";
-import { loginUser } from "../api/userApi"; // <-- 1. Import ฟังก์ชันที่เราเพิ่งสร้าง
+import { useNavigate, Link } from "react-router-dom";
+import { loginUser } from "../api/userApi";
 import "../css/LoginPage.css";
 
+// Material UI Imports
+import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
+
 const LoginPage = () => {
+  // State เก็บข้อมูล Form
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   });
-  
-  const [error, setError] = useState("");
+
+  // State สำหรับจัดการ Alert (เก็บทั้งประเภทและข้อความ)
+  // type: 'success' | 'error' | ''
+  const [alertConfig, setAlertConfig] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -20,69 +26,112 @@ const LoginPage = () => {
       ...formData,
       [e.target.id]: e.target.value
     });
-    setError(""); 
+    // เมื่อเริ่มพิมพ์ใหม่ ให้ซ่อน Alert เดิม
+    if (alertConfig.message) setAlertConfig({ type: '', message: '' });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setAlertConfig({ type: '', message: '' }); // Clear alert ก่อนยิง API
 
     try {
       const data = await loginUser(formData.email, formData.password);
 
-      console.log("Login Success:", data);
-      alert("เข้าสู่ระบบสำเร็จ!");
-
+      // 1. Login สำเร็จ -> แสดง Alert สีเขียว
+      setAlertConfig({ type: 'success', message: 'เข้าสู่ระบบสำเร็จ! กำลังพาไปหน้าแรก...' });
+      
+      // บันทึกข้อมูล
       localStorage.setItem("user", JSON.stringify(data.user));
-      navigate("/"); 
+
+      // หน่วงเวลาเล็กน้อยให้ User เห็น Alert ก่อนเปลี่ยนหน้า
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
 
     } catch (err) {
-      setError(err.response?.data?.message || "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      // 2. Login พลาด -> แสดง Alert สีแดง
+      const errorMsg = err.response?.data?.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+      setAlertConfig({ type: 'error', message: errorMsg });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="card-header">
-          <h2 className="title">Welcome Back</h2>
-          <p className="subtitle">Login to manage your bookings</p>
+    <div className="login-page-bg">
+      <div className="login-card-container">
+        
+        {/* Header */}
+        <div className="login-header">
+          <h2 className="login-title">ยินดีต้อนรับการกลับมา!</h2>
+          <p className="login-subtitle">เข้าสู่ระบบเพื่อเริ่มจองตั๋วหนัง</p>
         </div>
 
-        {error && <div style={{ color: "red", marginBottom: "10px", textAlign: "center" }}>{error}</div>}
+        {/* Material UI Alert Area */}
+        {alertConfig.message && (
+          <Stack sx={{ width: '100%', marginBottom: '1rem' }} spacing={2}>
+            <Alert variant="filled" severity={alertConfig.type}>
+              {alertConfig.message}
+            </Alert>
+          </Stack>
+        )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label htmlFor="email">Email Address</label>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label htmlFor="email">อีเมลหรือเบอร์โทรศัพท์</label>
             <input 
-              type="email" 
+              type="text" // ใช้ text เพื่อรองรับทั้ง email/เบอร์ ตามดีไซน์
               id="email" 
-              placeholder="name@example.com" 
+              placeholder="Example_123@gmail.com" 
               value={formData.email}
               onChange={handleChange}
               required
+              className="form-input"
             />
           </div>
-          <div className="input-group">
-            <label htmlFor="password">Password</label>
+
+          <div className="form-group">
+            <label htmlFor="password">รหัสผ่าน</label>
             <input 
               type="password" 
               id="password" 
-              placeholder="Enter your password" 
+              placeholder="***************" 
               value={formData.password}
               onChange={handleChange}
               required
+              className="form-input"
             />
           </div>
+
+          {/* Remember Me Checkbox */}
+          <div className="remember-me">
+             <input type="checkbox" id="remember" />
+             <label htmlFor="remember">จดจำการเข้าสู่ระบบ</label>
+          </div>
           
-          <button type="submit" className="btn-login" disabled={loading}>
-            {loading ? "Checking..." : "Sign In"}
+          <button type="submit" className="btn-submit" disabled={loading}>
+            {loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
           </button>
         </form>
 
-        <p className="footer-text">Don't have an account? <a href="#">Sign up</a></p>
+        {/* Divider */}
+        <div className="divider">
+            <span>หรือ</span>
+        </div>
+
+        {/* Google Login Button (Visual Only) */}
+        <button type="button" className="btn-google">
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="google-icon"/>
+            Sign in with Google
+        </button>
+
+        {/* Footer */}
+        <div className="login-footer">
+            <Link to="/register" className="register-link">ยังไม่มีบัญชีใช่หรือไม่?</Link>
+        </div>
+
       </div>
     </div>
   );
