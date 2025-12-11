@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar";
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import PaymentPage from './pages/PaymentPage';
+import MoviePage from './pages/MoviePage'; // Import ถูกต้องแล้ว
 import './style.css';
 
 export const AuthContext = createContext(null);
@@ -44,11 +45,20 @@ const AuthGuard = ({ children }) => {
     return children;
 };
 
+// ตัวจัดการ Navbar: เลือกว่าหน้าไหนจะโชว์/ไม่โชว์ Navbar กลาง
 const NavbarController = () => {
     const location = useLocation();
+    
+    // หน้า Chatbot ไม่เอา Navbar
     if (location.pathname === '/chatbot') {
         return null;
     }
+
+    // หน้า Movies (ในไฟล์ MoviePage.jsx มี Navbar ของตัวเองอยู่แล้ว ให้ซ่อนอันนี้เพื่อไม่ให้ซ้ำ)
+    if (location.pathname === '/movies') {
+        return null;
+    }
+
     return <Navbar />;
 };
 
@@ -65,6 +75,9 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+                
+                {/* เพิ่ม Route สำหรับหน้า Movies (เข้าดูได้ทุกคน ไม่ต้อง Login) */}
+                <Route path="/movies" element={<MoviePage />} />
 
                 <Route
                     path="/chatbot"

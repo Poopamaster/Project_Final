@@ -1,0 +1,200 @@
+/* src/css/MoviePage.css */
+
+body {
+    background-color: #0B1120; /* พื้นหลังสีน้ำเงินเข้ม */
+    color: white;
+    font-family: 'Prompt', sans-serif;
+    margin: 0;
+}
+
+/* --- ส่วนแถบค้นหา (Search Bar) แก้ไขใหม่ --- */
+.filter-section {
+    background-color: #F5F5F5; /* แถบสีเทาอ่อน */
+    padding: 30px 0;
+    display: flex;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.search-box {
+    background: white;
+    /* ปรับระยะขอบใหม่ให้พอดี */
+    padding: 5px 10px 5px 25px; 
+    border-radius: 50px; 
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    height: 50px; /* ล็อคความสูงกล่องให้เป๊ะ */
+    border: 1px solid #ddd;
+}
+
+.dropdown {
+    /* 3 บรรทัดนี้สำคัญมาก! ล้างค่าปุ่มสีเทาๆ ของเครื่องออก */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    border: none;
+    background: transparent; /* พื้นหลังใส */
+    font-size: 1rem;
+    color: #333;
+    font-family: 'Prompt', sans-serif;
+    cursor: pointer;
+    outline: none;
+    min-width: 160px;
+    height: 100%;
+    
+    /* สร้างลูกศรขึ้นมาเอง */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 15px;
+    padding-right: 20px;
+}
+
+/* เส้นขีดคั่นกลางระหว่าง 2 ช่อง */
+.dropdown:first-of-type {
+    border-right: 1px solid #ddd;
+    border-radius: 0;
+}
+
+.search-btn {
+    background-color: #2D9CDB;
+    color: white;
+    border: none;
+    height: 40px; /* ความสูงปุ่ม */
+    padding: 0 30px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: 'Prompt', sans-serif;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.search-btn:hover {
+    background-color: #1a85c0;
+    transform: scale(1.02);
+}
+
+/* --- ส่วนเนื้อหา --- */
+.content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* Tabs เลือกเมนู */
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    margin-bottom: 0;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding-bottom: 15px;
+    transition: 0.3s;
+    font-family: 'Prompt', sans-serif;
+}
+
+.tab-btn.active {
+    color: #7B61FF; /* สีม่วง */
+    border-bottom: 3px solid #7B61FF;
+    font-weight: bold;
+}
+
+.divider {
+    height: 1px;
+    background-color: #333;
+    margin-bottom: 50px;
+    margin-top: -2px;
+}
+
+/* --- การ์ดหนัง (Movie Card) --- */
+.movie-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 40px;
+    justify-content: center;
+}
+
+.movie-card {
+    background: transparent;
+    border-radius: 20px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    position: relative;
+    text-align: left;
+}
+
+.movie-card:hover {
+    transform: translateY(-10px);
+    z-index: 10;
+}
+
+.poster-wrapper {
+    height: 420px;
+    width: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.poster-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.movie-info {
+    margin-top: 15px;
+    padding: 0 5px;
+}
+
+.movie-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 10px 0 5px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.movie-meta {
+    font-size: 0.9rem;
+    color: #bbb;
+    margin-bottom: 10px;
+}
+
+.detail-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(90deg, #FFFFFF 0%, #E0E0E0 100%);
+    color: #0B1120;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.detail-btn:hover {
+    background: #fff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
