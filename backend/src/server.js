@@ -1,8 +1,8 @@
-// src/server.js
-require('dotenv').config(); // <--- เพิ่มบรรทัดนี้ไว้บนสุด!
+require('dotenv').config();
 
 const app = require('./app');
 const connectDB = require('./config/db');
+const { startMcpClient } = require('./services/mcpClient');
 
 // อ่าน PORT จาก .env ถ้าไม่มีให้ใช้ 5173
 const PORT = process.env.PORT || 5173; 
@@ -12,4 +12,11 @@ connectDB();
 
 app.listen(PORT, () => {
     console.log(`Backend running on http://localhost:${PORT}`);
+});
+
+startMcpClient().then(() => {
+    // โค้ดเดิมของคุณ
+    app.listen(5000, () => {
+        console.log("Backend Server is running on port 5000");
+    });
 });
