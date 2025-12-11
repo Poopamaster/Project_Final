@@ -13,22 +13,38 @@ import './style.css';
 export const AuthContext = createContext(null);
 
 const AuthProvider = ({ children }) => {
+    // 1. เพิ่ม State สำหรับเก็บข้อมูล User (โหลดจาก localStorage ถ้ามี)
+    const [user, setUser] = useState(() => {
+        const storedUser = localStorage.getItem('user');
+        return storedUser ? JSON.parse(storedUser) : null;
+    });
+
+    // State เช็คว่า Login หรือยัง
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
         return !!localStorage.getItem('jwtToken');
     });
 
-    const login = (token) => {
+    // 2. แก้ฟังก์ชัน login ให้รับ userData ด้วย
+    const login = (token, userData) => {
         localStorage.setItem('jwtToken', token);
-        setIsLoggedIn(true);
+        localStorage.setItem('user', JSON.stringify(userData)); // บันทึกข้อมูล User ลงเครื่อง
+        
+        setUser(userData);      // อัปเดตตัวแปร user
+        setIsLoggedIn(true);    // อัปเดตสถานะ login
     };
 
+    // 3. แก้ฟังก์ชัน logout ให้ล้างข้อมูล User ด้วย
     const logout = () => {
         localStorage.removeItem('jwtToken');
-        setIsLoggedIn(false);
+        localStorage.removeItem('user'); // ล้างข้อมูล User
+        
+        setUser(null);          // เคลียร์ค่า
+        setIsLoggedIn(false);   // เปลี่ยนสถานะ
     };
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, login, logout }}>
+        // 4. ส่งค่า user ออกไปให้ Component อื่นใช้ได้
+        <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
             {children}
         </AuthContext.Provider>
     );
@@ -46,6 +62,7 @@ const AuthGuard = ({ children }) => {
 
 const NavbarController = () => {
     const location = useLocation();
+    // ซ่อน Navbar ในหน้าแชทบอท
     if (location.pathname === '/chatbot') {
         return null;
     }
@@ -55,7 +72,7 @@ const NavbarController = () => {
 function App() {
     return (
         <AuthProvider>
-            <div style={{ backgroundColor: '#f3f4f6', fontFamily: 'Prompt, sans-serif' }}>
+            <div style={{ fontFamily: 'Prompt, sans-serif' }}>
                 <NavbarController />
             </div>
 

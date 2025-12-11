@@ -1,32 +1,109 @@
-import React, { useState } from 'react';
-// 1. นำเข้า useNavigate
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Send, Bot, Film, Ticket, Home, History, User } from 'lucide-react'; 
+import { Mic, Send, Bot, Film, Ticket, Home, History, User, Trash2 } from 'lucide-react'; 
+import { AuthContext } from '../App'; 
+import { sendMessageToBot } from '../api/chatbotApi'; // ✅ 1. Import API ที่แยกไว้
 import '../css/ChatBotPage.css';
 
 const ChatBotPage = () => {
-  // 2. ประกาศตัวแปร navigate
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext); 
+  const messagesEndRef = useRef(null);
 
-  const [messages, setMessages] = useState([
-    { 
-      id: 1, 
-      sender: 'bot', 
-      text: 'สวัสดีครับ, ยินดีต้อนรับเข้าสู่ระบบช่วยจองตั๋วหนัง คุณอยากดูเรื่องอะไร วันไหน เวลาไหน พิมพ์มาได้เลยครับ' 
+  // ✅ 2. โหลดประวัติแชทจาก LocalStorage (ถ้ามี) ถ้าไม่มีให้ใช้ข้อความต้อนรับ
+  const [messages, setMessages] = useState(() => {
+    const savedChats = localStorage.getItem('chatHistory');
+    if (savedChats) {
+      return JSON.parse(savedChats);
     }
-  ]);
+    return [
+      { 
+        id: 1, 
+        sender: 'bot', 
+        text: `สวัสดีครับคุณ ${user?.name || 'ลูกค้า'}, ผม CineBot ยินดีให้บริการครับ! วันนี้อยากดูหนังแนวไหน หรือเช็ครอบเรื่องอะไร บอกผมได้เลยนะครับ 🎬` 
+      }
+    ];
+  });
+
   const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ✅ 3. ทุกครั้งที่ messages เปลี่ยน ให้บันทึกลง LocalStorage
+  useEffect(() => {
+    localStorage.setItem('chatHistory', JSON.stringify(messages));
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // ฟังก์ชันล้างประวัติแชท (เผื่ออยากลบ)
+  const clearChat = () => {
+    if(window.confirm("ต้องการลบประวัติการสนทนาทั้งหมด?")) {
+        const initialMsg = [{ 
+            id: Date.now(), 
+            sender: 'bot', 
+            text: `เริ่มการสนทนาใหม่ครับ คุณ ${user?.name || 'ลูกค้า'} มีอะไรให้ช่วยไหมครับ?` 
+        }];
+        setMessages(initialMsg);
+        localStorage.removeItem('chatHistory');
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputText.trim()) return;
+
+    const userMessageText = inputText;
+    
+    setInputText('');
+    const newMessages = [
+      ...messages, 
+      { id: Date.now(), sender: 'user', text: userMessageText }
+    ];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      // ✅ 4. เรียกใช้ API จากไฟล์แยก
+      const data = await sendMessageToBot(userMessageText);
+
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, sender: 'bot', text: data.reply }
+      ]);
+
+    } catch (error) {
+      console.error("Chat Error:", error);
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, sender: 'bot', text: '⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ หรือ Session หมดอายุ กรุณา Login ใหม่ครับ' }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !isLoading) {
+      handleSendMessage();
+    }
+  };
 
   return (
     <div className="chatbot-container">
       
-      {/* --- SIDEBAR ซ้าย --- */}
+      {/* --- SIDEBAR --- */}
       <aside className="chat-sidebar">
         <div className="user-profile">
-          <img src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&auto=format&fit=crop&q=60" alt="Profile" className="avatar-img" />
+          {/* ✅ 5. ตรวจสอบการแสดงผล User Profile */}
+          <div className="avatar-circle">
+             {user?.name ? user.name.charAt(0).toUpperCase() : <User />}
+          </div>
           <div className="user-info">
-            <h3>Mr.TestDee</h3>
-            <p>Example_123@gmail.com</p>
+            {/* ใช้ user?.xxx เพื่อป้องกัน error ถ้า user เป็น null */}
+            <h3>{user?.name || "Guest User"}</h3>
+            <p>{user?.email || "กรุณาเข้าสู่ระบบ"}</p>
           </div>
         </div>
 
@@ -35,56 +112,25 @@ const ChatBotPage = () => {
         <nav className="quick-menu">
           <div className="menu-header">QUICK MENU</div>
           <ul>
-            {/* 3. สั่งให้กดแล้วกลับหน้าแรก */}
             <li onClick={() => navigate('/')}>
               <Home size={18} /> หน้าแรก
             </li>
-            
-            <li><Film size={18} /> ภาพยนตร์</li>
+            <li onClick={() => navigate('/')}><Film size={18} /> ภาพยนตร์</li>
             <li><Ticket size={18} /> โรงภาพยนตร์ใกล้ฉัน</li>
             <li><History size={18} /> ประวัติการจอง</li>
+            {/* ปุ่มล้างแชท */}
+            <li onClick={clearChat} style={{color: '#ff6b6b', cursor: 'pointer'}}>
+                <Trash2 size={18} /> ล้างประวัติแชท
+            </li>
           </ul>
         </nav>
 
+        {/* ... (Popular Movies ส่วนเดิม) ... */}
         <div className="divider"></div>
-
-        <div className="popular-widget">
-          <div className="menu-header">POPULAR MOVIES</div>
-          
-          <div className="movie-rank-item">
-            <div className="rank-number">1</div>
-            <img src="https://m.media-amazon.com/images/M/MV5BMTc5MDE2ODcwNV5BMl5BanBnXkFtZTgwMzI2NzQ2NzM@._V1_.jpg" alt="Avengers" className="movie-thumb" />
-            <div className="movie-details">
-              <h4>Avengers Endgame</h4>
-              <p className="showtime">11:30 15:15 20:05 (Cinema2)</p>
-              <p className="price">120-250 บาท</p>
-            </div>
-          </div>
-
-          <div className="movie-rank-item">
-            <div className="rank-number">2</div>
-            <img src="https://upload.wikimedia.org/wikipedia/th/2/27/ใบปิดภาพยนตร์_โดราเอมอน_ตอน_เรื่องราวในโลกภาพวาดของโนบิตะ.jpg" alt="Doraemon" className="movie-thumb" />
-            <div className="movie-details">
-              <h4>Doraemon the movie</h4>
-              <p className="showtime">11:10 15:00 19:15 (Cinema4)</p>
-              <p className="price">120-250 บาท</p>
-            </div>
-          </div>
-
-          <div className="movie-rank-item">
-            <div className="rank-number">3</div>
-            <img src="https://m.media-amazon.com/images/M/MV5BYjhiNjBlODctY2ZiOC00YjVlLWFlNzAtNTVhNzM1YjI1NzMxXkEyXkFqcGdeQXVyMjQxNTE1MDA@._V1_.jpg" alt="Avatar" className="movie-thumb" />
-            <div className="movie-details">
-              <h4>Avatar the way of water</h4>
-              <p className="showtime">10:30 13:40 17:15 (Cinema1)</p>
-              <p className="price">120-250 บาท</p>
-            </div>
-          </div>
-
-        </div>
+         {/* (ย่อ Popular Movies ไว้เพื่อความกระชับ) */}
       </aside>
 
-      {/* --- CHAT WINDOW ขวา --- */}
+      {/* --- CHAT WINDOW --- */}
       <main className="chat-window">
         <header className="chat-header">
           <div className="header-left">
@@ -92,51 +138,54 @@ const ChatBotPage = () => {
               <Bot size={24} color="white" />
             </div>
             <div className="header-text">
-              <h2>CineBot Assistant</h2>
-              <p>พร้อมเป็นตัวช่วยคุณจองตั๋วหนังแล้ว....</p>
+              <h2>CineBot Assistant (AI)</h2>
+              <p>Bot พร้อมใช้งาน • ตอบคำถามภาพยนตร์</p>
             </div>
-          </div>
-          <div className="header-right">
-            <p>จองตั๋วหนังได้ง่ายขึ้น เพียงบอกชื่อหนังที่อยากดู</p>
-            <span>ระบบอัจฉริยะจะจัดการทุกอย่างให้คุณ ตั้งแต่เลือกรอบ ไปจนถึงเลือกที่นั่ง!</span>
           </div>
         </header>
 
         <div className="messages-area">
           <div className="date-divider">
-            <span>วันนี้</span>
+            <span>ประวัติการสนทนา</span>
           </div>
 
           {messages.map((msg) => (
             <div key={msg.id} className={`message-row ${msg.sender}`}>
               {msg.sender === 'bot' && (
-                <div className="bot-icon-chat">
-                   <Bot size={20} />
-                </div>
+                <div className="bot-icon-chat"><Bot size={20} /></div>
               )}
               <div className="message-bubble">
-                {msg.text}
+                {msg.text.split('\n').map((line, i) => (
+                    <span key={i}>{line}<br/></span>
+                ))}
               </div>
             </div>
           ))}
+
+          {isLoading && (
+             <div className="message-row bot">
+                <div className="bot-icon-chat"><Bot size={20} /></div>
+                <div className="message-bubble typing-indicator">
+                   <span>.</span><span>.</span><span>.</span>
+                </div>
+             </div>
+          )}
+
+          <div ref={messagesEndRef} />
         </div>
 
         <div className="chat-footer">
-          <div className="suggestion-chips">
-            <button>“อยากดูหนังดราม่า แนะนำหน่อย”</button>
-            <button>“เช็ครอบโดราเอมอนให้หน่อย”</button>
-          </div>
-
           <div className="input-container">
             <input 
               type="text" 
-              placeholder="เช็ครอบหนังโดราเอมอนให้หน่อย" 
+              placeholder="พิมพ์ข้อความที่นี่..." 
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyPress}
+              disabled={isLoading}
             />
             <div className="input-actions">
-              <Mic className="action-icon mic" size={20} />
-              <button className="send-btn">
+              <button className="send-btn" onClick={handleSendMessage} disabled={isLoading}>
                 <Send size={18} />
               </button>
             </div>
