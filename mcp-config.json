@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:/Users/Ideapad slim 3/OneDrive/Desktop/Project_Final"]
+    },
+    
+    "my-secure-cinema-server": {
+      "command": "node",
+      "args": [
+        "C:/Users/Ideapad slim 3/OneDrive/Desktop/Project_Final/mcp-server/dist/index.js"
+      ],
+      "env": {
+        "MONGO_URI": "mongodb://localhost:27017/mcp_cinema_db"
+      }
+    }
+  }
+}

@@ -6,6 +6,8 @@ const movieRoutes = require('./routes/movieRoutes'); // Import Route หนั�
 const userRoutes = require('./routes/userRoutes');
 const logger = require('./middleware/logger');
 const paymentRoutes = require('./routes/paymentRoutes');
+const mcpRoutes = require("./routes/mcpRoutes");
+const chatbotRoutes = require("./routes/chatbotRoutes");
 
 const app = express();
 
@@ -18,5 +20,8 @@ app.use('/api/hello', helloRoutes);
 app.use('/api/movies', movieRoutes); // เพิ่ม Endpoint หนัง
 app.use('/api/users', userRoutes);
 app.use('/api/payment', paymentRoutes);
+
+app.use("/api/mcp", mcpRoutes);
+app.use("/api/chatbot", chatbotRoutes);
 
 module.exports = app;
