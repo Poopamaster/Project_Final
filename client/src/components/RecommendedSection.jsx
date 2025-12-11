@@ -1,78 +1,30 @@
 // ไฟล์: src/components/RecommendedSection.jsx
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import MovieCard from './MovieCard';
-import { getAllMovies } from '../api/movieApi';
-import '../css/RecommendedSection.css'; // อย่าลืม import CSS
+import { movies } from '../data/movies'; // <--- 1. ดึงข้อมูลจากไฟล์ mock ของเรา
+import '../css/RecommendedSection.css';
 
 const RecommendedSection = () => {
-  const [movies, setMovies] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchMovies = async () => {
-      try {
-        const data = await getAllMovies();
+  // แปลงข้อมูลจากไฟล์ movies.js ให้เข้ากับที่ MovieCard ต้องการ
+  // (ถ้า field ชื่อตรงกันอยู่แล้วก็ไม่ต้องทำ แต่กันเหนียวไว้ก่อน)
+  const allMovies = movies.map(movie => ({
+    ...movie,
+    poster_url: movie.image, // แปลง image -> poster_url
+    genre: movie.category,   // แปลง category -> genre
+    // duration ในไฟล์เราเป็น string แล้ว ไม่ต้องแปลง
+  }));
 
-        const formattedMovies = data.map(movie => ({
-          id: movie._id,
-          title: movie.title_th,
-          poster_url: movie.poster_url,
-          genre: movie.genre,
-          duration: convertDuration(movie.duration_min),
-          language: movie.language || "TH/EN",
-          start_date: movie.start_date,
-          due_date: movie.due_date
-        }));
+  // --- ส่วน Logic การกรองหนัง (ใช้ status จากไฟล์ movies.js) ---
 
-        setMovies(formattedMovies);
-      } catch (error) {
-        console.error("ไม่สามารถโหลดข้อมูลหนังได้");
-      } finally {
-        setLoading(false);
-      }
-    };
+  // 1. ภาพยนตร์แนะนำ (กรองจาก isRecommended: true)
+  const recommendedMovies = allMovies.filter(movie => movie.isRecommended);
 
-    fetchMovies();
-  }, []);
+  // 2. กำลังฉาย (กรองจาก status: 'now_showing')
+  const nowShowingMovies = allMovies.filter(movie => movie.status === 'now_showing');
 
-  const convertDuration = (minutes) => {
-    if (!minutes) return "-";
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `${h} ชม. ${m} นาที`;
-  };
-
-  const formatThaiDate = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('th-TH', {
-      day: 'numeric',
-      month: 'short',
-      year: '2-digit'
-    });
-  };
-
-  const currentDate = new Date();
-
-  // 1. กำลังฉาย
-  const nowShowingMovies = movies.filter(movie => {
-    if (!movie.start_date || !movie.due_date) return false;
-    const start = new Date(movie.start_date);
-    const end = new Date(movie.due_date);
-    return currentDate >= start && currentDate <= end;
-  });
-
-  // 2. โปรแกรมหน้า
-  const upcomingMovies = movies.filter(movie => {
-    if (!movie.start_date) return false;
-    const start = new Date(movie.start_date);
-    return start > currentDate;
-  });
-
-  // 3. แนะนำ (เอา 5 เรื่องแรก)
-  const recommendedMovies = movies.slice(0, 5);
-
-  if (loading) return <div style={{ color: 'white', textAlign: 'center', padding: '40px' }}>กำลังโหลดข้อมูล...</div>;
+  // 3. โปรแกรมหน้า (กรองจาก status: 'coming_soon')
+  const upcomingMovies = allMovies.filter(movie => movie.status === 'coming_soon');
 
   return (
     <div className="rec-container">
@@ -85,10 +37,7 @@ const RecommendedSection = () => {
             <div key={movie.id} className="movie-item-wrapper">
               <MovieCard movie={movie} />
               <div className="genre-badge">
-              ประเภท : {movie.genre || "ไม่ระบุประเภท"}
-              </div>
-              <div className="date-badge badge-expiring">
-                จะลาจอ: {formatThaiDate(movie.due_date)}
+                ประเภท : {movie.genre || "ไม่ระบุ"}
               </div>
             </div>
           ))
@@ -97,36 +46,44 @@ const RecommendedSection = () => {
         )}
       </div>
 
-      {/* --- ส่วนที่ 2: กำลังฉาย (อยากใส่ Genre ด้วยก็ได้เช่นกัน) --- */}
+      {/* --- ส่วนที่ 2: กำลังฉาย --- */}
       <h2 className='rec-header' style={{ marginTop: '3rem' }}>กำลังฉาย</h2>
       <div className="rec-grid">
-        {nowShowingMovies.map((movie) => (
-          <div key={movie.id} className="movie-item-wrapper">
-            <MovieCard movie={movie} />
-            <div className="genre-badge" style={{ marginBottom: '4px' }}>
-              ประเภท : {movie.genre || "ไม่ระบุประเภท"}
+        {nowShowingMovies.length > 0 ? (
+          nowShowingMovies.map((movie) => (
+            <div key={movie.id} className="movie-item-wrapper">
+              <MovieCard movie={movie} />
+              <div className="genre-badge">
+                ประเภท : {movie.genre || "ไม่ระบุ"}
+              </div>
+              <div className="date-badge badge-expiring">
+                เวลา: {movie.duration}
+              </div>
             </div>
-            <div className="date-badge badge-expiring">
-              จะลาจอ: {formatThaiDate(movie.due_date)}
-            </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p style={{ color: '#aaa' }}>ยังไม่มีโปรแกรมฉาย</p>
+        )}
       </div>
 
       {/* --- ส่วนที่ 3: โปรแกรมหน้า --- */}
       <h2 className='rec-header' style={{ marginTop: '3rem' }}>โปรแกรมหน้า (Coming Soon)</h2>
       <div className="rec-grid">
-        {upcomingMovies.map((movie) => (
-          <div key={movie.id} className="movie-item-wrapper">
-            <MovieCard movie={movie} />
-            <div className="genre-badge" style={{ marginBottom: '4px' }}>
-              ประเภท : {movie.genre || "ไม่ระบุประเภท"}
+        {upcomingMovies.length > 0 ? (
+          upcomingMovies.map((movie) => (
+            <div key={movie.id} className="movie-item-wrapper">
+              <MovieCard movie={movie} />
+              <div className="genre-badge">
+                ประเภท : {movie.genre || "ไม่ระบุ"}
+              </div>
+              <div className="date-badge badge-upcoming">
+                เร็วๆ นี้
+              </div>
             </div>
-            <div className="date-badge badge-upcoming">
-              เข้าฉาย: {formatThaiDate(movie.start_date)}
-            </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p style={{ color: '#aaa' }}>ยังไม่มีโปรแกรมล่วงหน้า</p>
+        )}
       </div>
 
     </div>
