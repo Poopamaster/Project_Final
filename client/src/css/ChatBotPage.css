@@ -40,10 +40,9 @@
 
 .divider { height: 1px; background-color: #334155; margin: 20px 0; }
 
-/* ✅ แก้ไข 1: คืนค่าหัวข้อเมนูเป็นสีเทา (เหมือนเดิม) */
 .menu-header {
   font-size: 0.75rem;
-  color: #94a3b8;        /* สีเทา (ไม่ใช่สีน้ำเงินแล้ว) */
+  color: #94a3b8;
   font-weight: bold;
   margin-bottom: 15px;
   letter-spacing: 1px;
@@ -58,24 +57,8 @@
   transition: 0.2s;
 }
 .quick-menu li:hover { 
-  color: #3b82f6; /* Hover แล้วเป็นสีฟ้า */
+  color: #3b82f6; 
 }
-
-/* รายการหนัง */
-.movie-rank-item {
-  display: flex; gap: 12px; margin-bottom: 15px;
-  background-color: #1E293B; padding: 10px; border-radius: 12px;
-  position: relative; border: 1px solid #334155;
-}
-.rank-number {
-  position: absolute; top: -8px; left: -8px; width: 22px; height: 22px;
-  background: #cbd5e1; color: #000; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.75rem;
-}
-.movie-thumb { width: 50px; height: 75px; object-fit: cover; border-radius: 4px; }
-.movie-details h4 { margin: 0 0 5px 0; font-size: 0.85rem; color: #60a5fa; }
-.movie-details .showtime { font-size: 0.65rem; color: #cbd5e1; margin: 0; }
-.movie-details .price { font-size: 0.7rem; color: #ef4444; font-weight: bold; }
 
 /* --- CHAT WINDOW (ขวา) --- */
 .chat-window {
@@ -102,21 +85,6 @@
 .header-text h2 { margin: 0; font-size: 1.1rem; }
 .header-text p { margin: 0; font-size: 0.75rem; color: #94a3b8; }
 
-.header-right { display: block; text-align: right; }
-
-/* ✅ แก้ไข 2: ปรับข้อความบนขวา (บรรทัดบนสีน้ำเงิน + เล็กลง) */
-.header-right p { 
-  margin: 0; 
-  color: #60a5fa;      /* สีน้ำเงินฟ้า (Blue) */
-  font-size: 0.85rem;  /* ขนาดเล็กลง */
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-.header-right span { 
-  font-size: 0.7rem; 
-  color: #cbd5e1;      /* สีเทาอ่อน */
-}
-
 /* Chat Area */
 .messages-area {
   flex: 1; padding: 20px 30px; overflow-y: auto;
@@ -135,84 +103,215 @@
 .message-bubble {
   background: #1E293B; color: #e2e8f0; padding: 12px 18px;
   border-radius: 0 15px 15px 15px; font-size: 0.95rem; line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.message-row.user .message-bubble {
+    border-radius: 15px 0 15px 15px;
+    background: #3b82f6; /* สีฟ้าสำหรับข้อความ User */
+    color: white;
 }
 
 /* Footer & Input */
 .chat-footer {
   padding: 10px 30px 30px 30px;
-  display: flex; flex-direction: column; gap: 15px;
+  display: flex; flex-direction: column; gap: 10px;
   flex-shrink: 0;
+  position: relative; /* เพื่อให้ image preview อิงตำแหน่งได้ */
 }
-.suggestion-chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-.suggestion-chips button {
-  background: white; border: none; padding: 6px 16px; border-radius: 20px;
-  color: #0F172A; font-size: 0.8rem; cursor: pointer; transition: 0.2s;
-}
-.suggestion-chips button:hover { background: #e2e8f0; }
 
+/* ✅ UI ส่วน Shortcut Chips (เพิ่มใหม่) */
+.shortcut-container {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 5px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none; /* Firefox */
+}
+
+.shortcut-container {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 12px;
+    
+    /* จัดกึ่งกลางให้ตรงกับ Input Box */
+    width: 100%;
+    max-width: 800px; 
+    margin: 0 auto; /* ดันกล่องให้อยู่กลางจอ */
+    
+    /* การจัดวางลูกภายใน */
+    justify-content: center; /* Desktop: จัดปุ่มให้อยู่กึ่งกลางสวยๆ */
+    align-items: center;
+    
+    /* การเลื่อน */
+    overflow-x: auto; /* ให้เลื่อนแนวนอนได้ */
+    white-space: nowrap; /* ห้ามขึ้นบรรทัดใหม่ */
+    
+    /* ซ่อน Scrollbar */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE 10+ */
+    
+    /* ให้การเลื่อนบนมือถือลื่นไหล */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ซ่อน Scrollbar (Chrome/Safari) */
+.shortcut-container::-webkit-scrollbar {
+    display: none;
+}
+
+.shortcut-chip {
+    background-color: #1E293B;
+    color: #cbd5e1;
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 8px 16px; /* เพิ่มความใหญ่ของปุ่มนิดหน่อยเพื่อให้กดง่ายบนมือถือ */
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Prompt', sans-serif;
+    flex-shrink: 0; /* ห้ามปุ่มหดตัว */
+}
+
+.shortcut-chip:hover {
+    background-color: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.shortcut-chip:active {
+    transform: translateY(0);
+}
+
+/* Input Container */
 .input-container {
-  background: #E2E8F0; border-radius: 50px; padding: 8px 10px 8px 20px;
-  display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  background: #1E293B; /* ปรับสีให้เข้ากับธีม Dark */
+  border: 1px solid #334155;
+  border-radius: 50px; 
+  padding: 8px 10px 8px 20px;
+  display: flex; align-items: center; 
   width: 100%; max-width: 800px; margin: 0 auto;
 }
+
+.hamburger-btn {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-right: 15px;
+}
+
+/* ซ่อนปุ่มปิด Sidebar ใน Desktop */
+.close-sidebar-btn {
+    display: none;
+}
+
+/* Sidebar Overlay (พื้นหลังดำจางๆ) */
+.sidebar-overlay {
+    display: none;
+}
+
 .input-container input {
   flex: 1; border: none; background: transparent; outline: none;
-  font-size: 0.95rem; color: #334155; font-family: 'Prompt', sans-serif;
+  font-size: 0.95rem; color: white; font-family: 'Prompt', sans-serif;
 }
+
 .input-actions { display: flex; align-items: center; gap: 10px; }
 .send-btn {
   width: 40px; height: 40px; background: #3b82f6; border: none; border-radius: 50%;
   color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.2s;
+}
+.send-btn:hover { background: #2563eb; }
+.send-btn:disabled { background: #475569; cursor: not-allowed; }
+
+/* Buttons & Icons */
+.attach-btn {
+    background: none; border: none; color: #94a3b8;
+    cursor: pointer; padding: 0 10px; display: flex; align-items: center;
+    transition: color 0.3s;
+}
+.attach-btn:hover { color: #3b82f6; }
+
+.action-icon.mic {
+    background: none; border: none; color: #94a3b8; cursor: pointer;
+    display: flex; align-items: center; transition: 0.3s;
+}
+.action-icon.mic:hover { color: white; }
+
+.action-icon.mic.active {
+    color: #ef4444;
+    animation: pulse 1.5s infinite;
 }
 
-/* =========================================
-   📱 RESPONSIVE
-   ========================================= */
-@media screen and (max-width: 768px) {
-  .chat-sidebar { display: none; }
-  .chat-header { padding: 15px; }
-  .header-right { display: none; }
-  .header-text h2 { font-size: 1rem; }
-  .header-text p { font-size: 0.7rem; }
-  .messages-area { padding: 15px; }
-  .message-row { max-width: 85%; }
-  .chat-footer { padding: 10px 15px 20px 15px; }
-  .suggestion-chips { overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; padding-bottom: 5px; }
-  .suggestion-chips button { white-space: nowrap; flex-shrink: 0; }
-  .input-container { padding: 6px 6px 6px 15px; }
+.listening-mode {
+    color: #ef4444 !important;
 }
 
-/* เพิ่มเติมจาก CSS เดิม */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
 
+/* Image Preview */
+.image-preview-container {
+    position: absolute;
+    bottom: 85px; /* ขยับขึ้นหลบ input */
+    left: 40px;
+    background: #1E293B;
+    padding: 5px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: flex-start;
+    z-index: 10;
+}
+
+.image-preview-container img {
+    height: 80px; border-radius: 4px; object-fit: cover;
+}
+
+.remove-image-btn {
+    background: #ef4444; color: white; border: none; border-radius: 50%;
+    width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; margin-left: -10px; margin-top: -5px;
+}
+
+/* Avatar User Sidebar */
 .avatar-circle {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: #3b82f6; /* สีฟ้า */
-  color: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.5rem;
-  font-weight: bold;
+  width: 50px; height: 50px; border-radius: 50%;
+  background-color: #3b82f6; color: white;
+  display: flex; justify-content: center; align-items: center;
+  font-size: 1.5rem; font-weight: bold;
 }
 
-.status-badge {
-    background-color: #10b981;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
+/* Image in Chat Bubble */
+.chat-image-bubble {
+    max-width: 200px; border-radius: 12px; margin-bottom: 5px;
+    display: block; border: 2px solid rgba(255,255,255,0.1);
 }
 
-/* Typing Indicator Animation */
+.message-content-wrapper {
+    display: flex; flex-direction: column; align-items: flex-start;
+}
+.message-row.user .message-content-wrapper {
+    align-items: flex-end;
+}
+
+/* Typing Indicator */
 .typing-indicator span {
     animation: blink 1.4s infinite both;
-    margin: 0 2px;
-    font-size: 1.5rem;
-    line-height: 10px;
+    margin: 0 2px; font-size: 1.5rem; line-height: 10px;
 }
-
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
@@ -222,89 +321,91 @@
     100% { opacity: 0.2; }
 }
 
-/* ปรับให้ข้อความ Bot อ่านง่ายขึ้น */
-.message-bubble {
-    white-space: pre-wrap; /* รักษารูปแบบการขึ้นบรรทัดใหม่ */
-    line-height: 1.5;
-}
+@media screen and (max-width: 768px) {
+  
+  /* 1. แสดงปุ่ม Hamburger */
+  .hamburger-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+  }
 
-.attach-btn {
-    background: none;
-    border: none;
-    color: #64748b;
-    cursor: pointer;
-    padding: 0 10px;
-    display: flex;
-    align-items: center;
-    transition: color 0.3s;
-}
-.attach-btn:hover { color: #3b82f6; }
+  /* 2. ปรับ Sidebar ให้เป็นแบบ Slide-in Drawer */
+  .chat-sidebar {
+      display: flex; /* แสดงกลับมา (จากเดิม none) */
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 280px; /* ความกว้างของเมนู */
+      z-index: 1000; /* ให้อยู่บนสุด */
+      transform: translateX(-100%); /* ซ่อนไปทางซ้าย */
+      transition: transform 0.3s ease-in-out;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+  }
 
-/* โหมดฟังเสียง */
-.listening-mode {
-    border: 2px solid #ef4444 !important; /* ขอบแดงตอนฟัง */
-    background-color: #fef2f2;
-}
+  /* เมื่อเปิดเมนู (เพิ่ม class active) */
+  .chat-sidebar.active {
+      transform: translateX(0); /* เลื่อนออกมา */
+  }
 
-.action-icon.mic.active {
-    color: #ef4444;
-    animation: pulse 1.5s infinite;
-}
+  /* 3. ปุ่มปิด Sidebar (X) */
+  .close-sidebar-btn {
+      display: block;
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+  }
 
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
+  /* 4. Overlay พื้นหลัง */
+  .sidebar-overlay {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6); /* สีดำโปร่งแสง */
+      z-index: 999; /* อยู่ใต้ Sidebar แต่อยู่บน Chat */
+      backdrop-filter: blur(2px);
+  }
 
-/* Image Preview ก่อนส่ง */
-.image-preview-container {
-    position: absolute;
-    bottom: 70px; /* ลอยอยู่เหนือช่อง input */
-    left: 20px;
-    background: white;
-    padding: 5px;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: flex-start;
-}
+  /* Header ปรับแต่ง */
+  .chat-header {
+      padding: 10px 15px;
+  }
+  
+  .header-left {
+      gap: 10px;
+  }
 
-.image-preview-container img {
-    height: 80px;
-    border-radius: 4px;
-    object-fit: cover;
-}
+  /* ส่วนข้อความ */
+  .messages-area {
+      padding: 15px;
+  }
+  
+  .message-row {
+      max-width: 85%;
+  }
 
-.remove-image-btn {
-    background: #ef4444;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    margin-left: -10px;
-    margin-top: -5px;
-}
+  /* Input Area */
+  .chat-footer {
+      padding: 10px 10px 15px 10px;
+  }
 
-/* รูปในแชทบับเบิ้ล */
-.chat-image-bubble {
-    max-width: 200px;
-    border-radius: 12px;
-    margin-bottom: 5px;
-    display: block;
-    border: 2px solid rgba(255,255,255,0.2);
-}
-
-.message-content-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-.message-row.user .message-content-wrapper {
-    align-items: flex-end;
+  .input-container {
+      width: 100%;
+      padding: 6px 6px 6px 15px;
+  }
+  
+  /* Shortcut Mobile */
+  .shortcut-container {
+      justify-content: flex-start;
+      padding-left: 5px;
+      width: 100%;
+  }
 }

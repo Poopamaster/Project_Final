@@ -1,30 +1,57 @@
-// ไฟล์: src/components/RecommendedSection.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import MovieCard from './MovieCard';
-import { movies } from '../data/movies'; // <--- 1. ดึงข้อมูลจากไฟล์ mock ของเรา
+// ✅ 1. Import API ที่คุณมีอยู่แล้ว
+import { getAllMovies } from '../api/movieApi';
 import '../css/RecommendedSection.css';
 
 const RecommendedSection = () => {
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // แปลงข้อมูลจากไฟล์ movies.js ให้เข้ากับที่ MovieCard ต้องการ
-  // (ถ้า field ชื่อตรงกันอยู่แล้วก็ไม่ต้องทำ แต่กันเหนียวไว้ก่อน)
-  const allMovies = movies.map(movie => ({
-    ...movie,
-    poster_url: movie.image, // แปลง image -> poster_url
-    genre: movie.category,   // แปลง category -> genre
-    // duration ในไฟล์เราเป็น string แล้ว ไม่ต้องแปลง
-  }));
+  // ✅ 2. ดึงข้อมูลเมื่อโหลดหน้าเว็บ
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getAllMovies(); // เรียกใช้ฟังก์ชันจาก movieApi.js
+        setMovies(data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to load movies:", err);
+        setError("ไม่สามารถดึงข้อมูลภาพยนตร์ได้");
+        setLoading(false);
+      }
+    };
 
-  // --- ส่วน Logic การกรองหนัง (ใช้ status จากไฟล์ movies.js) ---
+    fetchData();
+  }, []);
 
-  // 1. ภาพยนตร์แนะนำ (กรองจาก isRecommended: true)
-  const recommendedMovies = allMovies.filter(movie => movie.isRecommended);
+  // ✅ 3. ฟังก์ชันแยกประเภทหนังตามวันที่ (Database Logic)
+  const getMovieCategory = (movie) => {
+    const today = new Date();
+    const startDate = new Date(movie.start_date);
+    
+    // ถ้าวันฉาย มากกว่า วันนี้ = Coming Soon
+    if (startDate > today) {
+        return 'coming_soon';
+    }
+    // ถ้าวันฉาย น้อยกว่าหรือเท่ากับ วันนี้ = Now Showing
+    return 'now_showing';
+  };
 
-  // 2. กำลังฉาย (กรองจาก status: 'now_showing')
-  const nowShowingMovies = allMovies.filter(movie => movie.status === 'now_showing');
+  if (loading) return <div className="loading-text" style={{padding: '2rem', textAlign: 'center', color: 'white'}}>กำลังโหลดข้อมูลภาพยนตร์...</div>;
+  if (error) return <div className="error-text" style={{padding: '2rem', textAlign: 'center', color: 'red'}}>{error}</div>;
 
-  // 3. โปรแกรมหน้า (กรองจาก status: 'coming_soon')
-  const upcomingMovies = allMovies.filter(movie => movie.status === 'coming_soon');
+  // --- จัดกลุ่มหนัง ---
+
+  // 1. ภาพยนตร์แนะนำ (ตัวอย่าง: เอา 4 เรื่องแรก หรือถ้ามี field 'is_recommended' ใน DB ก็ใช้ได้)
+  const recommendedMovies = movies.slice(0, 4);
+
+  // 2. กำลังฉาย
+  const nowShowingMovies = movies.filter(movie => getMovieCategory(movie) === 'now_showing');
+
+  // 3. โปรแกรมหน้า
+  const upcomingMovies = movies.filter(movie => getMovieCategory(movie) === 'coming_soon');
 
   return (
     <div className="rec-container">
@@ -34,15 +61,15 @@ const RecommendedSection = () => {
       <div className="rec-grid">
         {recommendedMovies.length > 0 ? (
           recommendedMovies.map((movie) => (
-            <div key={movie.id} className="movie-item-wrapper">
+            <div key={movie._id} className="movie-item-wrapper">
               <MovieCard movie={movie} />
               <div className="genre-badge">
-                ประเภท : {movie.genre || "ไม่ระบุ"}
+                {movie.genre || "Action"}
               </div>
             </div>
           ))
         ) : (
-          <p style={{ color: '#aaa', gridColumn: '1 / -1' }}>ไม่มีรายการแนะนำ</p>
+          <p className="empty-text">ไม่มีรายการแนะนำ</p>
         )}
       </div>
 
@@ -51,18 +78,18 @@ const RecommendedSection = () => {
       <div className="rec-grid">
         {nowShowingMovies.length > 0 ? (
           nowShowingMovies.map((movie) => (
-            <div key={movie.id} className="movie-item-wrapper">
+            <div key={movie._id} className="movie-item-wrapper">
               <MovieCard movie={movie} />
               <div className="genre-badge">
-                ประเภท : {movie.genre || "ไม่ระบุ"}
+                {movie.genre || "ไม่ระบุ"}
               </div>
               <div className="date-badge badge-expiring">
-                เวลา: {movie.duration}
+                {movie.duration_min ? `${movie.duration_min} นาที` : 'ฉายแล้ว'}
               </div>
             </div>
           ))
         ) : (
-          <p style={{ color: '#aaa' }}>ยังไม่มีโปรแกรมฉาย</p>
+          <p className="empty-text">ยังไม่มีโปรแกรมฉาย</p>
         )}
       </div>
 
@@ -71,18 +98,18 @@ const RecommendedSection = () => {
       <div className="rec-grid">
         {upcomingMovies.length > 0 ? (
           upcomingMovies.map((movie) => (
-            <div key={movie.id} className="movie-item-wrapper">
+            <div key={movie._id} className="movie-item-wrapper">
               <MovieCard movie={movie} />
               <div className="genre-badge">
-                ประเภท : {movie.genre || "ไม่ระบุ"}
+                {movie.genre || "ไม่ระบุ"}
               </div>
               <div className="date-badge badge-upcoming">
-                เร็วๆ นี้
+                {new Date(movie.start_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
               </div>
             </div>
           ))
         ) : (
-          <p style={{ color: '#aaa' }}>ยังไม่มีโปรแกรมล่วงหน้า</p>
+          <p className="empty-text">ยังไม่มีโปรแกรมล่วงหน้า</p>
         )}
       </div>
 

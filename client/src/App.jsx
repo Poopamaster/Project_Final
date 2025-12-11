@@ -38,6 +38,7 @@ const AuthProvider = ({ children }) => {
     const logout = () => {
         localStorage.removeItem('jwtToken');
         localStorage.removeItem('user'); // ล้างข้อมูล User
+        localStorage.removeItem('ChatbotHistory'); // ล้างประวัติแชทบอทด้วย
         
         setUser(null);          // เคลียร์ค่า
         setIsLoggedIn(false);   // เปลี่ยนสถานะ
@@ -80,7 +81,7 @@ const NavbarController = () => {
 function App() {
     return (
         <AuthProvider>
-            <div style={{ fontFamily: 'Prompt, sans-serif' }}>
+            <div style={{ fontFamily: 'Prompt' }}>
                 <NavbarController />
             </div>
 

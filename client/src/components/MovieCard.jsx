@@ -29,8 +29,6 @@ const MovieCard = ({ movie }) => {
         // ถ้าลิงก์รูปเสีย ให้ใช้ภาพ Placeholder แทน
         onError={(e) => {
           e.target.onerror = null; // ป้องกัน infinite loop
-          // **แก้ไข URL ที่ผิดพลาด**
-          e.target.src = "https://files.thaiware.site/movie/2019-04/images-poster/19041320002201X.jpg";
         }}
       />
 

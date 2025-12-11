@@ -8,5 +8,7 @@ const { authenticate } = require("../middleware/authMiddleware");
 
 // POST /api/chatbot/chat
 router.post("/chat", authenticate, chatbotController.chat);
+router.get("/chathistory", authenticate, chatbotController.getHistory);
+router.delete("/chathistory", authenticate, chatbotController.clearHistory);
 
 module.exports = router;

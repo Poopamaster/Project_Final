@@ -4,7 +4,6 @@ const app = require('./app');
 const connectDB = require('./config/db');
 const { startMcpClient } = require('./services/mcpClient');
 
-// อ่าน PORT จาก .env ถ้าไม่มีให้ใช้ 5173
 const PORT = process.env.PORT || 5173; 
 
 // เชื่อมต่อ Database

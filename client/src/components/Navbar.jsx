@@ -27,7 +27,6 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();                 // ← ลบ jwtToken ที่ถูกต้อง
-    localStorage.removeItem("user");
     setUser(null);
     navigate('/login');
   };
@@ -42,8 +41,9 @@ const Navbar = () => {
       </div>
 
       <div className="nav-links">
-        <Link to="/chatbot" className="nav-link">แชทบอท</Link>
-        <a href="#" className="nav-link">ภาพยนตร์</a>
+        <a href="/" className="nav-link">หน้าแรก</a>
+        <a href="/chatbot" className="nav-link">แชทบอท</a>
+        <a href="/movies" className="nav-link">ภาพยนตร์</a>
         <a href="#" className="nav-link">โรงภาพยนตร์</a>
         <a href="#" className="nav-link">ประวัติการจอง</a>
       </div>
