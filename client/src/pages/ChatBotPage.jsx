@@ -1,36 +1,37 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Mic, Send, Bot, Film, Home, User, Trash2, Paperclip, X, Menu, LogOut
+  Mic, Send, Bot, Film, Home, User, Trash2, Paperclip, X, Menu, LogOut, Loader2
 } from 'lucide-react';
 
-// Import Context และ API
 import { AuthContext } from '../App';
 import { sendMessageToBot, getChatHistory, clearChatHistory } from '../api/chatbotApi';
-
-// Import Component และ CSS
-import ChatbotInputArea from '../components/HeroSection'; 
+import HeroSection from '../components/HeroSection';
 import '../css/ChatBotPage.css';
 
 const ChatBotPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useContext(AuthContext);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // --- STATE MANAGEMENT ---
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isListening, setIsListening] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Responsive Sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // ✅ STATE ใหม่: เอาไว้โชว์ Loading ก่อน Reload
+  const [isReloading, setIsReloading] = useState(false);
+  
+  const hasInitialMessageSent = useRef(false);
 
-  // Shortcut สำหรับใช้ใน Chat Footer (หลังจากเริ่มคุยแล้ว)
   const shortcuts = ["📽️ หนังเข้าใหม่", "📍 โรงหนังใกล้ฉัน", "🎟️ วิธีจองตั๋ว"];
 
-  // --- EFFECT: Load Chat History ---
+  // ✅ EFFECT 1: Load Chat History (เหมือนเดิม)
   useEffect(() => {
     const fetchHistory = async () => {
       if (!user) return;
@@ -40,8 +41,6 @@ const ChatBotPage = () => {
         if (history && history.length > 0) {
           setMessages(history);
         } else {
-          // ถ้าไม่มีประวัติ ให้ใส่ข้อความต้อนรับ 1 ข้อความ
-          // (เพื่อให้ length = 1 ซึ่งจะไปเข้าเงื่อนไขแสดง HeroSection)
           setMessages([
             {
               id: 1,
@@ -59,7 +58,31 @@ const ChatBotPage = () => {
     fetchHistory();
   }, [user]);
 
-  // --- EFFECT: Auto Scroll ---
+  // ✅ EFFECT 2: ส่งข้อความ -> โชว์ Loading -> แล้ว Reload
+  useEffect(() => {
+    const initialMessage = location.state?.initialMessage;
+
+    if (initialMessage && user && !hasInitialMessageSent.current) {
+      hasInitialMessageSent.current = true;
+      
+      // 1. เปิดหน้าจอ Loading ค้างไว้เลย
+      setIsReloading(true);
+
+      // 2. เรียกฟังก์ชันส่งข้อความ
+      handleSendMessage(initialMessage).then(() => {
+        
+        // 3. เคลียร์ State เพื่อไม่ให้ Loop ตอน Reload กลับมา
+        window.history.replaceState({}, document.title);
+
+        // 4. หน่วงเวลานิดนึงให้ UI ไม่กระตุก แล้ว Reload
+        setTimeout(() => {
+           window.location.reload();
+        }, 1000); // รอ 1 วินาทีให้ User เห็นว่าโหลดเสร็จ
+      });
+    }
+  }, [location.state, user]);
+
+  // ✅ EFFECT 3: Auto Scroll
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -68,7 +91,6 @@ const ChatBotPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // --- HANDLERS ---
   const handleLogout = () => {
     if (window.confirm("ยืนยันการออกจากระบบ?")) {
       logout();
@@ -80,7 +102,6 @@ const ChatBotPage = () => {
     if (window.confirm("ต้องการลบประวัติการสนทนาทั้งหมด?")) {
       const success = await clearChatHistory();
       if (success) {
-        // รีเซ็ตเหลือ 1 ข้อความ เพื่อให้กลับไปหน้า HeroSection
         setMessages([{
           id: Date.now(),
           sender: 'bot',
@@ -91,7 +112,6 @@ const ChatBotPage = () => {
     }
   };
 
-  // จัดการรูปภาพ
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -115,7 +135,6 @@ const ChatBotPage = () => {
     });
   };
 
-  // จัดการเสียง (Speech to Text)
   const toggleListening = () => {
     if (isListening) {
       setIsListening(false);
@@ -139,16 +158,12 @@ const ChatBotPage = () => {
     recognition.start();
   };
 
-  // --- CORE SEND MESSAGE LOGIC ---
+  // ✅ CORE SEND MESSAGE
   const handleSendMessage = async (textOverride = null) => {
-    // ถ้า textOverride มีค่า (จากปุ่ม Tag/Shortcut) ให้ใช้ค่านั้น
-    // ถ้าไม่มี ให้ใช้จาก inputText ที่พิมพ์
     const textToSend = typeof textOverride === 'string' ? textOverride : inputText;
 
-    // ตรวจสอบว่ามีข้อมูลที่จะส่งไหม
     if (!textToSend?.trim() && !selectedImage) return;
 
-    // เตรียมข้อมูลแสดงผลฝั่ง User ทันที (Optimistic UI)
     const userMsg = {
       id: Date.now(),
       sender: 'user',
@@ -156,26 +171,19 @@ const ChatBotPage = () => {
       image: imagePreview
     };
 
-    // 🔥 จุดเปลี่ยนสำคัญ: เพิ่มข้อความลง State
-    // ถ้าตอนแรก messages.length <= 1 (อยู่หน้า Hero)
-    // พอเพิ่มข้อความนี้ messages.length จะ > 1 ทำให้หน้าจอเปลี่ยนเป็น Chat UI ทันที
     setMessages(prev => [...prev, userMsg]);
-    
     setInputText('');
     clearImage();
     setIsLoading(true);
 
     try {
-      // แปลงรูปเป็น Base64 ถ้ามี
       let base64Image = null;
       if (selectedImage) {
         base64Image = await convertToBase64(selectedImage);
       }
 
-      // เรียก API
       const data = await sendMessageToBot(textToSend, base64Image);
 
-      // แสดงผลตอบกลับจาก Bot
       setMessages(prev => [
         ...prev,
         { id: Date.now() + 1, sender: 'bot', text: data.reply }
@@ -183,11 +191,10 @@ const ChatBotPage = () => {
 
     } catch (error) {
       console.error("Chat Error:", error);
-      
-      // เพิ่ม Logic จัดการ Error ถ้า Token เสีย (เช่น User Google)
+
       let errorMsg = '⚠️ ขออภัย ระบบเกิดข้อผิดพลาด กรุณาลองใหม่ครับ';
       if (error?.error === "jwt malformed" || error?.code === "INVALID_TOKEN") {
-          errorMsg = '⚠️ Session หมดอายุ หรือ Token ไม่ถูกต้อง กรุณา Login ใหม่';
+        errorMsg = '⚠️ Session หมดอายุ หรือ Token ไม่ถูกต้อง กรุณา Login ใหม่';
       }
 
       setMessages(prev => [
@@ -201,25 +208,22 @@ const ChatBotPage = () => {
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !isLoading) {
-      handleSendMessage(); // ไม่ส่ง param จะใช้ inputText อัตโนมัติ
+      handleSendMessage();
     }
   };
 
-  // --- RENDER ---
   return (
     <div className="chatbot-container">
 
-      {/* 1. Sidebar Backdrop (มือถือ) */}
       {isSidebarOpen && (
         <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
       )}
 
-      {/* 2. Sidebar Area */}
+      {/* Sidebar Code (เหมือนเดิม) */}
       <aside className={`chat-sidebar ${isSidebarOpen ? 'active' : ''}`}>
         <button className="close-sidebar-btn" onClick={() => setIsSidebarOpen(false)}>
           <X size={24} />
         </button>
-
         <div className="user-profile">
           <div className="avatar-circle">
             {user?.name ? user.name.charAt(0).toUpperCase() : <User />}
@@ -229,14 +233,12 @@ const ChatBotPage = () => {
             <p>{user?.email || "กรุณาเข้าสู่ระบบ"}</p>
           </div>
         </div>
-
         <div className="divider"></div>
-
         <nav className="quick-menu">
           <div className="menu-header">QUICK MENU</div>
           <ul>
             <li onClick={() => navigate('/')}><Home size={18} /> หน้าแรก</li>
-            <li onClick={() => navigate('/')}><Film size={18} /> ภาพยนตร์</li>
+            <li onClick={() => navigate('/movies')}><Film size={18} /> ภาพยนตร์</li>
             <li onClick={handleClearChat} style={{ color: '#ff6b6b', cursor: 'pointer' }}>
               <Trash2 size={18} /> ล้างประวัติ
             </li>
@@ -247,9 +249,7 @@ const ChatBotPage = () => {
         </nav>
       </aside>
 
-      {/* 3. Main Chat Window */}
       <main className="chat-window">
-        {/* Header */}
         <header className="chat-header">
           <div className="header-left">
             <button className="hamburger-btn" onClick={() => setIsSidebarOpen(true)}>
@@ -263,86 +263,102 @@ const ChatBotPage = () => {
           </div>
         </header>
 
-        {/* --- Area: Messages OR Hero Section --- */}
+        {/* ✅ UI ส่วนแสดงผลข้อความ */}
         <div className="messages-area" style={{ display: 'flex', flexDirection: 'column' }}>
           
-          {/* ✅ CONDITION: ถ้าข้อความ <= 1 (มีแค่ Greeting) แสดง Hero Section */}
-          {messages.length <= 1 ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ChatbotInputArea
-                handleSendMessage={handleSendMessage}
-                inputText={inputText}
-                setInputText={setInputText}
-                toggleListening={toggleListening}
-                isListening={isListening}
-                isLoading={isLoading}
-                handleKeyPress={handleKeyPress}
-              />
+          {/* 🔥 ส่วนที่แก้: เช็คว่าถ้ากำลังจะ Reload (isReloading) ให้โชว์ Loading ตัวใหญ่แทน */}
+          {isReloading ? (
+             <div style={{ 
+                flex: 1, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                backgroundColor: '#141414', // สีพื้นหลังเดียวกับธีม
+                zIndex: 99
+            }}>
+              <Loader2 className="spin-animation" size={64} color="#e50914" />
+              <p style={{ marginTop: '1.5rem', color: '#fff', fontSize: '1.2rem' }}>กำลังประมวลผลคำขอ...</p>
+              <p style={{ color: '#aaa', fontSize: '0.9rem' }}>กรุณารอสักครู่ ระบบกำลังรีเฟรชข้อมูล</p>
             </div>
           ) : (
-            // ✅ ELSE: ถ้าเริ่มคุยแล้ว (messages > 1) แสดง Chat Bubble ปกติ
             <>
-              <div className="date-divider"><span>ประวัติการสนทนา</span></div>
-              {messages.map((msg) => (
-                <div key={msg.id} className={`message-row ${msg.sender}`}>
-                  {msg.sender === 'bot' && <div className="bot-icon-chat"><Bot size={20} /></div>}
-                  <div className="message-content-wrapper">
-                    {msg.image && (
-                      <img src={msg.image} alt="uploaded" className="chat-image-bubble" />
-                    )}
-                    {msg.text && (
-                      <div className="message-bubble">
-                        {msg.text.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
-                      </div>
-                    )}
-                  </div>
+                {messages.length <= 1 ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <HeroSection
+                    handleSendMessage={handleSendMessage}
+                    inputText={inputText}
+                    setInputText={setInputText}
+                    toggleListening={toggleListening}
+                    isListening={isListening}
+                    isLoading={isLoading}
+                    handleKeyPress={handleKeyPress}
+                    />
                 </div>
-              ))}
-              
-              {isLoading && (
-                <div className="message-row bot">
-                  <div className="bot-icon-chat"><Bot size={20} /></div>
-                  <div className="message-bubble typing-indicator"><span>.</span><span>.</span><span>.</span></div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
+                ) : (
+                <>
+                    <div className="date-divider"><span>ประวัติการสนทนา</span></div>
+                    {messages.map((msg) => (
+                    <div key={msg.id} className={`message-row ${msg.sender}`}>
+                        {msg.sender === 'bot' && <div className="bot-icon-chat"><Bot size={20} /></div>}
+                        <div className="message-content-wrapper">
+                        {msg.image && (
+                            <img src={msg.image} alt="uploaded" className="chat-image-bubble" />
+                        )}
+                        {msg.text && (
+                            <div className="message-bubble">
+                            {msg.text.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
+                            </div>
+                        )}
+                        </div>
+                    </div>
+                    ))}
+
+                    {isLoading && (
+                    <div className="message-row bot">
+                        <div className="bot-icon-chat"><Bot size={20} /></div>
+                        <div className="message-bubble typing-indicator"><span>.</span><span>.</span><span>.</span></div>
+                    </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </>
+                )}
             </>
           )}
         </div>
 
-        {/* ✅ FOOTER: แสดงเฉพาะเมื่อเริ่มคุยแล้ว (messages > 1) */}
-        {/* เพราะถ้ายังไม่เริ่มคุย เราใช้ Input ของ HeroSection แทน */}
-        {messages.length > 1 && (
-          <div className="chat-footer">
+        {/* ซ่อน Footer ถ้ากำลังจะ Reload */}
+        {!isReloading && messages.length > 1 && (
+            <div className="chat-footer">
             {imagePreview && (
-              <div className="image-preview-container">
+                <div className="image-preview-container">
                 <img src={imagePreview} alt="preview" />
                 <button className="remove-image-btn" onClick={clearImage}><X size={14} /></button>
-              </div>
+                </div>
             )}
 
             <div className="shortcut-container">
-              {shortcuts.map((text, index) => (
+                {shortcuts.map((text, index) => (
                 <button key={index} className="shortcut-chip" onClick={() => handleSendMessage(text)} disabled={isLoading}>
-                  {text}
+                    {text}
                 </button>
-              ))}
+                ))}
             </div>
 
             <div className="input-container">
-              <input
+                <input
                 type="file"
                 ref={fileInputRef}
                 style={{ display: 'none' }}
                 accept="image/*"
                 onChange={handleFileSelect}
-              />
+                />
 
-              <button className="attach-btn" onClick={() => fileInputRef.current.click()}>
+                <button className="attach-btn" onClick={() => fileInputRef.current.click()}>
                 <Paperclip size={20} />
-              </button>
+                </button>
 
-              <input
+                <input
                 type="text"
                 placeholder={isListening ? "กำลังฟัง..." : "พิมพ์ข้อความ..."}
                 value={inputText}
@@ -350,18 +366,18 @@ const ChatBotPage = () => {
                 onKeyDown={handleKeyPress}
                 disabled={isLoading}
                 className={isListening ? "listening-mode" : ""}
-              />
+                />
 
-              <div className="input-actions">
+                <div className="input-actions">
                 <button className={`action-icon mic ${isListening ? 'active' : ''}`} onClick={toggleListening}>
-                  <Mic size={20} />
+                    <Mic size={20} />
                 </button>
                 <button className="send-btn" onClick={() => handleSendMessage()} disabled={isLoading || (!inputText.trim() && !selectedImage)}>
-                  <Send size={18} />
+                    <Send size={18} />
                 </button>
-              </div>
+                </div>
             </div>
-          </div>
+            </div>
         )}
       </main>
     </div>
