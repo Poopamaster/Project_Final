@@ -45,7 +45,7 @@ const RecommendedSection = () => {
   // --- จัดกลุ่มหนัง ---
 
   // 1. ภาพยนตร์แนะนำ (ตัวอย่าง: เอา 4 เรื่องแรก หรือถ้ามี field 'is_recommended' ใน DB ก็ใช้ได้)
-  const recommendedMovies = movies.slice(0, 4);
+  const recommendedMovies = movies.slice(0, 10);
 
   // 2. กำลังฉาย
   const nowShowingMovies = movies.filter(movie => getMovieCategory(movie) === 'now_showing');

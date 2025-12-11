@@ -1,4 +1,3 @@
-// ไฟล์: src/api/axiosInstance.js
 import axios from 'axios';
 
 const axiosInstance = axios.create({
@@ -8,7 +7,6 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
     (config) => {
-        // ✅ ใช้ชื่อ key ว่า 'jwtToken' ให้ตรงกันทั้งระบบ
         const token = localStorage.getItem('jwtToken'); 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -21,13 +19,17 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
-            // 🔥 Token หมดอายุ: เคลียร์ทุกอย่างแล้วดีดออก
-            localStorage.removeItem('jwtToken');
-            localStorage.removeItem('user');
+        // ✅ เช็คว่าเป็น 401 จาก API ที่ไม่ใช่ /login
+        if (error.response?.status === 401) {
+            const requestUrl = error.config?.url || '';
             
-            // ใช้ window.location เพื่อรีเฟรช State ของ React ใหม่ทั้งหมด
-            window.location.href = '/login'; 
+            // 🔥 ถ้าไม่ใช่หน้า login → token หมดอายุ → ดีดออก
+            if (!requestUrl.includes('/login')) {
+                localStorage.removeItem('jwtToken');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
+            // ✅ ถ้าเป็นหน้า login → ปล่อยให้ component จัดการเอง
         }
         return Promise.reject(error);
     }

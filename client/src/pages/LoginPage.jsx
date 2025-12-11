@@ -1,17 +1,16 @@
 import React, { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useGoogleLogin } from '@react-oauth/google';
-import { loginUser } from "../api/userApi";
-import { googleLoginUser } from "../api/userApi";
+import { loginUser, googleLoginUser } from "../api/userApi";
 import "../css/LoginPage.css";
-import { AuthContext } from "../App"; 
+import { AuthContext } from "../App";
 
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 
 const LoginPage = () => {
-  const { login } = useContext(AuthContext); 
-  
+  const { login } = useContext(AuthContext);
+
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -27,6 +26,7 @@ const LoginPage = () => {
       ...formData,
       [e.target.id]: e.target.value
     });
+    // 🛑 บรรทัดนี้แค่เคลียร์ข้อความ Alert เมื่อผู้ใช้เริ่มพิมพ์ใหม่
     if (alertConfig.message) setAlertConfig({ type: '', message: '' });
   };
 
@@ -36,7 +36,7 @@ const LoginPage = () => {
     setAlertConfig({ type: '', message: '' });
 
     try {
-        const data = await loginUser(formData.email, formData.password);
+      const data = await loginUser(formData.email, formData.password);
 
       setAlertConfig({ type: 'success', message: 'เข้าสู่ระบบสำเร็จ! กำลังพาไปหน้าแรก...' });
 
@@ -50,6 +50,7 @@ const LoginPage = () => {
     } catch (err) {
       const errorMsg = err.response?.data?.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
       setAlertConfig({ type: 'error', message: errorMsg });
+      // 🛑 ไม่มีโค้ด setFormData() ตรงนี้ ข้อมูลจึงไม่ถูกเคลียร์
     } finally {
       setLoading(false);
     }
@@ -62,7 +63,7 @@ const LoginPage = () => {
         const data = await googleLoginUser(tokenResponse.access_token);
 
         setAlertConfig({ type: 'success', message: 'Google Login สำเร็จ!' });
-        
+
         login(data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -71,6 +72,7 @@ const LoginPage = () => {
         }, 1500);
       } catch (err) {
         setAlertConfig({ type: 'error', message: 'Google Login ผิดพลาด' });
+        // 🛑 ไม่มีโค้ด setFormData() ตรงนี้ ข้อมูลจึงไม่ถูกเคลียร์
       } finally {
         setLoading(false);
       }
@@ -82,6 +84,18 @@ const LoginPage = () => {
 
   return (
     <div className="login-page-bg">
+
+      {alertConfig.message && (
+        <Stack
+          spacing={2}
+          id="fixed-alert-container"
+        >
+          <Alert variant="filled" severity={alertConfig.type}>
+            {alertConfig.message}
+          </Alert>
+        </Stack>
+      )}
+
       <div className="login-card-container">
 
         <div className="login-header">
@@ -89,13 +103,6 @@ const LoginPage = () => {
           <p className="login-subtitle">เข้าสู่ระบบเพื่อเริ่มจองตั๋วหนัง</p>
         </div>
 
-        {alertConfig.message && (
-          <Stack sx={{ width: '100%', marginBottom: '1rem' }} spacing={2}>
-            <Alert variant="filled" severity={alertConfig.type}>
-              {alertConfig.message}
-            </Alert>
-          </Stack>
-        )}
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
