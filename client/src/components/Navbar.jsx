@@ -1,17 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useContext } from "react";
+import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from "../App";
-import { User, Film, LogOut } from 'lucide-react'; // เพิ่ม icon LogOut
+import { User, Film, LogOut, Menu, X } from 'lucide-react'; // 1. เพิ่ม icon Menu และ X
 import '../css/navbar.css';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // ใช้เพื่อเช็คสถานะทุกครั้งที่เปลี่ยนหน้า
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const { logout } = useContext(AuthContext);
 
-  // ฟังก์ชันโหลดข้อมูล User
+  // 2. State สำหรับเปิด/ปิด เมนู
+  const [isOpen, setIsOpen] = useState(false);
+
+  // ฟังก์ชันสลับสถานะเมนู
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+  };
+
+  // ฟังก์ชันปิดเมนูเมื่อกด Link (UX ที่ดี)
+  const closeMenu = () => {
+    setIsOpen(false);
+  };
+
   useEffect(() => {
     const checkUser = () => {
       const storedUser = localStorage.getItem("user");
@@ -21,14 +32,14 @@ const Navbar = () => {
         setUser(null);
       }
     };
-
     checkUser();
-  }, [location]); // ใส่ location เพื่อให้เช็คใหม่ทุกครั้งที่เปลี่ยนหน้า
+  }, [location]);
 
   const handleLogout = () => {
-    logout();                 // ← ลบ jwtToken ที่ถูกต้อง
+    logout();
     setUser(null);
     navigate('/login');
+    closeMenu(); // ปิดเมนูเมื่อ logout
   };
 
   return (
@@ -37,38 +48,52 @@ const Navbar = () => {
         <div className="brand-icon">
           <Film size={24} />
         </div>
-        <Link to="/" className="brand-text">MCP CINEMA DEMO</Link>
+        <Link to="/" className="brand-text" onClick={closeMenu}>MCP CINEMA DEMO</Link>
       </div>
 
-      <div className="nav-links">
-        <a href="/" className="nav-link">หน้าแรก</a>
-        <a href="/chatbot" className="nav-link">แชทบอท</a>
-        <a href="/movies" className="nav-link">ภาพยนตร์</a>
-        <a href="#" className="nav-link">โรงภาพยนตร์</a>
-        <a href="#" className="nav-link">ประวัติการจอง</a>
+      {/* 3. ปุ่ม Hamburger สำหรับมือถือ */}
+      <div className="menu-icon" onClick={toggleMenu}>
+        {isOpen ? <X size={28} color="white" /> : <Menu size={28} color="white" />}
       </div>
 
-      {user ? (
-        <div className="nav-user-profile">
-          <span className="user-name">{user.name}</span>
-          <button
-            onClick={handleLogout}
-            className="nav-logout-btn"
-            title="ออกจากระบบ"
-          >
-            <LogOut size={18} />
-          </button>
+      {/* 4. รวม Links และ User Profile ไว้ใน nav-menu และเช็ค class active */}
+      <div className={isOpen ? "nav-menu active" : "nav-menu"}>
+        <div className="nav-links">
+          {/* แนะนำให้ใช้ Link แทน a href เพื่อไม่ให้หน้าเว็บรีโหลดใหม่ */}
+          <Link to="/" className="nav-link" onClick={closeMenu}>หน้าแรก</Link>
+          <Link to="/chatbot" className="nav-link" onClick={closeMenu}>แชทบอท</Link>
+          <Link to="/movies" className="nav-link" onClick={closeMenu}>ภาพยนตร์</Link>
+          <Link to="#" className="nav-link" onClick={closeMenu}>โรงภาพยนตร์</Link>
+          <Link to="#" className="nav-link" onClick={closeMenu}>ประวัติการจอง</Link>
         </div>
-      ) : (
-        <button
-          type="button"
-          className="nav-login-btn"
-          onClick={() => navigate('/login')}
-        >
-          <User size={18} />
-          <span>เข้าสู่ระบบ / สมัครสมาชิก</span>
-        </button>
-      )}
+
+        <div className="nav-auth-section">
+          {user ? (
+            <div className="nav-user-profile">
+              <span className="user-name">{user.name}</span>
+              <button
+                onClick={handleLogout}
+                className="nav-logout-btn"
+                title="ออกจากระบบ"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="nav-login-btn"
+              onClick={() => {
+                navigate('/login');
+                closeMenu();
+              }}
+            >
+              <User size={18} />
+              <span>เข้าสู่ระบบ / สมัครสมาชิก</span>
+            </button>
+          )}
+        </div>
+      </div>
     </nav>
   );
 };
