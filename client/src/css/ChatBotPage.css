@@ -315,6 +315,31 @@
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
+/* ChatBotPage.css */
+.admin-badge {
+    color: #ffd700;
+    font-size: 0.8rem;
+    margin-left: 5px;
+}
+.admin-msg {
+    border: 1px solid #ffd700; /* กรอบสีทอง */
+}
+.admin-chip {
+    background: #e50914 !important;
+    color: white !important;
+    font-weight: bold;
+}
+.full-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #141414;
+    height: 100vh;
+    width: 100%;
+    color: white;
+}
+
 @keyframes blink {
     0% { opacity: 0.2; }
     20% { opacity: 1; }
