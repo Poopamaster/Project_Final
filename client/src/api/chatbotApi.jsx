@@ -1,29 +1,24 @@
-// src/api/chatbotApi.js
+// src/api/chatbotApi.js (แก้ใหม่)
 import axios from 'axios';
-
-// กำหนด Base URL (ถ้าคุณมี axiosInstance อยู่แล้ว ให้ import มาใช้แทน axios ตรงนี้ได้เลย)
 const API_URL = 'http://localhost:5000/api'; 
 
-export const sendMessageToBot = async (message) => {
+// เพิ่ม parameter imageBase64 (default เป็น null)
+export const sendMessageToBot = async (message, imageBase64 = null) => {
   try {
-    const token = localStorage.getItem('jwtToken'); // ดึง Token ล่าสุดเสมอ
-
-    if (!token) {
-      throw new Error("No token found");
-    }
+    const token = localStorage.getItem('jwtToken'); 
+    if (!token) throw new Error("No token found");
 
     const response = await axios.post(
       `${API_URL}/chatbot/chat`,
-      { message },
+      { 
+          message, 
+          image: imageBase64 // ส่งรูปไปด้วย
+      },
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${token}` },
       }
     );
-
-    return response.data; // ส่งกลับเฉพาะ data
+    return response.data; 
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
