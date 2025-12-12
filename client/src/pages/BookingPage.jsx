@@ -1,3 +1,5 @@
+//ฝากใส่ข้อมูล database ด้วยนะ ^^
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
