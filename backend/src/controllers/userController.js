@@ -4,6 +4,7 @@ const User = require('../models/userModel'); // 💡 ใช้ตัวแปร
 const generateToken = require('../utils/generateToken');
 const sendEmail = require('../utils/sendEmail');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 // --- CRUD Operations ---
 
@@ -30,22 +31,91 @@ exports.createUser = async (req, res) => {
     try {
         const { name, email, phone, password } = req.body;
 
+        // 1. Validate ข้อมูลเบื้องต้น
         if (!name || !email || !phone || !password) {
-            return res.status(400).json({ message: "ข้อมูลไม่ครบถ้วน กรุณาใส่ ชื่อ, อีเมล, เบอร์โทรศัพท์ และรหัสผ่าน" });
+            return res.status(400).json({ message: "ข้อมูลไม่ครบถ้วน" });
         }
 
-        const newUser = await require('../services/userService').createUser(req.body);
+        // 2. เช็คก่อนว่ามีอีเมลนี้ในระบบหรือยัง (กัน User รอเก้อ)
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: "อีเมลนี้ถูกใช้งานแล้ว" });
+        }
 
-        const userResponse = newUser.toObject();
-        delete userResponse.password;
+        // 3. สร้าง JWT Token โดย "ยัด" ข้อมูล User เข้าไปข้างใน (Stateless)
+        // หมายเหตุ: ข้อมูลนี้จะลอยอยู่ใน Token จนกว่า User จะกดยืนยัน
+        // เราตั้งเวลาหมดอายุไว้ 30 นาที (15-30 นาที กำลังดี)
+        const verificationToken = jwt.sign(
+            { name, email, phone, password },
+            process.env.JWT_SECRET,
+            { expiresIn: '30m' }
+        );
 
-        res.status(201).json(userResponse);
+        // 4. สร้าง Link สำหรับยืนยัน (ชี้ไปที่ Frontend หน้าใหม่ที่เราต้องทำ)
+        // เช่น http://localhost:3000/verify-email?token=...
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+
+        // 5. ส่งอีเมล
+        const message = `
+            <h1>ยืนยันการสมัครสมาชิก</h1>
+            <p>กรุณากดที่ลิงก์ด้านล่างเพื่อยืนยันตัวตนและเปิดใช้งานบัญชี (ลิงก์มีอายุ 30 นาที):</p>
+            <a href="${verificationUrl}" clicktracking=off>ยืนยันอีเมล</a>
+        `;
+
+        await sendEmail({
+            to: email,
+            subject: 'ยืนยันอีเมลเพื่อสมัครสมาชิก',
+            html: message
+        });
+
+        // 6. ตอบกลับ Frontend (ยังไม่ Create User จริง)
+        res.status(200).json({
+            message: `ส่งอีเมลยืนยันไปที่ ${email} แล้ว กรุณาตรวจสอบกล่องจดหมายของคุณ`
+        });
 
     } catch (error) {
-        if (error.code === 11000) {
-            return res.status(400).json({ message: "Email already exists" });
+        console.error(error);
+        res.status(500).json({ message: "เกิดข้อผิดพลาด: " + error.message });
+    }
+};
+
+exports.verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.body;
+        console.log("Token received:", token); 
+
+        if (!token) return res.status(400).json({ message: "ไม่พบ Token" });
+
+        // 1. แกะ Token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const { name, email, phone, password } = decoded;
+
+        // 2. เช็คว่ามี User อยู่แล้วหรือยัง (Check ซ้ำอีกที)
+        const userExists = await User.findOne({ email });
+        
+        if (userExists) {
+            // 🔥 ถ้ามีอยู่แล้ว ให้ถือว่ายืนยันสำเร็จไปเลย หรือบอกว่าเคยยืนยันแล้ว
+            return res.status(200).json({ message: "บัญชีนี้ถูกยืนยันและสร้างไปแล้ว สามารถ Login ได้เลย" });
         }
-        res.status(500).json({ message: error.message });
+
+        // 3. สร้าง User ใหม่
+        await User.create({ name, email, phone, password });
+
+        res.status(201).json({ message: "ยืนยันตัวตนสำเร็จ! บัญชีถูกสร้างเรียบร้อยแล้ว" });
+
+    } catch (error) {
+        console.error("Error Detail:", error);
+
+        // 🔥 ดัก Error E11000 (Duplicate Key) เผื่อหลุดมาถึงตรงนี้
+        if (error.code === 11000) {
+             return res.status(200).json({ message: "บัญชีนี้มีอยู่ในระบบแล้ว (อาจจะยืนยันไปแล้ว) เข้าสู่ระบบได้เลย" });
+        }
+
+        if (error.name === 'TokenExpiredError') {
+            return res.status(400).json({ message: "ลิงก์ยืนยันหมดอายุแล้ว กรุณาสมัครใหม่" });
+        }
+        
+        res.status(400).json({ message: "ลิงก์ยืนยันไม่ถูกต้อง" });
     }
 };
 

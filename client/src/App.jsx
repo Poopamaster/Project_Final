@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar";
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import PaymentPage from './pages/PaymentPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import MoviePage from './pages/MoviePage';
 import './style.css';
 
@@ -62,11 +63,13 @@ const GoogleAuthHandler = () => {
     const { login } = useContext(AuthContext);
 
     useEffect(() => {
+        if (location.pathname === '/verify-email') return;
+        
         const params = new URLSearchParams(location.search);
         const tokenFromUrl = params.get('token');
+        
 
         if (tokenFromUrl) {
-            // console.log("✅ Google Token Detected:", tokenFromUrl);
 
             try {
                 const base64Url = tokenFromUrl.split('.')[1];
@@ -77,10 +80,7 @@ const GoogleAuthHandler = () => {
                 
                 const decoded = JSON.parse(jsonPayload);
                 
-                // 🔍 เช็คดูว่าใน Token มีข้อมูลอะไรบ้าง (สำคัญมาก)
-                console.log("🔓 Decoded Google Token Payload:", decoded); 
                 
-                // สร้าง object user (แก้ตรงนี้)
                 const userData = {
                     _id: decoded.id || decoded._id, // เผื่อ key ไม่ตรง
                     role: decoded.role || 'user',
@@ -127,6 +127,7 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
                 <Route path="/movies" element={<MoviePage />} />
 
                 <Route

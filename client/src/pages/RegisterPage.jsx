@@ -2,20 +2,20 @@
 
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { registerUser } from "../api/userApi"; 
-import "../css/LoginPage.css"; 
+import { registerUser } from "../api/userApi";
+import "../css/LoginPage.css";
 
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 
 // Regex สำหรับตรวจสอบความแข็งแกร่งของรหัสผ่าน
 // ต้องมี 8 ตัวอักษรขึ้นไป และประกอบด้วย: พิมพ์เล็ก, พิมพ์ใหญ่, ตัวเลข
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/; 
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
 
 // ฟังก์ชันตรวจสอบความแข็งแกร่งเพื่อแสดงผล (Strength Status)
 const checkPasswordStrength = (password) => {
   if (password.length < 8) return { text: "ต้องมีอย่างน้อย 8 ตัวอักษร", color: "red" };
-  
+
   let score = 0;
   if (/[a-z]/.test(password)) score++;
   if (/[A-Z]/.test(password)) score++;
@@ -23,16 +23,16 @@ const checkPasswordStrength = (password) => {
 
   if (score === 3) return { text: "แข็งแกร่งมาก", color: "green" };
   if (score === 2) return { text: "ปานกลาง (แนะนำเพิ่มพิมพ์ใหญ่/ตัวเลข)", color: "orange" };
-  
+
   return { text: "อ่อนแอ", color: "red" };
 };
 
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
-    name: "", 
+    name: "",
     email: "",
-    phone: "", 
+    phone: "",
     password: "",
     confirmPassword: "", // <--- เพิ่ม Field ยืนยันรหัสผ่าน
   });
@@ -56,7 +56,7 @@ const RegisterPage = () => {
     e.preventDefault();
     setLoading(true);
     setAlertConfig({ type: '', message: '' });
-    
+
     // 1. ตรวจสอบ Confirm Password Match
     if (formData.password !== formData.confirmPassword) {
       setAlertConfig({ type: 'error', message: 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน' });
@@ -66,26 +66,29 @@ const RegisterPage = () => {
 
     // 2. ตรวจสอบความแข็งแกร่งด้วย Regex
     if (!passwordRegex.test(formData.password)) {
-      setAlertConfig({ 
-          type: 'error', 
-          message: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และประกอบด้วยตัวอักษรพิมพ์เล็ก, พิมพ์ใหญ่, และตัวเลข' 
+      setAlertConfig({
+        type: 'error',
+        message: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และประกอบด้วยตัวอักษรพิมพ์เล็ก, พิมพ์ใหญ่, และตัวเลข'
       });
       setLoading(false);
       return;
     }
-    
+
     // 3. เตรียมข้อมูลสำหรับส่งไป Backend (ไม่ส่ง confirmPassword)
     const userDataToSend = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password,
     };
-    
+
     try {
       const data = await registerUser(userDataToSend);
 
-      setAlertConfig({ type: 'success', message: 'สมัครสมาชิกสำเร็จ! กำลังพาไปหน้า Login...' });
+      setAlertConfig({
+        type: 'success',
+        message: 'ส่งลิงก์ยืนยันไปที่อีเมลแล้ว! กรุณาตรวจสอบอีเมลภายใน 30 นาที'
+      });
 
       setTimeout(() => {
         navigate("/login");
@@ -119,7 +122,7 @@ const RegisterPage = () => {
         <form onSubmit={handleSubmit} className="login-form">
           {/* Field: ชื่อ, อีเมล, เบอร์โทรศัพท์ (เหมือนเดิม) */}
           {/* ... */}
-          
+
           {/* Field: ชื่อ */}
           <div className="form-group">
             <label htmlFor="name">ชื่อ-นามสกุล</label>
@@ -151,19 +154,19 @@ const RegisterPage = () => {
               required
               className="form-input"
             />
-             {/* Feedback ความแข็งแกร่ง */}
+            {/* Feedback ความแข็งแกร่ง */}
             {strengthStatus && (
-                <p style={{ 
-                    color: strengthStatus.color, 
-                    fontSize: '0.8rem', 
-                    marginTop: '0.2rem',
-                    fontWeight: 'bold'
-                }}>
-                    ความแข็งแกร่ง: {strengthStatus.text}
-                </p>
+              <p style={{
+                color: strengthStatus.color,
+                fontSize: '0.8rem',
+                marginTop: '0.2rem',
+                fontWeight: 'bold'
+              }}>
+                ความแข็งแกร่ง: {strengthStatus.text}
+              </p>
             )}
           </div>
-          
+
           {/* Field: ยืนยันรหัสผ่าน */}
           <div className="form-group">
             <label htmlFor="confirmPassword">ยืนยันรหัสผ่าน</label>
@@ -178,9 +181,9 @@ const RegisterPage = () => {
             />
             {/* Feedback การไม่ตรงกัน */}
             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                <p style={{ color: 'red', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                    รหัสผ่านไม่ตรงกัน
-                </p>
+              <p style={{ color: 'red', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+                รหัสผ่านไม่ตรงกัน
+              </p>
             )}
           </div>
 

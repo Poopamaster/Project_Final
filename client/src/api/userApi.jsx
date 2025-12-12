@@ -32,3 +32,9 @@ export const resetPassword = async (token, newPassword) => {
     }); 
     return response.data;
 };
+
+export const verifyEmail = async (token) => {
+    // ยิงไปที่ /users/verify-email (Base URL จะจัดการ path ข้างหน้าให้เอง)
+    const response = await axiosInstance.post('/users/verify-email', { token });
+    return response.data;
+};
