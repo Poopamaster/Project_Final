@@ -10,6 +10,8 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import PaymentPage from './pages/PaymentPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import MoviePage from './pages/MoviePage';
+import BookingPage from './pages/BookingPage';
+import SeatSelectionPage from "./pages/SeatSelectionPage";
 import './style.css';
 
 export const AuthContext = createContext(null);
@@ -20,11 +22,12 @@ const AuthProvider = ({ children }) => {
         return storedUser ? JSON.parse(storedUser) : null;
     });
 
-    // เช็ค token เริ่มต้น (ใช้ key 'jwtToken' ตามที่คุณใช้ใน login function)
-    const [isLoggedIn, setIsLoggedIn] = useState(() => {
-        const token = localStorage.getItem('jwtToken');
-        return token && token !== 'undefined' && token !== 'null';
+    // เช็ค token เริ่มต้น (เปิดโหมด Login ค้างไว้ตามที่คุณตั้งค่ามา)
+   const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    const token = localStorage.getItem('jwtToken');
+    return token && token !== 'undefined' && token !== 'null';
     });
+
 
     const login = (token, userData) => {
         localStorage.setItem('jwtToken', token);
@@ -56,7 +59,7 @@ const AuthGuard = ({ children }) => {
     return children;
 };
 
-// ✅ Component ใหม่: สำหรับดักจับ Token จาก Google URL
+// Component สำหรับดักจับ Token จาก Google URL
 const GoogleAuthHandler = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -68,9 +71,7 @@ const GoogleAuthHandler = () => {
         const params = new URLSearchParams(location.search);
         const tokenFromUrl = params.get('token');
         
-
         if (tokenFromUrl) {
-
             try {
                 const base64Url = tokenFromUrl.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -80,14 +81,10 @@ const GoogleAuthHandler = () => {
                 
                 const decoded = JSON.parse(jsonPayload);
                 
-                
                 const userData = {
-                    _id: decoded.id || decoded._id, // เผื่อ key ไม่ตรง
+                    _id: decoded.id || decoded._id,
                     role: decoded.role || 'user',
-                    
-                    // ✅ แก้ไข: ดึงชื่อจริงออกมา (เช็คหลายๆ key เผื่อ backend ส่งมาต่างกัน)
                     name: decoded.name || decoded.displayName || decoded.username || decoded.email.split('@')[0], 
-                    
                     email: decoded.email || "Google Account"
                 };
 
@@ -103,9 +100,15 @@ const GoogleAuthHandler = () => {
     return null;
 };
 
+// --- 2. ปรับ NavbarController ---
 const NavbarController = () => {
     const location = useLocation();
-    if (location.pathname === '/chatbot' || location.pathname === '/movies') {
+    
+    // ซ่อน Navbar กลาง เมื่ออยู่หน้าเหล่านี้ (เพราะในหน้านั้นมี Navbar ของตัวเองแล้ว หรือไม่ต้องการให้โชว์)
+    if (location.pathname === '/chatbot' || 
+        location.pathname === '/movies' ||
+        location.pathname.startsWith('/booking') // ดักจับทุกหน้าที่ขึ้นต้นด้วย /booking
+       ) {
         return null;
     }
     return <Navbar />;
@@ -114,7 +117,6 @@ const NavbarController = () => {
 function App() {
     return (
         <AuthProvider>
-            {/* ✅ ใส่ GoogleAuthHandler ไว้ตรงนี้เพื่อดักจับ URL ทุกหน้า */}
             <GoogleAuthHandler />
 
             <div style={{ fontFamily: 'Prompt' }}>
@@ -128,7 +130,16 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/booking" element={<BookingPage />} />
+                <Route path="/seat-selection" element={<SeatSelectionPage />} />
+                
+                {/* หน้าดูรายการหนังรวม */}
                 <Route path="/movies" element={<MoviePage />} />
+
+                {/* --- 3. เพิ่ม Route สำหรับ Flow การจอง --- */}
+                {/* หน้าเลือกรอบฉาย (รับ ID หนัง) */}
+                <Route path="/booking/:id" element={<BookingPage />} />
+                
 
                 <Route
                     path="/chatbot"

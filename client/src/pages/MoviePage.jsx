@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import Navbar from '../components/Navbar'; // ดึง Navbar เดิมของคุณมาใช้
+import { useNavigate } from 'react-router-dom'; // 1. เพิ่ม import นี้
+import Navbar from '../components/Navbar';
 import { movies } from '../data/movies';
 import '../css/MoviePage.css';
 
 function MoviePage() {
+  const navigate = useNavigate(); // 2. ประกาศตัวแปรสำหรับเปลี่ยนหน้า
   const [activeTab, setActiveTab] = useState('now_showing');
 
   // กรองหนังตามแท็บที่เลือก
   const filteredMovies = movies.filter(movie => movie.status === activeTab);
+
+  const handleBooking = (movie) => {
+    // 3. ฟังก์ชันสั่งเปลี่ยนหน้า และส่งข้อมูลหนัง (movie) ไปด้วย
+    navigate('/booking', { state: { movie } });
+  };
 
   return (
     <div className="movie-page-container">
@@ -63,7 +70,15 @@ function MoviePage() {
                     <span>⏰ {movie.duration}</span>
                 </div>
                 <div className="audio-badge">🔊 {movie.audio}</div>
-                <button className="detail-btn">ดูเพิ่มเติม</button>
+                
+                {/* 4. แก้ไขปุ่มให้เรียกใช้ฟังก์ชัน handleBooking */}
+                <button 
+                  className="detail-btn"
+                  onClick={() => handleBooking(movie)}
+                >
+                  ดูเพิ่มเติม
+                </button>
+                
               </div>
             </div>
           ))}
