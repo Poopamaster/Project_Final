@@ -7,9 +7,9 @@ body {
     margin: 0;
 }
 
-/* --- ส่วนแถบค้นหา (Search Bar) แก้ไขใหม่ --- */
+/* --- ส่วนแถบค้นหา (Search Bar) --- */
 .filter-section {
-    background-color: #F5F5F5; /* แถบสีเทาอ่อน */
+    background-color: #F5F5F5;
     padding: 30px 0;
     display: flex;
     justify-content: center;
@@ -18,25 +18,22 @@ body {
 
 .search-box {
     background: white;
-    /* ปรับระยะขอบใหม่ให้พอดี */
     padding: 5px 10px 5px 25px; 
     border-radius: 50px; 
     display: flex;
     align-items: center;
     gap: 15px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    height: 50px; /* ล็อคความสูงกล่องให้เป๊ะ */
+    height: 50px;
     border: 1px solid #ddd;
 }
 
 .dropdown {
-    /* 3 บรรทัดนี้สำคัญมาก! ล้างค่าปุ่มสีเทาๆ ของเครื่องออก */
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-
     border: none;
-    background: transparent; /* พื้นหลังใส */
+    background: transparent;
     font-size: 1rem;
     color: #333;
     font-family: 'Prompt', sans-serif;
@@ -44,8 +41,6 @@ body {
     outline: none;
     min-width: 160px;
     height: 100%;
-    
-    /* สร้างลูกศรขึ้นมาเอง */
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
     background-repeat: no-repeat;
     background-position: right center;
@@ -53,7 +48,6 @@ body {
     padding-right: 20px;
 }
 
-/* เส้นขีดคั่นกลางระหว่าง 2 ช่อง */
 .dropdown:first-of-type {
     border-right: 1px solid #ddd;
     border-radius: 0;
@@ -63,7 +57,7 @@ body {
     background-color: #2D9CDB;
     color: white;
     border: none;
-    height: 40px; /* ความสูงปุ่ม */
+    height: 40px;
     padding: 0 30px;
     border-radius: 30px;
     cursor: pointer;
@@ -93,7 +87,6 @@ body {
     margin-bottom: 20px;
 }
 
-/* Tabs เลือกเมนู */
 .tabs {
     display: flex;
     justify-content: center;
@@ -113,7 +106,7 @@ body {
 }
 
 .tab-btn.active {
-    color: #7B61FF; /* สีม่วง */
+    color: #7B61FF;
     border-bottom: 3px solid #7B61FF;
     font-weight: bold;
 }
@@ -125,12 +118,14 @@ body {
     margin-top: -2px;
 }
 
-/* --- การ์ดหนัง (Movie Card) --- */
+/* --- ส่วนที่แก้ไข: การ์ดหนัง (Movie Card) --- */
 .movie-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 40px;
     justify-content: center;
+    /* เพิ่ม: จัด layout grid ให้สวยขึ้น */
+    align-items: stretch; 
 }
 
 .movie-card {
@@ -138,22 +133,25 @@ body {
     border-radius: 20px;
     overflow: hidden;
     transition: transform 0.3s ease;
-    position: relative;
-    text-align: left;
+    
+    /* --- แก้ไขจุดที่ 1: ใช้ Flexbox จัดการ์ดแนวตั้ง --- */
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* บังคับให้การ์ดสูงเท่าเพื่อนในแถวเดียวกัน */
 }
 
 .movie-card:hover {
     transform: translateY(-10px);
-    z-index: 10;
 }
 
 .poster-wrapper {
-    height: 420px;
+    /* ปรับความสูงรูปให้พอดี ไม่สูงเกินไปจนเบียดเนื้อหา */
+    height: 400px; 
     width: 100%;
     border-radius: 20px;
     overflow: hidden;
-    position: relative;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    flex-shrink: 0; /* ห้ามรูปหด */
 }
 
 .poster-img {
@@ -165,12 +163,19 @@ body {
 .movie-info {
     margin-top: 15px;
     padding: 0 5px;
+    
+    /* --- แก้ไขจุดที่ 2: จัดเนื้อหาด้านล่าง --- */
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* สั่งให้ส่วนนี้ยืดจนเต็มพื้นที่ที่เหลือ */
 }
 
 .movie-title {
     font-size: 1.2rem;
     font-weight: 600;
     margin: 10px 0 5px 0;
+    
+    /* ตัดคำถ้าชื่อยาวเกิน 1 บรรทัด */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -179,7 +184,7 @@ body {
 .movie-meta {
     font-size: 0.9rem;
     color: #bbb;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 
 .detail-btn {
@@ -191,7 +196,9 @@ body {
     border-radius: 10px;
     font-weight: bold;
     cursor: pointer;
-    margin-top: 10px;
+    
+    /* --- แก้ไขจุดที่ 3: ดันปุ่มลงล่างสุดเสมอ --- */
+    margin-top: auto; 
 }
 
 .detail-btn:hover {
