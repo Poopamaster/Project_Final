@@ -22,11 +22,8 @@ const AuthProvider = ({ children }) => {
         return storedUser ? JSON.parse(storedUser) : null;
     });
 
-    // เช็ค token เริ่มต้น (เปิดโหมด Login ค้างไว้ตามที่คุณตั้งค่ามา)
-   const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    const token = localStorage.getItem('jwtToken');
-    return token && token !== 'undefined' && token !== 'null';
-    });
+    // เช็ค token เริ่มต้น
+   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
 
     const login = (token, userData) => {
@@ -104,10 +101,11 @@ const GoogleAuthHandler = () => {
 const NavbarController = () => {
     const location = useLocation();
     
-    // ซ่อน Navbar กลาง เมื่ออยู่หน้าเหล่านี้ (เพราะในหน้านั้นมี Navbar ของตัวเองแล้ว หรือไม่ต้องการให้โชว์)
+    // ซ่อน Navbar กลาง เมื่ออยู่หน้าเหล่านี้
     if (location.pathname === '/chatbot' || 
         location.pathname === '/movies' ||
-        location.pathname.startsWith('/booking') // ดักจับทุกหน้าที่ขึ้นต้นด้วย /booking
+        location.pathname === '/payment' || // <--- เพิ่ม payment เข้าไป เพื่อไม่ให้ Navbar ซ้อนกัน
+        location.pathname.startsWith('/booking')
        ) {
         return null;
     }
@@ -130,17 +128,14 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
+                
+                {/* Flow การจอง */}
                 <Route path="/booking" element={<BookingPage />} />
                 <Route path="/seat-selection" element={<SeatSelectionPage />} />
-                
-                {/* หน้าดูรายการหนังรวม */}
                 <Route path="/movies" element={<MoviePage />} />
-
-                {/* --- 3. เพิ่ม Route สำหรับ Flow การจอง --- */}
-                {/* หน้าเลือกรอบฉาย (รับ ID หนัง) */}
                 <Route path="/booking/:id" element={<BookingPage />} />
                 
-
+                {/* หน้า Chatbot ยังคงต้อง Login */}
                 <Route
                     path="/chatbot"
                     element={
@@ -149,14 +144,10 @@ function App() {
                         </AuthGuard>
                     }
                 />
-                <Route
-                    path="/payment"
-                    element={
-                        <AuthGuard>
-                            <PaymentPage />
-                        </AuthGuard>
-                    }
-                />
+                
+                {/* --- แก้ไข: เอา AuthGuard ออก เพื่อให้เข้า Payment ได้เลย --- */}
+                <Route path="/payment" element={<PaymentPage />} />
+
             </Routes>
         </AuthProvider>
     );

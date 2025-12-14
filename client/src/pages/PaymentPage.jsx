@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // <<< นำเข้า useNavigate
+import { useNavigate } from 'react-router-dom'; 
 import { createPromptPayQR, checkPaymentStatus } from '../api/paymentApi';
 import Navbar from '../components/Navbar'; 
-import { CheckCircle, RefreshCw, ArrowRight, XCircle, Clock } from 'lucide-react'; // เพิ่ม Clock icon
+import { CheckCircle, RefreshCw, ArrowRight, XCircle, Clock } from 'lucide-react'; 
 import '../css/paymentPage.css'; 
 
 const PaymentPage = () => {
@@ -13,15 +13,16 @@ const PaymentPage = () => {
     const [chargeId, setChargeId] = useState(null);
     const [status, setStatus] = useState('idle'); // idle, pending, successful, failed
     const [loading, setLoading] = useState(false);
-    const [isChecking, setIsChecking] = useState(false); // สถานะสำหรับปุ่มตรวจสอบ
+    const [isChecking, setIsChecking] = useState(false); 
 
-const handleGenerateQR = async () => {
+    const handleGenerateQR = async () => {
         if (!amount || amount <= 0) return alert("กรุณาระบุจำนวนเงิน");
         
         setLoading(true);
         setStatus('idle');
         try {
-            const mockBookingId = "6578a9b1c2d3e4f5a6b7c8d9"; // <--- เปลี่ยนเป็น ID จริงจาก DB คุณ
+            // ✅ ใช้ ID จำลองที่ถูกต้อง (24 ตัวอักษร) เพื่อป้องกัน Error 500
+            const mockBookingId = "6578a9b1c2d3e4f5a6b7c8d9"; 
 
             const data = await createPromptPayQR(parseFloat(amount), mockBookingId);
             
@@ -62,7 +63,7 @@ const handleGenerateQR = async () => {
         if (!chargeId) return;
         
         if (status === 'successful') {
-            navigate('/history'); // 🚀 นำทางไปที่ /history
+            navigate('/history'); 
             return;
         }
 
@@ -83,13 +84,10 @@ const handleGenerateQR = async () => {
         }
     };
 
-
     return (
         <div className="payment-page-container">
-            
             <div className="payment-card-wrapper">
                 <div className="payment-card">
-                    
                     <div className="card-header">
                         <h2>ชำระเงินผ่าน PromptPay</h2>
                         <p>Secure Payment by Omise</p>
@@ -104,12 +102,11 @@ const handleGenerateQR = async () => {
                             <p className="state-message">รายการจองของคุณได้รับการยืนยันแล้ว</p>
                             
                             <button 
-                                onClick={handleCheckAndProceed} // จะนำทางไปที่ /history
+                                onClick={handleCheckAndProceed} 
                                 className="btn-proceed"
                             >
                                 ไปที่ประวัติการจอง <Clock size={20} style={{ marginLeft: '5px' }} />
                             </button>
-                            
                         </div>
                     ) : status === 'failed' ? (
                         <div className="failed-state">
