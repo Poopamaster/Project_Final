@@ -7,7 +7,6 @@ import RegisterPage from './pages/RegisterPage';
 import Navbar from "./components/Navbar";
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import PaymentPage from './pages/PaymentPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import MoviePage from './pages/MoviePage';
 import BookingPage from './pages/BookingPage';
@@ -145,9 +144,6 @@ function App() {
                     }
                 />
                 
-                {/* --- แก้ไข: เอา AuthGuard ออก เพื่อให้เข้า Payment ได้เลย --- */}
-                <Route path="/payment" element={<PaymentPage />} />
-
             </Routes>
         </AuthProvider>
     );

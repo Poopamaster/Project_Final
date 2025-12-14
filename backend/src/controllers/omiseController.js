@@ -4,6 +4,7 @@ const omise = require('omise')({
     'secretKey': process.env.OMISE_SECRET_KEY
 });
 const Payment = require('../models/paymentModel'); // Import Model
+const axios = require('axios'); // ✅ เพิ่มบรรทัดนี้ด้านบนสุด
 
 exports.createPromptPayQR = async (req, res) => {
     // 1. รับ bookingId มาด้วย (เพราะ Schema บังคับว่าต้องมี)
@@ -78,5 +79,58 @@ exports.checkChargeStatus = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+exports.simulatePaymentSuccess = async (req, res) => {
+    const { chargeId } = req.body;
+
+    if (!chargeId) {
+        return res.status(400).json({ message: "Charge ID is required" });
+    }
+
+    try {
+        // ✅ เปลี่ยนมาใช้ axios ยิงตรงไปที่ Omise API
+        // เหมือนกับการใช้คำสั่ง curl ที่คุณเคยส่งมา
+        const omiseResponse = await axios.post(
+            `https://api.omise.co/charges/${chargeId}/mark_as_paid`,
+            {}, // body ว่างเปล่า
+            {
+                auth: {
+                    username: process.env.OMISE_SECRET_KEY, // ใช้ Secret Key
+                    password: '' // Password ปล่อยว่าง
+                }
+            }
+        );
+
+        // ถ้าสำเร็จ Omise จะส่ง status: 'successful' กลับมา
+        if (omiseResponse.data.status === 'successful') {
+            
+            // อัปเดต Database ของเรา
+            const updatedPayment = await Payment.findOneAndUpdate(
+                { charge_id: chargeId },
+                { status: 'success' }, 
+                { new: true }
+            );
+
+            console.log(`[SIMULATION] Charge ${chargeId} marked as paid.`);
+
+            return res.status(200).json({
+                message: "Simulation Success",
+                data: updatedPayment
+            });
+        } else {
+            return res.status(400).json({ 
+                message: "Omise status update failed", 
+                omiseStatus: omiseResponse.data.status 
+            });
+        }
+
+    } catch (error) {
+        console.error("Simulation Error:", error.response ? error.response.data : error.message);
+        res.status(500).json({ 
+            message: "Simulation failed",
+            detail: error.response ? error.response.data : error.message
+        });
     }
 };

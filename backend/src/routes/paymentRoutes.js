@@ -8,5 +8,6 @@ router.post('/create-qr', omiseController.createPromptPayQR);
 router.post('/webhook', webhookController.handleOmiseWebhook);
 router.post('/create-qr', omiseController.createPromptPayQR);
 router.get('/status/:chargeId', omiseController.checkChargeStatus);
+router.post('/simulate-success', omiseController.simulatePaymentSuccess);
 
 module.exports = router;

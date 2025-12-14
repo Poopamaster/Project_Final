@@ -1,0 +1,219 @@
+/* src/css/PaymentSection.css */
+
+/* กล่องหลัก */
+.payment-card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: row;
+    gap: 40px;
+    align-items: stretch;
+    justify-content: space-between;
+    max-width: 100%;
+    width: 100%;
+    min-height: 350px;
+    box-sizing: border-box;
+}
+
+/* ฝั่งซ้าย: ข้อมูล */
+.payment-info-side {
+    flex: 1;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+}
+
+.payment-title {
+    color: #000;
+    margin-bottom: 10px;
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.payment-subtitle {
+    color: #888;
+    font-size: 1rem;
+    margin-bottom: auto;
+}
+
+.amount-box {
+    background: #ECFDF5;
+    padding: 25px;
+    border-radius: 15px;
+    margin: 20px 0;
+    border: 1px solid #10B981;
+}
+
+.amount-text {
+    color: #047857;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.instruction-text {
+    color: #555;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    white-space: pre-line; /* รองรับ \n */
+}
+
+/* ฝั่งขวา: Action Zone */
+.payment-action-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid #eee;
+    padding-left: 40px;
+    position: relative;
+}
+
+/* Loading State */
+.loading-state {
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+}
+
+/* QR Code Wrapper */
+.qr-wrapper {
+    padding: 10px;
+    background: white;
+    border-radius: 15px;
+    border: 1px solid #eee;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    margin-bottom: 15px;
+    display: inline-block;
+}
+
+.qr-image {
+    width: 200px;
+    display: block;
+    border-radius: 10px;
+}
+
+.waiting-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #2563EB;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+/* Buttons */
+.btn-demo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin: 0 auto 10px auto;
+    padding: 10px 20px;
+    background: #10B981;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);
+    transition: background 0.2s;
+}
+
+.btn-demo:hover {
+    background: #059669;
+}
+
+.btn-demo:disabled {
+    background: #6EE7B7;
+    cursor: not-allowed;
+}
+
+.btn-cancel {
+    background: none;
+    border: none;
+    color: #EF4444;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-history {
+    padding: 12px 30px;
+    background: #2563EB;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+    transition: transform 0.2s;
+}
+
+.btn-history:hover {
+    transform: scale(1.05);
+}
+
+.btn-retry {
+    padding: 10px 25px;
+    background: #EF4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* Animations */
+.spin-animation {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.success-container {
+    animation: popIn 0.5s ease-out;
+    text-align: center;
+}
+
+.success-title {
+    color: #10B981;
+    font-size: 1.6rem;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.success-desc {
+    color: #6B7280;
+    margin-bottom: 25px;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .payment-card {
+        flex-direction: column;
+        gap: 20px;
+        height: auto;
+    }
+    .payment-action-side {
+        border-left: none;
+        border-top: 1px solid #eee;
+        padding-left: 0;
+        padding-top: 20px;
+    }
+}
