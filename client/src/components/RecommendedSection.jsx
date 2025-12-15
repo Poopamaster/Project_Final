@@ -10,11 +10,20 @@ const RecommendedSection = () => {
   const [error, setError] = useState(null);
 
   // ✅ 2. ดึงข้อมูลเมื่อโหลดหน้าเว็บ
+// ✅ 2. ดึงข้อมูลเมื่อโหลดหน้าเว็บ
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getAllMovies(); // เรียกใช้ฟังก์ชันจาก movieApi.js
-        setMovies(data);
+        const response = await getAllMovies(); // เปลี่ยนชื่อตัวแปรเป็น response ให้ไม่งง
+        
+        // --- แก้ตรงนี้ครับ ---
+        // เช็คก่อนว่า response มี field .data หรือไม่ (เผื่อ API ส่งมาต่างกัน)
+        if (response.data) {
+             setMovies(response.data); // เจาะเอา Array ออกมา
+        } else {
+             setMovies(response); // กรณีที่ API ส่ง Array มาตรงๆ (เผื่อไว้)
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error("Failed to load movies:", err);

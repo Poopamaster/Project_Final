@@ -7,6 +7,11 @@ const logger = require('./middleware/logger');
 const paymentRoutes = require('./routes/paymentRoutes');
 const mcpRoutes = require("./routes/mcpRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
+const showtimeRoutes = require('./routes/showtimeRoutes');
+const cinemaRoutes = require('./routes/cinemaRoutes');
+const auditoriumRoutes = require('./routes/auditoriumRoutes');
+const seatRoutes = require('./routes/seatRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
 
 const app = express();
 
@@ -21,8 +26,13 @@ app.use(logger);
 
 // Routes
 app.use('/api/movies', movieRoutes); // เพิ่ม Endpoint หนัง
+app.use('/api/showtimes', showtimeRoutes);
+app.use('/api/cinemas', cinemaRoutes);
+app.use('/api/auditoriums', auditoriumRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/seats', seatRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 app.use("/api/mcp", mcpRoutes);
 app.use("/api/chatbot", chatbotRoutes);
