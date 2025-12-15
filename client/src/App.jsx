@@ -15,6 +15,28 @@ import './style.css';
 
 export const AuthContext = createContext(null);
 
+const isTokenExpired = (token) => {
+    if (!token) return true;
+    try {
+        // 1. แกะ Payload (ส่วนกลางของ JWT)
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        const decoded = JSON.parse(jsonPayload);
+        
+        // 2. เช็คเวลา (exp คือวินาที ต้องคูณ 1000 เป็นมิลลิวินาที)
+        // ถ้าเวลาหมดอายุ น้อยกว่า เวลาปัจจุบัน แปลว่า "หมดอายุแล้ว"
+        if (!decoded.exp) return true;
+        return (decoded.exp * 1000) < Date.now();
+
+    } catch (error) {
+        return true; // ถ้าแกะไม่ได้ ตีว่าหมดอายุไว้ก่อน
+    }
+};
+
 const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {
         const storedUser = localStorage.getItem('user');
@@ -22,7 +44,7 @@ const AuthProvider = ({ children }) => {
     });
 
     // เช็ค token เริ่มต้น
-   const [isLoggedIn, setIsLoggedIn] = useState(true);
+    const [isLoggedIn, setIsLoggedIn] = useState(true);
 
 
     const login = (token, userData) => {
@@ -40,12 +62,31 @@ const AuthProvider = ({ children }) => {
         setIsLoggedIn(false);
     };
 
+    useEffect(() => {
+    const token = localStorage.getItem('jwtToken');
+    const storedUser = localStorage.getItem('user');
+
+    if (token && storedUser) {
+        if (isTokenExpired(token)) {
+            alert("เซสชันของคุณหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+            logout();
+        } else {
+            setIsLoggedIn(true);
+            setUser(JSON.parse(storedUser));
+        }
+    } else {
+        logout();
+    }
+}, []);
+
     return (
         <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
             {children}
         </AuthContext.Provider>
     );
 };
+
+
 
 const AuthGuard = ({ children }) => {
     const { isLoggedIn } = useContext(AuthContext);
@@ -63,30 +104,30 @@ const GoogleAuthHandler = () => {
 
     useEffect(() => {
         if (location.pathname === '/verify-email') return;
-        
+
         const params = new URLSearchParams(location.search);
         const tokenFromUrl = params.get('token');
-        
+
         if (tokenFromUrl) {
             try {
                 const base64Url = tokenFromUrl.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
                     return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
                 }).join(''));
-                
+
                 const decoded = JSON.parse(jsonPayload);
-                
+
                 const userData = {
                     _id: decoded.id || decoded._id,
                     role: decoded.role || 'user',
-                    name: decoded.name || decoded.displayName || decoded.username || decoded.email.split('@')[0], 
+                    name: decoded.name || decoded.displayName || decoded.username || decoded.email.split('@')[0],
                     email: decoded.email || "Google Account"
                 };
 
                 login(tokenFromUrl, userData);
-                navigate('/'); 
-                
+                navigate('/');
+
             } catch (error) {
                 console.error("Failed to process Google Token:", error);
             }
@@ -99,13 +140,13 @@ const GoogleAuthHandler = () => {
 // --- 2. ปรับ NavbarController ---
 const NavbarController = () => {
     const location = useLocation();
-    
+
     // ซ่อน Navbar กลาง เมื่ออยู่หน้าเหล่านี้
-    if (location.pathname === '/chatbot' || 
+    if (location.pathname === '/chatbot' ||
         location.pathname === '/movies' ||
         location.pathname === '/payment' || // <--- เพิ่ม payment เข้าไป เพื่อไม่ให้ Navbar ซ้อนกัน
         location.pathname.startsWith('/booking')
-       ) {
+    ) {
         return null;
     }
     return <Navbar />;
@@ -127,13 +168,13 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
-                
+
                 {/* Flow การจอง */}
                 <Route path="/booking" element={<BookingPage />} />
                 <Route path="/seat-selection" element={<SeatSelectionPage />} />
                 <Route path="/movies" element={<MoviePage />} />
                 <Route path="/booking/:id" element={<BookingPage />} />
-                
+
                 {/* หน้า Chatbot ยังคงต้อง Login */}
                 <Route
                     path="/chatbot"
@@ -143,7 +184,7 @@ function App() {
                         </AuthGuard>
                     }
                 />
-                
+
             </Routes>
         </AuthProvider>
     );

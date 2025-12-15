@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const omiseController = require('../controllers/omiseController');
+const paymentController = require('../controllers/paymentController');
 const webhookController = require('../controllers/webhookController');
 
-router.post('/create-qr', omiseController.createPromptPayQR);
+router.post('/create-qr', paymentController.createPromptPayQR);
 
 router.post('/webhook', webhookController.handleOmiseWebhook);
-router.post('/create-qr', omiseController.createPromptPayQR);
-router.get('/status/:chargeId', omiseController.checkChargeStatus);
-router.post('/simulate-success', omiseController.simulatePaymentSuccess);
+router.post('/create-qr', paymentController.createPromptPayQR);
+router.get('/status/:chargeId', paymentController.checkChargeStatus);
+router.post('/simulate-success', paymentController.simulatePaymentSuccess);
 
 module.exports = router;

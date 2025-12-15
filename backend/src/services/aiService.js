@@ -52,7 +52,7 @@ exports.chatWithAI = async (user, userMessage, imageBase64) => {
 
     // B. ตั้งค่า Model
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash", // ✅ แนะนำใช้ 1.5-flash ชัวร์ที่สุดสำหรับ Image + Tools
+      model: "gemini-2.5-flash",
       systemInstruction: getSystemPrompt(user),
       tools: [googleTools],
     });
