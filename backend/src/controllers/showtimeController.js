@@ -1,5 +1,6 @@
 const Showtime = require('../models/showtimeModel');
 const Movie = require('../models/movieModel');
+const Seat = require('../models/seatModel');
 
 // 1. สร้างรอบฉาย (Admin)
 exports.createShowtime = async (req, res) => {
@@ -98,6 +99,26 @@ exports.getAllShowtimes = async (req, res) => {
             .sort({ start_time: -1 }); // เรียงจากเวลาล่าสุดมาเก่า
 
         res.status(200).json({ success: true, data: showtimes });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.getShowtimeSeats = async (req, res) => {
+    try {
+        const { id } = req.params; // รับ showtimeId
+
+        // 1. หา Showtime ก่อน เพื่อดูว่าฉายที่โรงไหน (auditorium_id)
+        const showtime = await Showtime.findById(id);
+        if (!showtime) return res.status(404).json({ message: "Showtime not found" });
+
+        // 2. ไปดึงที่นั่งทั้งหมดของโรงนั้นมา
+        // เรียง A->Z และ 1->10
+        const seats = await Seat.find({ auditorium_id: showtime.auditorium_id })
+            .populate('seat_type_id') // เอาข้อมูลราคา/ประเภทมาด้วย
+            .sort({ row_label: 1, seat_number: 1 }); 
+
+        res.status(200).json({ success: true, data: seats });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

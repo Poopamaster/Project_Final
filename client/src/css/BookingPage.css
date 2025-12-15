@@ -34,6 +34,20 @@
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
+.disabled-section {
+    opacity: 0.5; /* ทำให้จางลง */
+    pointer-events: none; /* ⛔️ สำคัญมาก: คำสั่งนี้จะทำให้คลิกอะไรไม่ได้เลยในโซนนี้ */
+    filter: grayscale(80%); /* (Optional) ทำให้เป็นสีเทาๆ */
+    transition: all 0.3s ease;
+}
+
+/* เพิ่มให้ที่นั่งที่ถูกจองแล้ว (Reserved) */
+.seat-icon.taken {
+    background-color: #444 !important;
+    cursor: not-allowed;
+    border: 1px solid #333;
+}
+
 .info-area h1 { margin: 0 0 10px 0; font-size: 1.8rem; color: #0B1120; }
 .meta-text { color: #666; margin-bottom: 20px; }
 .btn-outline {

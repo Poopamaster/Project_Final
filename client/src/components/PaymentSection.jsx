@@ -3,7 +3,7 @@ import { createPromptPayQR, checkPaymentStatus, simulatePaymentSuccess } from '.
 import { CheckCircle, RefreshCw, CheckSquare } from 'lucide-react';
 import '../css/PaymentSection.css'; // ✅ Import CSS ที่นี่
 
-const PaymentSection = ({ amount, onComplete, onCancel }) => {
+const PaymentSection = ({ amount, bookingId, onComplete, onCancel }) => {
     const [qrCode, setQrCode] = useState(null);
     const [chargeId, setChargeId] = useState(null);
     const [status, setStatus] = useState('pending'); // pending, successful, failed
@@ -12,22 +12,31 @@ const PaymentSection = ({ amount, onComplete, onCancel }) => {
 
     // 1. เริ่มสร้าง QR Code
     useEffect(() => {
+        // ✅ เช็คก่อนว่ามี bookingId หรือไม่ ถ้าไม่มีให้หยุดและแจ้ง Error
+        if (!bookingId) {
+            console.error("❌ Missing bookingId in PaymentSection");
+            return;
+        }
+
         const generateQR = async () => {
             try {
-                // Mock ID
-                const mockBookingId = "6578a9b1c2d3e4f5a6b7c8d9";
-                const data = await createPromptPayQR(amount, mockBookingId);
+                setLoadingQR(true);
+                
+                // ✅ ส่ง bookingId ของจริงไปที่ API
+                const data = await createPromptPayQR(amount, bookingId);
+                
                 setQrCode(data.qrCodeUrl);
                 setChargeId(data.chargeId);
                 setLoadingQR(false);
             } catch (error) {
                 console.error("QR Error:", error);
-                alert("สร้าง QR Code ไม่สำเร็จ");
+                alert("สร้าง QR Code ไม่สำเร็จ: " + (error.response?.data?.message || error.message));
                 onCancel();
             }
         };
+
         generateQR();
-    }, [amount, onCancel]);
+    }, [amount, bookingId, onCancel]); // ✅ เพิ่ม bookingId ใน Dependency array
 
     // 2. Polling Check Status
     useEffect(() => {
@@ -60,7 +69,7 @@ const PaymentSection = ({ amount, onComplete, onCancel }) => {
             setStatus('successful');
         } catch (error) {
             console.warn("Simulation Error:", error);
-            setStatus('successful'); // Fallback
+            setStatus('successful'); // Fallback ในกรณี Demo
         } finally {
             setIsSimulating(false);
         }
