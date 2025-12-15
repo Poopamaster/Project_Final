@@ -12,24 +12,24 @@ import { createBooking } from '../api/bookingApi';
 const BookingPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { movie } = location.state || {}; 
-    
+    const { movie } = location.state || {};
+
     const seatSectionRef = useRef(null);
-    const paymentSectionRef = useRef(null); 
+    const paymentSectionRef = useRef(null);
 
     // --- State ---
-    const [dates, setDates] = useState([]); 
+    const [dates, setDates] = useState([]);
     const [selectedDateIndex, setSelectedDateIndex] = useState(0);
-    
-    const [allShowtimes, setAllShowtimes] = useState([]); 
-    const [currentShowtimes, setCurrentShowtimes] = useState([]); 
+
+    const [allShowtimes, setAllShowtimes] = useState([]);
+    const [currentShowtimes, setCurrentShowtimes] = useState([]);
     const [selectedShowtime, setSelectedShowtime] = useState(null);
 
     // ✅ State สำหรับระบบที่นั่ง Database Driven
     const [allSeats, setAllSeats] = useState([]); // เก็บ Object ที่นั่งทั้งหมดที่ได้จาก API
     const [reservedSeats, setReservedSeats] = useState([]); // เก็บ _id ของที่นั่งที่ไม่ว่าง
     const [selectedSeats, setSelectedSeats] = useState([]); // เก็บ _id ของที่นั่งที่เลือก
-    
+
     const [bookingId, setBookingId] = useState(null);
     const [showPayment, setShowPayment] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -68,9 +68,29 @@ const BookingPage = () => {
 
     // 2. Filter รอบฉายตามวันที่
     useEffect(() => {
+        // --- เพิ่มส่วนนี้: ล้างค่าการเลือกทุกครั้งที่เปลี่ยนวัน ---
+        setSelectedShowtime(null);
+        setSelectedSeats([]);
+        setShowPayment(false);
+        setBookingId(null);
+        // --------------------------------------------------
+
         if (dates.length > 0 && allShowtimes.length > 0) {
             const selectedDateStr = dates[selectedDateIndex].fullDate;
-            const filtered = allShowtimes.filter(st => st.start_time.startsWith(selectedDateStr));
+
+            // เพิ่ม Logic กรองเวลาอดีต (ตามที่คุยกันรอบที่แล้ว)
+            const now = new Date();
+            const filtered = allShowtimes.filter(st => {
+                const isSameDate = st.start_time.startsWith(selectedDateStr);
+                if (!isSameDate) return false;
+
+                // ถ้าเป็นหนังวันนี้ ต้องไม่เอาเวลาที่ผ่านไปแล้ว
+                const showtimeDate = new Date(st.start_time);
+                if (showtimeDate < now) return false;
+
+                return true;
+            });
+
             filtered.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
             setCurrentShowtimes(filtered);
         } else {
@@ -89,14 +109,14 @@ const BookingPage = () => {
             // 3.1 ดึงข้อมูลที่นั่งที่ถูกจองแล้ว (Reserved)
             const reservedRes = await getReservedSeats(showtime._id);
             // Backend ควรส่งกลับมาเป็น array ของ ObjectId
-            const reservedIds = reservedRes.bookedSeatIds || reservedRes.reservedSeats || []; 
-            setReservedSeats(reservedIds); 
+            const reservedIds = reservedRes.bookedSeatIds || reservedRes.reservedSeats || [];
+            setReservedSeats(reservedIds);
 
             // 3.2 ✅ ดึงผังที่นั่งทั้งหมดของโรงนี้ (Layout)
             // ต้องมั่นใจว่า Backend มี route /api/showtimes/:id/seats ให้เรียก
             const seatsLayout = await getSeatsByShowtimeId(showtime._id);
             setAllSeats(seatsLayout); // seatsLayout คือ Array ของ Seat Object จาก DB
-            
+
             setTimeout(() => {
                 seatSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
@@ -147,7 +167,7 @@ const BookingPage = () => {
     // 5. Action: ยืนยันการจอง (Create Booking)
     const handleProceed = async () => {
         if (selectedSeats.length === 0) return;
-        
+
         const token = localStorage.getItem('jwtToken');
         if (!token) {
             alert('กรุณาเข้าสู่ระบบก่อนทำการจอง');
@@ -205,10 +225,20 @@ const BookingPage = () => {
         return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
     };
 
+    const getPriceByType = (keyword) => {
+        const foundSeat = allSeats.find(s =>
+            (s.seat_type_id?.name || '').toLowerCase().includes(keyword)
+        );
+        return foundSeat?.seat_type_id?.price || '-'; // ถ้าหาไม่เจอให้โชว์ -
+    };
+
+    const executivePrice = getPriceByType('executive');
+    const normalPrice = getPriceByType('normal');
+
     return (
         <div className="page-container">
             <Navbar />
-            
+
             <div className="booking-content">
                 {/* Header หนัง */}
                 <div className="movie-header-card">
@@ -235,8 +265,8 @@ const BookingPage = () => {
                     {/* ... ส่วนเลือกวันที่ (เหมือนเดิม) ... */}
                     <div className="date-scroll-wrapper">
                         {dates.map((item, index) => (
-                            <div key={index} 
-                                className={`date-item ${selectedDateIndex === index ? 'active' : ''}`} 
+                            <div key={index}
+                                className={`date-item ${selectedDateIndex === index ? 'active' : ''}`}
                                 onClick={() => !showPayment && setSelectedDateIndex(index)}
                             >
                                 <span className="day-name">{item.day}</span>
@@ -245,13 +275,13 @@ const BookingPage = () => {
                         ))}
                     </div>
                     <hr className="divider" />
-                    
+
                     <div className="time-selection-area">
-                         <div className="times-list">
+                        <div className="times-list">
                             {currentShowtimes.length > 0 ? currentShowtimes.map((st) => (
-                                <button 
-                                    key={st._id} 
-                                    className={`time-btn ${selectedShowtime?._id === st._id ? 'active' : ''}`} 
+                                <button
+                                    key={st._id}
+                                    className={`time-btn ${selectedShowtime?._id === st._id ? 'active' : ''}`}
                                     onClick={() => handleTimeSelect(st)}
                                 >
                                     {formatTime(st.start_time)}
@@ -269,7 +299,7 @@ const BookingPage = () => {
                     <div className="seat-section-wrapper" ref={seatSectionRef}>
                         <div className={`seat-layout-card ${showPayment ? 'disabled-section' : ''}`}>
                             <div className="screen-bar">จอภาพยนตร์</div>
-                            
+
                             <div className="seats-container">
                                 {seatsGrouped.length > 0 ? seatsGrouped.map((group) => (
                                     <div key={group.rowLabel} className="seat-row">
@@ -277,21 +307,21 @@ const BookingPage = () => {
                                         {group.seats.map((seat) => {
                                             const isTaken = reservedSeats.includes(seat._id);
                                             const isSelected = selectedSeats.includes(seat._id);
-                                            
-                                            // เช็คประเภทเพื่อเลือก CSS Class (สมมติ DB เก็บชื่อ 'Premium')
-                                            // คุณอาจต้องปรับ logic ให้ตรงกับชื่อใน DB ของคุณ
-                                            const typeName = seat.seat_type_id?.name || 'Normal';
-                                            const seatClass = typeName.toLowerCase().includes('premium') || typeName.toLowerCase().includes('sofa') ? 'executive' : 'standard';
+
+                                            const typeName = (seat.seat_type_id?.name || 'Normal').toLowerCase(); // แปลงเป็นตัวเล็กให้หมดก่อน
+                                            const isSpecialSeat = typeName.includes('executive') || typeName.includes('premium'); // เช็คได้แล้ว
+
+                                            const seatClass = isSpecialSeat ? 'executive' : 'standard';
 
                                             return (
-                                                <div 
+                                                <div
                                                     key={seat._id} // ✅ ใช้ _id เป็น key
-                                                    className={`seat-icon ${seatClass} ${isSelected ? 'selected' : ''} ${isTaken ? 'taken' : ''}`} 
+                                                    className={`seat-icon ${seatClass} ${isSelected ? 'selected' : ''} ${isTaken ? 'taken' : ''}`}
                                                     onClick={() => toggleSeat(seat._id)}
                                                     title={`แถว ${seat.row_label} ที่ ${seat.seat_number} - ${seat.seat_type_id?.price} บาท`}
                                                 >
                                                     {/* แสดงเลขที่นั่ง */}
-                                                    <span style={{fontSize:'10px', color: isSelected || isTaken ? 'white' : 'transparent'}}>
+                                                    <span style={{ fontSize: '10px', color: isSelected || isTaken ? 'white' : 'transparent' }}>
                                                         {seat.seat_number}
                                                     </span>
                                                 </div>
@@ -307,9 +337,18 @@ const BookingPage = () => {
                             </div>
 
                             <div className="seat-legend">
-                                <div className="legend-item"><div className="seat-icon executive"></div> <span>Premium/Sofa</span></div>
-                                <div className="legend-item"><div className="seat-icon standard"></div> <span>Normal</span></div>
-                                <div className="legend-item"><div className="seat-icon taken"></div> <span>ไม่ว่าง</span></div>
+                                <div className="legend-item">
+                                    <div className="seat-icon executive"></div>
+                                    <span>Executive {executivePrice}.-</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="seat-icon standard"></div>
+                                    <span>Normal {normalPrice}.-</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="seat-icon taken"></div>
+                                    <span>ไม่ว่าง</span>
+                                </div>
                             </div>
                         </div>
 
@@ -319,29 +358,29 @@ const BookingPage = () => {
                             <div className="summary-info">
                                 <p>📅 {dates[selectedDateIndex]?.date}</p>
                                 <p>⏰ {formatTime(selectedShowtime.start_time)}</p>
-                                <p>📍 {selectedShowtime.auditorium_id?.name || selectedShowtime.cinema?.name || "Cinema"}</p> 
+                                <p>📍 {selectedShowtime.auditorium_id?.name || selectedShowtime.cinema?.name || "Cinema"}</p>
                             </div>
                             <div className="summary-box">
                                 <div className="summary-row">
-                                    <span>ที่นั่ง:</span> 
+                                    <span>ที่นั่ง:</span>
                                     {/* แสดงชื่อที่นั่งที่เลือก (ต้องหาจาก allSeats) */}
                                     <span className="highlight-text">
-                                        {selectedSeats.length > 0 
+                                        {selectedSeats.length > 0
                                             ? selectedSeats.map(id => {
                                                 const s = allSeats.find(seat => seat._id === id);
                                                 return `${s?.row_label}${s?.seat_number}`;
-                                              }).join(', ')
+                                            }).join(', ')
                                             : '-'
                                         }
                                     </span>
                                 </div>
                                 <div className="summary-row total"><span>รวมเงิน:</span> <span>{totalPrice.toLocaleString()} บาท</span></div>
                             </div>
-                            
+
                             {!showPayment && (
-                                <button 
-                                    className="confirm-btn" 
-                                    disabled={selectedSeats.length === 0 || isProcessing} 
+                                <button
+                                    className="confirm-btn"
+                                    disabled={selectedSeats.length === 0 || isProcessing}
                                     onClick={handleProceed}
                                 >
                                     {isProcessing ? 'กำลังสร้างรายการ...' : 'ยืนยันและชำระเงิน'}
@@ -354,7 +393,7 @@ const BookingPage = () => {
                 {/* --- Payment Section --- */}
                 {showPayment && bookingId && (
                     <div className="payment-section-container" ref={paymentSectionRef}>
-                        <PaymentSection 
+                        <PaymentSection
                             amount={totalPrice}
                             bookingId={bookingId}
                             onComplete={handlePaymentComplete}

@@ -52,15 +52,12 @@ exports.createShowtime = async (req, res) => {
 // Frontend จะใช้: /api/showtimes/movie/:movieId
 exports.getShowtimesByMovie = async (req, res) => {
     try {
-        const { movieId } = req.params;
-        
-        // ดึงรอบฉายของหนังเรื่องนี้ ที่ยังไม่หมดเวลา (start_time > now)
-        const showtimes = await Showtime.find({
-            movie_id: movieId,
-            start_time: { $gte: new Date() } 
-        })
-        .populate('auditorium_id', 'name') // ดึงชื่อโรงมาด้วย เช่น "Theater 1"
-        .sort({ start_time: 1 }); // เรียงตามเวลา
+        const { movieId } = req.params; // รับจาก URL /movie/:movieId
+
+        // ✅ ต้อง Query โดยระบุ movie_id ให้ตรงกับที่รับมา
+        const showtimes = await Showtime.find({ movie_id: movieId })
+            .populate('auditorium_id') // เพื่อเอาชื่อโรง
+            .sort({ start_time: 1 });  // เรียงเวลา
 
         res.status(200).json({ success: true, data: showtimes });
     } catch (error) {

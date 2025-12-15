@@ -24,40 +24,37 @@ exports.getAllSeatTypes = async (req, res) => {
 };
 
 // --- 2. จัดการ Seat (ตัวเก้าอี้) ---
-
-// ฟังก์ชันพิเศษ: สร้างเก้าอี้ทีเดียวทั้งโรง (Auto Generate)
-// Postman ส่ง: { auditorium_id, row_count, col_count, seat_type_id }
 exports.autoGenerateSeats = async (req, res) => {
     try {
-        const { auditorium_id, row_count, col_count, seat_type_id } = req.body;
-
-        // เช็คว่าโรงมีจริงไหม
-        const auditorium = await Auditorium.findById(auditorium_id);
-        if (!auditorium) return res.status(404).json({ message: "Auditorium not found" });
+        // ✅ เพิ่ม start_row_index (ค่า default คือ 0 ถ้าไม่ส่งมา)
+        const { auditorium_id, row_count, col_count, seat_type_id, start_row_index = 0 } = req.body;
 
         const seatsToCreate = [];
-        const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O']; // รองรับ 15 แถว
+        const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O']; 
 
-        // Loop สร้าง Data ตามจำนวนแถวและหลัก
-        for (let r = 0; r < row_count; r++) {
+        // ✅ แก้ลูป: ให้เริ่มจาก start_row_index และจบที่ start_row_index + row_count
+        for (let r = start_row_index; r < start_row_index + row_count; r++) {
             const currentRowLabel = rows[r];
+            
+            // เช็คกัน Error กรณีแถวเกิน array
+            if (!currentRowLabel) break; 
+
             for (let c = 1; c <= col_count; c++) {
                 seatsToCreate.push({
                     auditorium_id,
                     seat_type_id,
                     row_label: currentRowLabel,
-                    seat_number: c.toString(), // "1", "2", ...
+                    seat_number: c.toString(),
                     is_blocked: false
                 });
             }
         }
 
-        // Insert ทีเดียวหมดเลย (Performance ดีกว่า loop create)
         const createdSeats = await Seat.insertMany(seatsToCreate);
 
         res.status(201).json({ 
             success: true, 
-            message: `สร้างเก้าอี้สำเร็จ ${createdSeats.length} ตัว`,
+            message: `สร้างเก้าอี้สำเร็จ ${createdSeats.length} ตัว (เริ่มแถว ${rows[start_row_index]})`,
             data: createdSeats 
         });
 
