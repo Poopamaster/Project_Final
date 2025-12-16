@@ -2,10 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import PaymentSection from '../components/PaymentSection';
-import '../css/BookingPage.css';
+import '../css/BookingPage.css'; // ✅ ใช้ CSS เดิมของคุณ
 
 // Import API
-// ✅ อย่าลืม: คุณต้องมี getSeatsByShowtimeId ใน showtimeApi.jsx ตามที่คุยกันก่อนหน้า
 import { getShowtimesByMovieId, getReservedSeats, getSeatsByShowtimeId } from '../api/showtimeApi';
 import { createBooking } from '../api/bookingApi';
 
@@ -26,9 +25,9 @@ const BookingPage = () => {
     const [selectedShowtime, setSelectedShowtime] = useState(null);
 
     // ✅ State สำหรับระบบที่นั่ง Database Driven
-    const [allSeats, setAllSeats] = useState([]); // เก็บ Object ที่นั่งทั้งหมดที่ได้จาก API
-    const [reservedSeats, setReservedSeats] = useState([]); // เก็บ _id ของที่นั่งที่ไม่ว่าง
-    const [selectedSeats, setSelectedSeats] = useState([]); // เก็บ _id ของที่นั่งที่เลือก
+    const [allSeats, setAllSeats] = useState([]);
+    const [reservedSeats, setReservedSeats] = useState([]);
+    const [selectedSeats, setSelectedSeats] = useState([]);
 
     const [bookingId, setBookingId] = useState(null);
     const [showPayment, setShowPayment] = useState(false);
@@ -68,25 +67,23 @@ const BookingPage = () => {
 
     // 2. Filter รอบฉายตามวันที่
     useEffect(() => {
-        // --- เพิ่มส่วนนี้: ล้างค่าการเลือกทุกครั้งที่เปลี่ยนวัน ---
+        // Reset ค่าเมื่อเปลี่ยนวัน
         setSelectedShowtime(null);
         setSelectedSeats([]);
         setShowPayment(false);
         setBookingId(null);
-        // --------------------------------------------------
 
         if (dates.length > 0 && allShowtimes.length > 0) {
             const selectedDateStr = dates[selectedDateIndex].fullDate;
-
-            // เพิ่ม Logic กรองเวลาอดีต (ตามที่คุยกันรอบที่แล้ว)
             const now = new Date();
+
             const filtered = allShowtimes.filter(st => {
                 const isSameDate = st.start_time.startsWith(selectedDateStr);
                 if (!isSameDate) return false;
 
-                // ถ้าเป็นหนังวันนี้ ต้องไม่เอาเวลาที่ผ่านไปแล้ว
+                // กรองรอบที่ผ่านไปแล้ว (เฉพาะวันปัจจุบัน)
                 const showtimeDate = new Date(st.start_time);
-                if (showtimeDate < now) return false;
+                if (selectedDateIndex === 0 && showtimeDate < now) return false;
 
                 return true;
             });
@@ -98,7 +95,7 @@ const BookingPage = () => {
         }
     }, [selectedDateIndex, dates, allShowtimes]);
 
-    // 3. Action: เมื่อเลือกรอบฉาย (ดึงผังที่นั่งจริงจาก DB)
+    // 3. Action: เมื่อเลือกรอบฉาย
     const handleTimeSelect = async (showtime) => {
         setSelectedShowtime(showtime);
         setSelectedSeats([]);
@@ -106,16 +103,14 @@ const BookingPage = () => {
         setBookingId(null);
 
         try {
-            // 3.1 ดึงข้อมูลที่นั่งที่ถูกจองแล้ว (Reserved)
+            // 3.1 ดึงข้อมูลที่นั่งที่ถูกจองแล้ว
             const reservedRes = await getReservedSeats(showtime._id);
-            // Backend ควรส่งกลับมาเป็น array ของ ObjectId
             const reservedIds = reservedRes.bookedSeatIds || reservedRes.reservedSeats || [];
             setReservedSeats(reservedIds);
 
-            // 3.2 ✅ ดึงผังที่นั่งทั้งหมดของโรงนี้ (Layout)
-            // ต้องมั่นใจว่า Backend มี route /api/showtimes/:id/seats ให้เรียก
+            // 3.2 ดึงผังที่นั่งทั้งหมด
             const seatsLayout = await getSeatsByShowtimeId(showtime._id);
-            setAllSeats(seatsLayout); // seatsLayout คือ Array ของ Seat Object จาก DB
+            setAllSeats(seatsLayout);
 
             setTimeout(() => {
                 seatSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -126,18 +121,16 @@ const BookingPage = () => {
         }
     };
 
-    // Helper: จัดกลุ่มที่นั่งตามแถว (Group by Row) เพื่อการแสดงผล
+    // Helper: จัดกลุ่มที่นั่งตามแถว
     const getSeatsByRow = () => {
         if (!allSeats || allSeats.length === 0) return [];
 
         const rows = {};
         allSeats.forEach(seat => {
-            // ใช้ row_label จาก model (เช่น 'A', 'B')
             if (!rows[seat.row_label]) rows[seat.row_label] = [];
             rows[seat.row_label].push(seat);
         });
 
-        // เรียงลำดับแถว (A, B, C...) และเลขที่นั่ง (1, 2, 3...)
         return Object.keys(rows).sort().map(rowLabel => ({
             rowLabel,
             seats: rows[rowLabel].sort((a, b) => parseInt(a.seat_number) - parseInt(b.seat_number))
@@ -146,7 +139,7 @@ const BookingPage = () => {
 
     const seatsGrouped = getSeatsByRow();
 
-    // 4. Action: เลือก/ยกเลิกเลือกที่นั่ง (ใช้ _id)
+    // 4. Action: เลือก/ยกเลิกเลือกที่นั่ง
     const toggleSeat = (seatId) => {
         if (showPayment || reservedSeats.includes(seatId)) return;
 
@@ -157,10 +150,9 @@ const BookingPage = () => {
         }
     };
 
-    // คำนวณราคารวม (ดึงราคาจาก Object ที่นั่งโดยตรง)
+    // คำนวณราคารวม
     const totalPrice = selectedSeats.reduce((sum, seatId) => {
         const seat = allSeats.find(s => s._id === seatId);
-        // เช็ค seat_type_id.price (ถ้า populate มา) หรือ default 0
         return sum + (seat?.seat_type_id?.price || 0);
     }, 0);
 
@@ -180,14 +172,12 @@ const BookingPage = () => {
         try {
             const bookingPayload = {
                 showtime_id: selectedShowtime._id,
-                seat_ids: selectedSeats, // ✅ ส่ง Array ของ ObjectId
+                seat_ids: selectedSeats,
                 status: 'pending'
             };
 
-            // Debug ดูค่าก่อนส่ง
-            console.log("Creating Booking with:", bookingPayload);
-
             const response = await createBooking(bookingPayload);
+            // รองรับ response หลายรูปแบบ
             const newBookingId = response._id || response.data?._id || response.booking?._id;
 
             if (!newBookingId) throw new Error("ไม่ได้รับ Booking ID จากระบบ");
@@ -207,6 +197,7 @@ const BookingPage = () => {
         }
     };
 
+    // ✅ ฟังก์ชันนี้มีอยู่แล้ว ใช้ตัวนี้แทน setCurrentStep
     const handleCancelPayment = () => {
         setShowPayment(false);
         setBookingId(null);
@@ -225,11 +216,12 @@ const BookingPage = () => {
         return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
     };
 
+    // Helper หาค่าราคาเพื่อแสดงใน Legend
     const getPriceByType = (keyword) => {
-        const foundSeat = allSeats.find(s =>
+        const foundSeat = allSeats.find(s => 
             (s.seat_type_id?.name || '').toLowerCase().includes(keyword)
         );
-        return foundSeat?.seat_type_id?.price || '-'; // ถ้าหาไม่เจอให้โชว์ -
+        return foundSeat?.seat_type_id?.price || '-';
     };
 
     const executivePrice = getPriceByType('executive');
@@ -262,7 +254,6 @@ const BookingPage = () => {
 
                 {/* Date & Time Selection */}
                 <div className={`selection-card ${showPayment ? 'disabled-section' : ''}`}>
-                    {/* ... ส่วนเลือกวันที่ (เหมือนเดิม) ... */}
                     <div className="date-scroll-wrapper">
                         {dates.map((item, index) => (
                             <div key={index}
@@ -308,19 +299,17 @@ const BookingPage = () => {
                                             const isTaken = reservedSeats.includes(seat._id);
                                             const isSelected = selectedSeats.includes(seat._id);
 
-                                            const typeName = (seat.seat_type_id?.name || 'Normal').toLowerCase(); // แปลงเป็นตัวเล็กให้หมดก่อน
-                                            const isSpecialSeat = typeName.includes('executive') || typeName.includes('premium'); // เช็คได้แล้ว
-
+                                            const typeName = (seat.seat_type_id?.name || 'Normal').toLowerCase();
+                                            const isSpecialSeat = typeName.includes('executive') || typeName.includes('premium');
                                             const seatClass = isSpecialSeat ? 'executive' : 'standard';
 
                                             return (
                                                 <div
-                                                    key={seat._id} // ✅ ใช้ _id เป็น key
+                                                    key={seat._id}
                                                     className={`seat-icon ${seatClass} ${isSelected ? 'selected' : ''} ${isTaken ? 'taken' : ''}`}
                                                     onClick={() => toggleSeat(seat._id)}
                                                     title={`แถว ${seat.row_label} ที่ ${seat.seat_number} - ${seat.seat_type_id?.price} บาท`}
                                                 >
-                                                    {/* แสดงเลขที่นั่ง */}
                                                     <span style={{ fontSize: '10px', color: isSelected || isTaken ? 'white' : 'transparent' }}>
                                                         {seat.seat_number}
                                                     </span>
@@ -363,7 +352,6 @@ const BookingPage = () => {
                             <div className="summary-box">
                                 <div className="summary-row">
                                     <span>ที่นั่ง:</span>
-                                    {/* แสดงชื่อที่นั่งที่เลือก (ต้องหาจาก allSeats) */}
                                     <span className="highlight-text">
                                         {selectedSeats.length > 0
                                             ? selectedSeats.map(id => {
@@ -397,7 +385,7 @@ const BookingPage = () => {
                             amount={totalPrice}
                             bookingId={bookingId}
                             onComplete={handlePaymentComplete}
-                            onCancel={handleCancelPayment}
+                            onCancel={handleCancelPayment}  /* ✅ แก้ไข: ใช้ฟังก์ชันที่มีอยู่แล้วแทน */
                         />
                     </div>
                 )}

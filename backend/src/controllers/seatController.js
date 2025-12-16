@@ -24,26 +24,29 @@ exports.getAllSeatTypes = async (req, res) => {
 };
 
 // --- 2. จัดการ Seat (ตัวเก้าอี้) ---
+
 exports.autoGenerateSeats = async (req, res) => {
     try {
-        // ✅ เพิ่ม start_row_index (ค่า default คือ 0 ถ้าไม่ส่งมา)
+        // รับ start_row_index เข้ามาด้วย (default เป็น 0 ถ้าไม่ส่งมา)
         const { auditorium_id, row_count, col_count, seat_type_id, start_row_index = 0 } = req.body;
 
+        // สร้าง Array ตัวอักษร A-Z (รองรับได้ 26 แถว)
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        
         const seatsToCreate = [];
-        const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O']; 
 
-        // ✅ แก้ลูป: ให้เริ่มจาก start_row_index และจบที่ start_row_index + row_count
-        for (let r = start_row_index; r < start_row_index + row_count; r++) {
-            const currentRowLabel = rows[r];
+        for (let r = 0; r < row_count; r++) {
+            // ✅ ใช้ start_row_index บวกเข้าไป เพื่อให้เริ่มแถวถัดไปได้ (เช่น เริ่มที่ C)
+            const currentRowChar = alphabet[start_row_index + r]; 
             
-            // เช็คกัน Error กรณีแถวเกิน array
-            if (!currentRowLabel) break; 
+            // กันเหนียว: ถ้าแถวเกิน Z ให้หยุด หรือใช้วิธีอื่น (แต่นี่ 200 ที่น่าจะไม่เกิน)
+            if (!currentRowChar) break; 
 
             for (let c = 1; c <= col_count; c++) {
                 seatsToCreate.push({
                     auditorium_id,
                     seat_type_id,
-                    row_label: currentRowLabel,
+                    row_label: currentRowChar,
                     seat_number: c.toString(),
                     is_blocked: false
                 });
@@ -54,7 +57,7 @@ exports.autoGenerateSeats = async (req, res) => {
 
         res.status(201).json({ 
             success: true, 
-            message: `สร้างเก้าอี้สำเร็จ ${createdSeats.length} ตัว (เริ่มแถว ${rows[start_row_index]})`,
+            message: `สร้างเก้าอี้สำเร็จ ${createdSeats.length} ตัว (เริ่มแถว ${alphabet[start_row_index]} ถึง ${alphabet[start_row_index + row_count - 1]})`,
             data: createdSeats 
         });
 
