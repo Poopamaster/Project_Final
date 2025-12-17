@@ -12,6 +12,7 @@ const cinemaRoutes = require('./routes/cinemaRoutes');
 const auditoriumRoutes = require('./routes/auditoriumRoutes');
 const seatRoutes = require('./routes/seatRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/seats', seatRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use("/api/mcp", mcpRoutes);
 app.use("/api/chatbot", chatbotRoutes);
