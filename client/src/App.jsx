@@ -11,6 +11,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import MoviePage from './pages/MoviePage';
 import BookingPage from './pages/BookingPage';
 import SeatSelectionPage from "./pages/SeatSelectionPage";
+import AdminPage from './pages/AdminPage';
 import './style.css';
 
 export const AuthContext = createContext(null);
@@ -174,6 +175,8 @@ function App() {
                 <Route path="/seat-selection" element={<SeatSelectionPage />} />
                 <Route path="/movies" element={<MoviePage />} />
                 <Route path="/booking/:id" element={<BookingPage />} />
+
+                <Route path="/admin" element={<AdminPage />} />
 
                 {/* หน้า Chatbot ยังคงต้อง Login */}
                 <Route

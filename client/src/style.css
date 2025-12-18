@@ -7,14 +7,6 @@
   --primary-color: #3B82F6; /* สีปุ่มหรือจุดเน้น */
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--bg-color); /* เปลี่ยนสีพื้นหลังทั้งเว็บตรงนี้ */
-  color: var(--text-color);          /* เปลี่ยนสีตัวอักษรเป็นสีขาว */
-  font-family: 'Inter', system-ui, sans-serif;
-  min-height: 100vh;
-}
 
 /* แถม: จัดการลิงก์ให้เป็นสีขาวด้วย จะได้ไม่เป็นสีน้ำเงินๆ ม่วงๆ */
 a {

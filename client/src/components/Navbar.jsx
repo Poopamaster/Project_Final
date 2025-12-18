@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from "../App";
-// 1. เปลี่ยนการ import Icon ให้ใช้ Loader2 แทน Loader
-import { User, Film, LogOut, Menu, X, Loader2 } from 'lucide-react'; 
+// ✅ เพิ่ม LayoutDashboard เข้ามาใน import
+import { User, Film, LogOut, Menu, X, Loader2, LayoutDashboard } from 'lucide-react'; 
 import '../css/navbar.css';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 
@@ -22,25 +22,19 @@ const Navbar = () => {
         setIsOpen(false);
     };
 
-    // ฟังก์ชันจัดการการนำทาง (Delay เพื่อลด Flicker)
     const handleNavigation = (path) => {
         closeMenu();
-
         const shouldReload = path === '/chatbot' || location.pathname === path;
-
         setIsLoading(true);
 
         setTimeout(() => {
             if (shouldReload) {
-                // กรณีที่ต้องการโหลดใหม่: ใช้ window.location.href เพื่อบังคับ Browser ไป Path นั้นและโหลดใหม่
                 window.location.href = path; 
-                
             } else {
-                // กรณีไปหน้าอื่นปกติ: ใช้ React Router navigate
                 navigate(path);
                 setIsLoading(false); 
             }
-        }, 500); // 500 milliseconds (0.5 วินาที)
+        }, 500);
     };
 
     useEffect(() => {
@@ -58,7 +52,6 @@ const Navbar = () => {
     const handleLogout = () => {
         logout();
         setUser(null);
-        
         setIsLoading(true);
         setTimeout(() => {
             navigate('/login');
@@ -69,10 +62,9 @@ const Navbar = () => {
 
     return (
         <>
-            {/* 2. UI Loader Overlay ที่ใช้ Style ตามที่คุณต้องการ */}
             {isLoading && (
                 <div className="global-loader-overlay">
-                    <div className="full-loader"> {/* ใช้ class นี้ในการจัดรูปแบบ */}
+                    <div className="full-loader">
                         <Loader2 className="spin-animation" size={64} color="#e50914" />
                         <p>กำลังโหลดข้อมูล...</p>
                         <small>กรุณารอสักครู่ ระบบกำลังนำทาง/รีเฟรชข้อมูล</small>
@@ -97,14 +89,30 @@ const Navbar = () => {
                         <Link to="/" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('/'); }}>หน้าแรก</Link>
                         <Link to="/chatbot" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('/chatbot'); }}>แชทบอท</Link>
                         <Link to="/movies" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('/movies'); }}>ภาพยนตร์</Link>
-                        <Link to="#" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('#'); }}>โรงภาพยนตร์</Link>
-                        <Link to="#" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('#'); }}>ประวัติการจอง</Link>
+                        <Link to="/history" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('/history'); }}>ประวัติการจอง</Link>
                     </div>
 
                     <div className="nav-auth-section">
                         {user ? (
                             <div className="nav-user-profile">
-                                <span className="user-name">{user.name}</span>
+                                {/* ✅ ส่วนเช็คสิทธิ์ Admin: ถ้าเป็น admin ให้โชว์ปุ่ม Dashboard */}
+                                {user.role === 'admin' && (
+                                    <button 
+                                        className="nav-admin-btn"
+                                        onClick={() => handleNavigation('/admin')}
+                                        title="ไปที่ระบบหลังบ้าน"
+                                    >
+                                        <LayoutDashboard size={18} />
+                                        <span>Dashboard</span>
+                                    </button>
+                                )}
+
+                                <div className="user-info">
+                                    <span className="user-name">{user.name}</span>
+                                    {/* แสดง Role เล็กๆ ใต้ชื่อ (Optional) */}
+                                    {user.role === 'admin' && <span className="user-badge">Admin</span>}
+                                </div>
+                                
                                 <button
                                     onClick={handleLogout}
                                     className="nav-logout-btn"

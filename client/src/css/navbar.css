@@ -163,3 +163,67 @@
     justify-content: center;
   }
 }
+
+.nav-admin-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.1); /* พื้นหลังใสๆ */
+    color: #fbbf24; /* สีเหลืองทอง ให้ดูพรีเมียม/Admin */
+    border: 1px solid #fbbf24;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin-right: 1rem; /* เว้นระยะห่างจากชื่อ User */
+}
+
+.nav-admin-btn:hover {
+    background-color: #fbbf24;
+    color: black;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+/* ปรับ User Info ให้จัดเรียงสวยขึ้น */
+.nav-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* ชิดขวา */
+    line-height: 1.2;
+}
+
+.user-badge {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .nav-admin-btn {
+        margin-right: 0;
+        width: 100%; /* เต็มจอในมือถือ */
+        justify-content: center;
+        background-color: rgba(251, 191, 36, 0.1);
+    }
+    
+    .nav-user-profile {
+        flex-direction: column;
+        width: 100%;
+        gap: 1.5rem;
+    }
+
+    .user-info {
+        align-items: center;
+    }
+}
