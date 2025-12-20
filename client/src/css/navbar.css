@@ -61,9 +61,10 @@
 }
 
 .menu-icon {
-  display: none;
+  display: none; /* ซ่อนบน Desktop เสมอ */
   cursor: pointer;
   z-index: 1001;
+  align-items: center; /* เตรียมไว้สำหรับตอนโชว์ */
 }
 
 .nav-login-btn {
@@ -120,7 +121,7 @@
 /* --- Responsive Layout (Mobile) --- */
 @media (max-width: 768px) {
   .menu-icon {
-    display: block;
+    display: flex; /* ✅ สั่งให้โชว์เฉพาะ Mobile ตรงนี้ */
   }
 
   .nav-menu {

@@ -32,11 +32,7 @@ const MovieCard = ({ movie }) => {
         alt={movieTitle}
         className="movie-img-custom"
         // ถ้าลิงก์รูปเสีย ให้ใช้ภาพ Placeholder แทน
-        onError={(e) => {
-          e.target.onerror = null; // ป้องกัน infinite loop
-          e.target.src = "https://via.placeholder.com/300x450?text=No+Image"; 
-        }}
-      />
+        onError={(e) => e.target.src = "https://placehold.co/300x450?text=No+Image"}/>
 
       <div className="movie-overlay-custom">
         <h3 className="movie-title-custom">

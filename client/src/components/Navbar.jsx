@@ -3,10 +3,10 @@
 // ... imports เหมือนเดิม
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from "../App";
-import { User, Film, LogOut, Menu, Loader2, LayoutDashboard } from 'lucide-react'; 
+import { User, Film, LogOut, Menu, Loader2, LayoutDashboard } from 'lucide-react';
 import '../css/navbar.css';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import MobileSidebar from './MobileSidebar'; 
+import MobileSidebar from './MobileSidebar';
 
 // ✅ 1. เพิ่ม props "sidebarContent" ตรงนี้
 const Navbar = ({ sidebarContent }) => {
@@ -23,28 +23,28 @@ const Navbar = ({ sidebarContent }) => {
 
     // ... (logic handleNavigation, useEffect, handleLogout เหมือนเดิม) ...
     const handleNavigation = (path) => {
-        closeSidebar(); 
+        closeSidebar();
         const shouldReload = path === '/chatbot' || location.pathname === path;
         setIsLoading(true);
 
         setTimeout(() => {
             if (shouldReload) {
-                window.location.href = path; 
+                window.location.href = path;
             } else {
                 navigate(path);
-                setIsLoading(false); 
+                setIsLoading(false);
             }
         }, 500);
     };
 
     useEffect(() => {
         const checkUser = () => {
-          const storedUser = localStorage.getItem("user");
-          if (storedUser) {
-            setUser(JSON.parse(storedUser));
-          } else {
-            setUser(null);
-          }
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+                setUser(JSON.parse(storedUser));
+            } else {
+                setUser(null);
+            }
         };
         checkUser();
     }, [location]);
@@ -62,7 +62,7 @@ const Navbar = ({ sidebarContent }) => {
 
     return (
         <>
-           {isLoading && (
+            {isLoading && (
                 <div className="global-loader-overlay">
                     <div className="full-loader">
                         <Loader2 className="spin-animation" size={64} color="#e50914" />
@@ -73,9 +73,9 @@ const Navbar = ({ sidebarContent }) => {
             )}
 
             <nav className="navbar">
-                 {/* ... (Code ส่วนแสดงผล Navbar เหมือนเดิมทุกอย่าง) ... */}
-                 <div className="navbar-left-group" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div className="menu-icon" onClick={openSidebar} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                {/* ... (Code ส่วนแสดงผล Navbar เหมือนเดิมทุกอย่าง) ... */}
+                <div className="navbar-left-group" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div className="menu-icon" onClick={openSidebar}>
                         <Menu size={28} color="white" />
                     </div>
                     <div className="nav-brand" style={{ margin: 0 }}>
@@ -84,7 +84,7 @@ const Navbar = ({ sidebarContent }) => {
                     </div>
                 </div>
 
-                <div className="nav-menu"> 
+                <div className="nav-menu">
                     <div className="nav-links">
                         <Link to="/" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('/'); }}>หน้าแรก</Link>
                         <Link to="/chatbot" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('/chatbot'); }}>แชทบอท</Link>
@@ -116,13 +116,13 @@ const Navbar = ({ sidebarContent }) => {
             </nav>
 
             {/* ✅ 2. ส่ง props "sidebarContent" (children) ไปให้ MobileSidebar */}
-            <MobileSidebar 
-                isOpen={isSidebarOpen} 
-                onClose={closeSidebar} 
+            <MobileSidebar
+                isOpen={isSidebarOpen}
+                onClose={closeSidebar}
                 user={user}
                 handleLogout={handleLogout}
             >
-                {sidebarContent} 
+                {sidebarContent}
             </MobileSidebar>
         </>
     );
