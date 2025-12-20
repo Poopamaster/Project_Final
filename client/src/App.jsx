@@ -13,6 +13,7 @@ import BookingPage from './pages/BookingPage';
 import SeatSelectionPage from "./pages/SeatSelectionPage";
 import AdminPage from './pages/AdminPage';
 import './style.css';
+import HistoryPage from './pages/HistoryPage';
 
 export const AuthContext = createContext(null);
 
@@ -175,6 +176,7 @@ function App() {
                 <Route path="/seat-selection" element={<SeatSelectionPage />} />
                 <Route path="/movies" element={<MoviePage />} />
                 <Route path="/booking/:id" element={<BookingPage />} />
+                <Route path="/history" element={<HistoryPage />} />
 
                 <Route path="/admin" element={<AdminPage />} />
 

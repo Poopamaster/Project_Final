@@ -6,6 +6,10 @@
     padding: 30px;
     border-radius: 15px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    
+    /* ✅ เพิ่มบรรทัดนี้ครับ: ดันลงมาให้ห่างจากข้างบน 40px */
+    margin-top: 40px; 
+    
     display: flex;
     flex-direction: row;
     gap: 40px;
@@ -15,6 +19,9 @@
     width: 100%;
     min-height: 350px;
     box-sizing: border-box;
+    
+    /* (Optionเสริม) ถ้ามีการสั่ง Scroll มาที่นี่ ให้เว้นหัวไว้หน่อยจะได้ไม่ชิดขอบจอ */
+    scroll-margin-top: 100px; 
 }
 
 /* ฝั่งซ้าย: ข้อมูล */
