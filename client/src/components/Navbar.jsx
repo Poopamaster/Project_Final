@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from "../App";
-// ✅ เพิ่ม LayoutDashboard เข้ามาใน import
-import { User, Film, LogOut, Menu, X, Loader2, LayoutDashboard } from 'lucide-react'; 
+import { User, Film, LogOut, Menu, Loader2, LayoutDashboard } from 'lucide-react'; 
 import '../css/navbar.css';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+
+import MobileSidebar from './MobileSidebar'; 
 
 const Navbar = () => {
     const navigate = useNavigate();
@@ -11,19 +12,14 @@ const Navbar = () => {
     const [user, setUser] = useState(null);
     const { logout } = useContext(AuthContext);
 
-    const [isOpen, setIsOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    const toggleMenu = () => {
-        setIsOpen(!isOpen);
-    };
-
-    const closeMenu = () => {
-        setIsOpen(false);
-    };
+    const openSidebar = () => setIsSidebarOpen(true);
+    const closeSidebar = () => setIsSidebarOpen(false);
 
     const handleNavigation = (path) => {
-        closeMenu();
+        closeSidebar(); 
         const shouldReload = path === '/chatbot' || location.pathname === path;
         setIsLoading(true);
 
@@ -55,7 +51,7 @@ const Navbar = () => {
         setIsLoading(true);
         setTimeout(() => {
             navigate('/login');
-            closeMenu(); 
+            closeSidebar();
             setIsLoading(false);
         }, 500);
     };
@@ -73,18 +69,34 @@ const Navbar = () => {
             )}
 
             <nav className="navbar">
-                <div className="nav-brand">
-                    <div className="brand-icon">
-                        <Film size={24} />
+                
+                {/* ✅ GROUP 1: ฝั่งซ้าย (Hamburger + Logo) */}
+                {/* มัดรวมไว้ใน div เดียวกัน เพื่อให้มันชิดกันทางซ้ายเสมอ */}
+                <div className="navbar-left-group" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    
+                    {/* 1. ปุ่ม Hamburger */}
+                    <div 
+                        className="menu-icon" 
+                        onClick={openSidebar} 
+                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    >
+                        <Menu size={28} color="white" />
                     </div>
-                    <Link to="/" className="brand-text" onClick={(e) => { e.preventDefault(); handleNavigation('/'); }}>MCP CINEMA DEMO</Link>
+
+                    {/* 2. โลโก้ */}
+                    <div className="nav-brand" style={{ margin: 0 }}>
+                        <div className="brand-icon">
+                            <Film size={24} />
+                        </div>
+                        <Link to="/" className="brand-text" onClick={(e) => { e.preventDefault(); handleNavigation('/'); }}>
+                            MCP CINEMA DEMO
+                        </Link>
+                    </div>
+
                 </div>
 
-                <div className="menu-icon" onClick={toggleMenu}>
-                    {isOpen ? <X size={28} color="white" /> : <Menu size={28} color="white" />}
-                </div>
-
-                <div className={isOpen ? "nav-menu active" : "nav-menu"}>
+                {/* ✅ GROUP 2: ฝั่งขวา (เมนู Desktop) */}
+                <div className="nav-menu"> 
                     <div className="nav-links">
                         <Link to="/" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('/'); }}>หน้าแรก</Link>
                         <Link to="/chatbot" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigation('/chatbot'); }}>แชทบอท</Link>
@@ -95,12 +107,10 @@ const Navbar = () => {
                     <div className="nav-auth-section">
                         {user ? (
                             <div className="nav-user-profile">
-                                {/* ✅ ส่วนเช็คสิทธิ์ Admin: ถ้าเป็น admin ให้โชว์ปุ่ม Dashboard */}
                                 {user.role === 'admin' && (
                                     <button 
                                         className="nav-admin-btn"
                                         onClick={() => handleNavigation('/admin')}
-                                        title="ไปที่ระบบหลังบ้าน"
                                     >
                                         <LayoutDashboard size={18} />
                                         <span>Dashboard</span>
@@ -109,16 +119,10 @@ const Navbar = () => {
 
                                 <div className="user-info">
                                     <span className="user-name">{user.name}</span>
-                                    {/* แสดง Role เล็กๆ ใต้ชื่อ (Optional) */}
                                     {user.role === 'admin' && <span className="user-badge">Admin</span>}
                                 </div>
                                 
-                                <button
-                                    onClick={handleLogout}
-                                    className="nav-logout-btn"
-                                    title="ออกจากระบบ"
-                                    disabled={isLoading}
-                                >
+                                <button onClick={handleLogout} className="nav-logout-btn" title="ออกจากระบบ" disabled={isLoading}>
                                     <LogOut size={18} />
                                 </button>
                             </div>
@@ -126,9 +130,7 @@ const Navbar = () => {
                             <button
                                 type="button"
                                 className="nav-login-btn"
-                                onClick={() => {
-                                    handleNavigation('/login');
-                                }}
+                                onClick={() => handleNavigation('/login')}
                                 disabled={isLoading}
                             >
                                 <User size={18} />
@@ -138,6 +140,13 @@ const Navbar = () => {
                     </div>
                 </div>
             </nav>
+
+            <MobileSidebar 
+                isOpen={isSidebarOpen} 
+                onClose={closeSidebar} 
+                user={user}
+                handleLogout={handleLogout}
+            />
         </>
     );
 };

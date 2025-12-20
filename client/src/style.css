@@ -1,15 +1,50 @@
 /* src/style.css */
 
 :root {
-  /* กำหนดสีหลักตามแบบ Figma */
-  --bg-color: #0F172A;   /* สีพื้นหลังน้ำเงินเข้ม */
-  --text-color: #FFFFFF; /* สีตัวอักษรขาว */
-  --primary-color: #3B82F6; /* สีปุ่มหรือจุดเน้น */
+  /* Theme Colors */
+  --bg-color: #0F172A;
+  --text-color: #FFFFFF;
+  --primary-color: #3B82F6;
+  --success-color: #10B981;
+  --danger-color: #EF4444;
 }
 
+/* 1. Global Reset (กฎเหล็ก Responsive) */
+* {
+  box-sizing: border-box; /* สำคัญมาก! รวมขอบเข้าในขนาดกล่อง */
+  margin: 0;
+  padding: 0;
+}
 
-/* แถม: จัดการลิงก์ให้เป็นสีขาวด้วย จะได้ไม่เป็นสีน้ำเงินๆ ม่วงๆ */
-a {
+body {
+  background-color: var(--bg-color);
   color: var(--text-color);
+  font-family: 'Prompt', sans-serif; /* ใช้ฟอนต์ Prompt ทั้งเว็บ */
+  line-height: 1.6;
+  overflow-x: hidden; /* ป้องกันไม่ให้มี Scroll แนวนอนโผล่มา */
+}
+
+/* 2. Responsive Images (กันรูปทะลุจอ) */
+img {
+  max-width: 100%; /* รูปจะไม่มีวันกว้างกว่าจอมือถือ */
+  height: auto;    /* สูงตามสัดส่วนเดิม */
+  display: block;
+}
+
+/* 3. Link Styles */
+a {
+  color: var(--primary-color);
   text-decoration: none;
+  transition: 0.2s;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* 4. Utility Class สำหรับจัดกึ่งกลาง (เอาไว้คลุมเนื้อหาทุกหน้า) */
+.container {
+  width: 100%;
+  max-width: 1200px; /* จอคอมกว้างสุดแค่นี้ */
+  margin: 0 auto;    /* จัดกึ่งกลาง */
+  padding: 0 20px;   /* เว้นขอบซ้ายขวานิดหน่อย */
 }

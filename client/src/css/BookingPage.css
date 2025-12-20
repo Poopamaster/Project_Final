@@ -10,7 +10,7 @@
 }
 
 .booking-content {
-    max-width: 1000px;
+    max-width: 1200px; /* ขยายให้กว้างขึ้นนิดนึงสำหรับจอใหญ่ */
     margin: 0 auto;
     padding: 20px;
 }
@@ -21,10 +21,10 @@
 .movie-header-card {
     background: white;
     border-radius: 15px;
-    padding: 20px;
+    padding: 25px;
     display: flex;
     gap: 30px;
-    align-items: flex-start; /* เปลี่ยนจาก center เป็น start เพื่อให้รูปไม่ขยายตาม */
+    align-items: flex-start;
     margin-bottom: 30px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
@@ -35,11 +35,15 @@
     object-fit: cover;
     border-radius: 10px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    flex-shrink: 0; /* ⛔️ ห้ามหดรูป */
+    flex-shrink: 0;
+}
+
+.info-area {
+    flex: 1; /* ให้เนื้อหากินพื้นที่ที่เหลือ */
 }
 
 .info-area h1 { margin: 0 0 10px 0; font-size: 1.8rem; color: #0B1120; }
-.meta-text { color: #666; margin-bottom: 20px; }
+.meta-text { color: #666; margin-bottom: 20px; line-height: 1.6; }
 
 /* =========================================
    3. Steps Indicator
@@ -55,7 +59,8 @@
     font-size: 1.2rem; font-weight: bold; margin: 0 auto 5px;
     transition: 0.3s;
 }
-.step span { font-size: 0.9rem; transition: 0.3s; }
+.step span { font-size: 0.9rem; transition: 0.3s; color: #aaa; }
+.step.active span { color: #fff; font-weight: bold; }
 
 .step.active .step-num { background: #2D9CDB; box-shadow: 0 0 10px #2D9CDB; }
 .stepline { flex: 1; height: 2px; background: #333; margin: 0 10px; transform: translateY(-15px); }
@@ -67,17 +72,13 @@
 .selection-card {
     background: white; border-radius: 15px; padding: 20px; margin-bottom: 30px;
 }
-.disabled-section {
-    opacity: 0.5; pointer-events: none; filter: grayscale(80%); transition: all 0.3s ease;
-}
 
 /* Date Scroll */
 .date-scroll-wrapper {
     display: flex;
-    overflow-x: auto; /* ✅ เลื่อนแนวนอนได้ */
+    overflow-x: auto;
     gap: 10px;
-    padding-bottom: 10px; /* เผื่อที่ให้ Scrollbar */
-    /* ซ่อน Scrollbar แต่ายังเลื่อนได้ */
+    padding-bottom: 10px; 
     scrollbar-width: thin; 
 }
 .date-scroll-wrapper::-webkit-scrollbar { height: 6px; }
@@ -86,9 +87,11 @@
 .date-item {
     display: flex; flex-direction: column; align-items: center;
     padding: 10px 20px; border-radius: 10px; cursor: pointer; color: #888; transition: 0.2s;
-    min-width: 60px; /* กันบีบจนเล็กเกิน */
+    min-width: 60px;
+    border: 1px solid transparent;
 }
-.date-item.active { background: #E3F2FD; color: #2D9CDB; font-weight: bold; }
+.date-item:hover { background: #f0f0f0; }
+.date-item.active { background: #E3F2FD; color: #2D9CDB; font-weight: bold; border-color: #2D9CDB; }
 .day-name { font-size: 0.9rem; }
 .date-num { font-size: 1.5rem; }
 
@@ -98,15 +101,15 @@
 .time-selection-area { display: flex; flex-direction: column; gap: 15px; }
 .times-list { 
     display: flex; gap: 15px; flex-wrap: wrap; 
-    justify-content: flex-start; /* เรียงจากซ้ายไปขวา */
+    justify-content: flex-start;
 }
 .time-btn {
-    padding: 8px 20px; border: 1px solid #ddd; background: white; border-radius: 8px;
+    padding: 10px 20px; border: 1px solid #ddd; background: white; border-radius: 8px;
     cursor: pointer; font-size: 1rem; color: #333; display: flex; flex-direction: column; align-items: center;
-    min-width: 80px;
+    min-width: 80px; transition: 0.2s;
 }
-.time-btn .sys-type { font-size: 0.7rem; color: #888; margin-top: 2px; }
-.time-btn.active { border-color: #2D9CDB; color: #2D9CDB; background: #F0F9FF; font-weight: bold; }
+.time-btn:hover { border-color: #aaa; }
+.time-btn.active { border-color: #2D9CDB; color: #2D9CDB; background: #F0F9FF; font-weight: bold; box-shadow: 0 2px 5px rgba(45, 156, 219, 0.2); }
 
 /* =========================================
    5. Seat Layout Section (Highlight!)
@@ -118,137 +121,158 @@
 }
 
 .seat-layout-card {
-    flex: 2; background: white; border-radius: 15px; padding: 30px;
+    flex: 2;
+    background: white; border-radius: 15px; padding: 30px;
     display: flex; flex-direction: column; align-items: center;
-    /* ✅ จัดการ Scroll แนวนอน ถ้าที่นั่งกว้างเกินจอ */
     overflow-x: auto; 
     width: 100%; 
     box-sizing: border-box;
 }
 
 .screen-bar {
-    width: 60%; min-width: 200px;
-    background: linear-gradient(to bottom, #ddd, #fff);
-    color: #888; text-align: center;
-    padding: 5px; border-radius: 5px 5px 50px 50px; /* ทำทรงโค้งๆ เหมือนจอ */
-    margin-bottom: 40px; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1);
-    font-size: 0.8rem; letter-spacing: 2px;
+    width: 70%; max-width: 500px;
+    background: linear-gradient(180deg, #e0e0e0 0%, #ffffff 100%);
+    color: #999; text-align: center;
+    padding: 8px; border-radius: 0 0 50px 50px;
+    margin-bottom: 40px; 
+    box-shadow: 0 10px 15px -5px rgba(0,0,0,0.05);
+    font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase;
 }
 
 .seats-container { 
     display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; 
-    /* ✅ Trick: ให้ Container กว้างตามเนื้อหา (เพื่อให้ Scroll ได้) */
-    width: max-content; 
+    width: max-content; /* สำคัญ: ยืดตามเนื้อหาเพื่อให้ Scroll ได้ */
     min-width: 100%;
+    padding: 0 10px;
 }
 
 .seat-row { 
     display: flex; gap: 10px; align-items: center; justify-content: center;
 }
-.row-name { width: 25px; font-weight: bold; color: #aaa; text-align: center; }
+.row-name { width: 30px; font-weight: bold; color: #ccc; text-align: center; font-size: 0.9rem; }
 
-/* Seat Icon Styling */
 .seat-icon {
-    width: 32px; height: 28px; /* ปรับขนาดให้พอดีนิ้ว */
-    border-radius: 4px 4px 8px 8px;
+    width: 36px; height: 32px;
+    border-radius: 6px 6px 10px 10px;
     cursor: pointer; position: relative;
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.05);
     box-shadow: 0 2px 0 rgba(0,0,0,0.1);
-    transition: 0.2s;
+    transition: transform 0.2s, background-color 0.2s;
     display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; color: rgba(255,255,255,0.9);
 }
-/* ตัวเลขที่นั่ง (ซ่อนไว้ แสดงตอนเลือก) */
-.seat-icon span { font-weight: bold; }
+.seat-icon:hover { transform: translateY(-3px); }
 
-.seat-icon.standard { background-color: #F2C94C; }
+.seat-icon.standard { background-color: #F2994A; }
 .seat-icon.executive { background-color: #EB5757; }
-.seat-icon.taken { background-color: #E0E0E0 !important; border-color: #ccc; cursor: not-allowed; box-shadow: none; opacity: 0.7; }
-.seat-icon.selected { 
-    background-color: #27AE60 !important; 
-    color: white; transform: scale(1.1); box-shadow: 0 0 8px rgba(39, 174, 96, 0.6);
-}
+.seat-icon.taken { background-color: #E0E0E0 !important; border-color: #ccc; cursor: not-allowed; box-shadow: none; opacity: 0.6; }
+.seat-icon.selected { background-color: #27AE60 !important; color: white; transform: scale(1.15); box-shadow: 0 4px 10px rgba(39, 174, 96, 0.4); z-index: 2; }
 
 .seat-legend { 
-    display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; justify-content: center;
+    display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap; justify-content: center;
+    padding-top: 20px; border-top: 1px dashed #eee; width: 100%;
 }
-.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
-.legend-item .seat-icon { cursor: default; width: 20px; height: 18px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: #666; }
+.legend-item .seat-icon { cursor: default; width: 24px; height: 20px; box-shadow: none; transform: none !important; }
 
 /* =========================================
-   6. Summary Card (Right Side)
+   6. Summary Card (Sticky Right Side)
    ========================================= */
 .booking-summary-card {
-    flex: 1; background: white; border-radius: 15px; padding: 25px;
+    flex: 1;
+    background: white; border-radius: 15px; padding: 25px;
     height: fit-content;
-    position: sticky; top: 90px; /* ✅ ให้เลื่อนตามเวลา Scroll (Desktop) */
+    
+    /* Sticky Desktop */
+    position: sticky; 
+    top: 20px; 
+    z-index: 10;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    
+    /* ตั้งค่าความกว้างขั้นต่ำให้สวยงาม */
+    min-width: 300px;
 }
 
-.summary-info p { margin: 5px 0; color: #555; display: flex; align-items: center; gap: 8px; }
-.summary-box { background: #F8F9FA; padding: 15px; border-radius: 10px; margin: 20px 0; }
+.summary-info h3 { margin-top: 0; color: #0B1120; font-size: 1.3rem; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+.summary-info p { margin: 8px 0; color: #555; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+
+.summary-box { background: #F8F9FA; padding: 15px; border-radius: 10px; margin: 20px 0; border: 1px dashed #ddd; }
 .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
-.summary-row.total { 
-    font-weight: bold; font-size: 1.2rem; color: #2D9CDB; 
-    margin-top: 15px; border-top: 2px dashed #ddd; padding-top: 15px; 
-}
-.highlight-text { color: #2D9CDB; font-weight: bold; text-align: right; max-width: 60%; word-wrap: break-word;}
+.summary-row.total { font-weight: bold; font-size: 1.3rem; color: #2D9CDB; margin-top: 15px; border-top: 2px solid #eee; padding-top: 15px; }
+.highlight-text { color: #333; font-weight: 500; text-align: right; }
 
 .confirm-btn {
-    width: 100%; padding: 15px; background: #27AE60; color: white;
-    border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
-    transition: 0.2s;
+    width: 100%; padding: 16px; background: #27AE60; color: white;
+    border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+    transition: 0.3s;
+    display: flex; justify-content: center; align-items: center; gap: 10px;
 }
-.confirm-btn:hover { background: #219150; }
-.confirm-btn:disabled { background: #ccc; cursor: not-allowed; }
+.confirm-btn:hover { background: #219150; box-shadow: 0 5px 15px rgba(33, 145, 80, 0.3); transform: translateY(-2px); }
+.confirm-btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; transform: none; }
 
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
 /* =========================================================
-   📱 MEDIA QUERIES (Mobile Responsive)
+   📱 MEDIA QUERIES (Responsive)
    ========================================================= */
 
-@media (max-width: 900px) {
-    /* Tablet Portrait & Mobile */
+/* Tablet (iPad Portrait) & Mobile (< 1024px) */
+@media (max-width: 1024px) {
     
+    /* 1. Header: เปลี่ยนเป็นแนวตั้งเร็วขึ้น เพื่อให้ iPad ไม่เบียด */
+    .movie-header-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .poster-img-fixed {
+        margin-bottom: 15px;
+    }
+
+    /* 2. Main Layout: เรียงเนื้อหาลงมาเป็นแนวตั้ง */
     .seat-section-wrapper {
-        flex-direction: column; /* เรียงลงแนวตั้ง */
+        flex-direction: column; 
     }
     
+    .seat-layout-card {
+        width: 100%; /* เต็มจอ */
+    }
+
+    /* 3. Summary Card: เลิก Sticky แล้วไปอยู่ด้านล่างเต็มจอ */
     .booking-summary-card {
         width: 100%;
-        position: static; /* เลิก Sticky */
-        box-sizing: border-box;
+        min-width: 0; /* ยกเลิกค่า min-width เดิม */
+        position: static; 
+        margin-top: 20px;
     }
 }
 
+/* Mobile Only (< 600px) */
 @media (max-width: 600px) {
-    /* Mobile Phone */
 
     .booking-content { padding: 10px; }
 
-    /* 1. Header ย่อลง */
-    .movie-header-card {
-        flex-direction: column; align-items: center; text-align: center;
-        gap: 15px; padding: 15px;
-    }
-    .poster-img-fixed { width: 120px; height: 180px; }
-    .info-area h1 { font-size: 1.4rem; }
+    /* Header adjustments */
+    .movie-header-card { padding: 15px; gap: 15px; }
+    .poster-img-fixed { width: 140px; height: 210px; }
+    .info-area h1 { font-size: 1.5rem; }
 
-    /* 2. Steps: ซ่อนข้อความเหลือแต่เลข */
+    /* Steps: ย่อให้เหลือแต่เลข */
     .steps-container span { display: none; } 
-    .step-num { margin-bottom: 0; width: 35px; height: 35px; font-size: 1rem; }
+    .step-num { width: 35px; height: 35px; font-size: 1rem; margin-bottom: 0; }
 
-    /* 3. Seat Layout */
+    /* Seat Layout: ปรับให้เล็กลง */
     .seat-layout-card { padding: 15px; }
-    .seat-icon { width: 28px; height: 24px; } /* ลดขนาดเก้าอี้ลงนิดหน่อย */
-    .seats-container { margin-bottom: 15px; }
+    .seat-icon { width: 30px; height: 26px; font-size: 0.7rem; }
+    .seats-container { margin-bottom: 15px; gap: 8px; }
+    .seat-row { gap: 6px; }
+    .row-name { font-size: 0.8rem; width: 20px; }
     
-    /* ให้ Row Name ไม่กินที่มาก */
-    .row-name { font-size: 0.8rem; width: 15px; }
-    
-    /* Legend จัดให้สวย */
-    .seat-legend { gap: 10px; }
-    
-    /* 4. Time Selection ปุ่มเล็กลง */
+    /* Legend & Selection */
+    .seat-legend { gap: 10px; font-size: 0.8rem; }
     .times-list { gap: 10px; justify-content: center; }
     .time-btn { padding: 8px 15px; font-size: 0.9rem; min-width: 70px; }
+    
+    .date-item { min-width: 55px; padding: 8px 10px; }
+    .date-num { font-size: 1.3rem; }
 }

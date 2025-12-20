@@ -1,9 +1,11 @@
 import React, { useState, useContext, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Mic, Send, Bot, Film, Home, User, Trash2, Paperclip, X, Menu, LogOut, Loader2 } from 'lucide-react';
+// ✅ Import MobileSidebar
+import MobileSidebar from '../components/MobileSidebar'; 
+import { Mic, Send, Bot, Trash2, Paperclip, Menu, Loader2 } from 'lucide-react'; // ลบ icon ที่ไม่ใช้ออก (Home, Film, User, LogOut, X)
 import { AuthContext } from '../App';
 import HeroSection from '../components/HeroSection';
-import { useChatHistory, useChatInput, useInitialMessageProcessor } from '../hooks/useChatBotLogic'; // Import Hooks
+import { useChatHistory, useChatInput, useInitialMessageProcessor } from '../hooks/useChatBotLogic'; 
 import { sendMessageToBot } from '../api/chatbotApi';
 import '../css/ChatBotPage.css';
 
@@ -21,12 +23,9 @@ const ChatBotPage = () => {
   // ⚙️ CORE LOGIC + ADMIN FEATURE
   // -------------------------------------------------------------------
   
-  // ฟังก์ชันเช็คว่าเป็นคำสั่ง Admin หรือไม่
   const handleAdminCommand = async (text) => {
-    // สมมติว่า user มี field role (เช่น 'admin')
     if (user?.role !== 'admin') return false; 
 
-    // ตัวอย่างคำสั่ง: /addmovie Avengers
     if (text.startsWith('/addmovie')) {
        const movieName = text.replace('/addmovie', '').trim();
        return { 
@@ -34,12 +33,11 @@ const ChatBotPage = () => {
        };
     }
     
-    // ตัวอย่างคำสั่ง: /checkstatus
     if (text === '/checkstatus') {
        return { reply: `🛠️ [System]: Server Online, Database Connected.` };
     }
 
-    return false; // ไม่ใช่คำสั่ง Admin
+    return false;
   };
 
   const convertToBase64 = (file) => {
@@ -51,12 +49,10 @@ const ChatBotPage = () => {
     });
   };
 
-  // Main Send Function
   const handleSendMessage = useCallback(async (textOverride = null) => {
     const textToSend = typeof textOverride === 'string' ? textOverride : inputText;
     if (!textToSend?.trim() && !selectedImage) return;
 
-    // 1. UI Update ทันที (Optimistic UI)
     const userMsg = { id: Date.now(), sender: 'user', text: textToSend, image: imagePreview };
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
@@ -64,11 +60,9 @@ const ChatBotPage = () => {
     setIsLoading(true);
 
     try {
-      // 2. ตรวจสอบ Admin Command ก่อนส่งไปหา Bot ปกติ
       const adminResponse = await handleAdminCommand(textToSend);
       
       if (adminResponse) {
-         // ถ้าเป็นคำสั่ง Admin ให้ตอบกลับทันทีโดยไม่ต้องเรียก API Bot
          setTimeout(() => {
             setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: adminResponse.reply }]);
             setIsLoading(false);
@@ -76,7 +70,6 @@ const ChatBotPage = () => {
          return;
       }
 
-      // 3. ถ้าไม่ใช่คำสั่ง Admin -> ส่งหา Bot ปกติ
       let base64Image = selectedImage ? await convertToBase64(selectedImage) : null;
       const data = await sendMessageToBot(textToSend, base64Image);
 
@@ -91,9 +84,8 @@ const ChatBotPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [inputText, selectedImage, imagePreview, user, setMessages, setInputText, setIsLoading]); // Dependency array
+  }, [inputText, selectedImage, imagePreview, user, setMessages, setInputText, setIsLoading]); 
 
-  // 2. เรียกใช้ Hook Auto-Reload (ต้องอยู่หลัง handleSendMessage เพราะต้องใช้ function นี้)
   const isReloading = useInitialMessageProcessor(location, user, handleSendMessage);
 
   const handleLogout = () => {
@@ -109,10 +101,9 @@ const ChatBotPage = () => {
   };
 
   // -------------------------------------------------------------------
-  // 🖼️ RENDER UI (สะอาดขึ้น แยกเงื่อนไขชัดเจน)
+  // 🖼️ RENDER UI
   // -------------------------------------------------------------------
 
-  // Loading Screen (Full Page)
   if (isReloading) {
     return (
       <div className="chatbot-container full-loader">
@@ -125,34 +116,32 @@ const ChatBotPage = () => {
 
   return (
     <div className="chatbot-container">
-      {/* --- Sidebar --- */}
-      {isSidebarOpen && <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} />}
-      <aside className={`chat-sidebar ${isSidebarOpen ? 'active' : ''}`}>
-        <button className="close-sidebar-btn" onClick={() => setIsSidebarOpen(false)}><X size={24} /></button>
-        <div className="user-profile">
-          <div className="avatar-circle">{user?.name ? user.name.charAt(0).toUpperCase() : <User />}</div>
-          <div className="user-info">
-            <h3>{user?.name || "Guest User"} {user?.role === 'admin' && <span className="admin-badge">(Admin)</span>}</h3>
-            <p>{user?.email || "กรุณาเข้าสู่ระบบ"}</p>
+      {/* ✅ เรียกใช้ MobileSidebar ตัวกลาง แทน code เดิม */}
+      <MobileSidebar 
+          isOpen={isSidebarOpen} 
+          onClose={() => setIsSidebarOpen(false)}
+          user={user}
+          handleLogout={handleLogout}
+      >
+          {/* ส่งปุ่ม "ล้างประวัติ" เข้าไปแทรกเฉพาะหน้านี้ */}
+          <div 
+              className="nav-item" 
+              onClick={handleClearChatWrapper} 
+              style={{cursor: 'pointer', color: '#ef4444'}}
+          >
+              <Trash2 size={20} />
+              <span>ล้างประวัติ</span>
           </div>
-        </div>
-        <div className="divider"></div>
-        <nav className="quick-menu">
-            <div className="menu-header">QUICK MENU</div>
-            <ul>
-              <li onClick={() => navigate('/')}><Home size={18} /> หน้าแรก</li>
-              <li onClick={() => navigate('/movies')}><Film size={18} /> ภาพยนตร์</li>
-              <li onClick={handleClearChatWrapper} style={{ color: '#ff6b6b' }}><Trash2 size={18} /> ล้างประวัติ</li>
-              <li onClick={handleLogout} className="menu-logout"><LogOut size={18} /> ออกจากระบบ</li>
-            </ul>
-        </nav>
-      </aside>
+      </MobileSidebar>
 
       {/* --- Main Chat Window --- */}
       <main className="chat-window">
         <header className="chat-header">
           <div className="header-left">
-            <button className="hamburger-btn" onClick={() => setIsSidebarOpen(true)}><Menu size={24} color="white" /></button>
+            {/* ปุ่ม Hamburger เรียกเปิด Sidebar */}
+            <button className="hamburger-btn" onClick={() => setIsSidebarOpen(true)}>
+                <Menu size={24} color="white" />
+            </button>
             <div className="bot-avatar-header"><Bot size={24} color="white" /></div>
             <div className="header-text">
               <h2>CineBot Assistant</h2>
@@ -212,7 +201,6 @@ const ChatBotPage = () => {
             )}
             
             <div className="shortcut-container">
-               {/* ถ้าเป็น Admin ให้โชว์ Shortcut สำหรับแอดหนัง */}
                {user?.role === 'admin' ? (
                   <button className="shortcut-chip admin-chip" onClick={() => setInputText('/addmovie ')}>+ เพิ่มหนัง</button>
                ) : null}
