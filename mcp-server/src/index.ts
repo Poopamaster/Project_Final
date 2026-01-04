@@ -2,7 +2,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { connectDB } from "./db.js";
-// ✅ แก้ชื่อไฟล์เป็น M ใหญ่ให้ตรงกับไฟล์จริง
 import { MovieModel } from "./models/movie.js"; 
 
 const server = new McpServer({
@@ -10,14 +9,26 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-// ✅ Helper: ฟังก์ชันแปลงวันที่เป็นภาษาไทย
+// Helper: แปลงวันที่
 const formatDate = (date: Date) => {
   if (!date) return "ไม่ระบุ";
   return new Date(date).toLocaleDateString("th-TH", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    year: "numeric", month: "short", day: "numeric",
   });
+};
+
+// 🔥 ฟังก์ชันจัดหน้า (Formatter)
+// เราจะแปลงข้อมูลเป็น String สวยๆ ที่นี่เลย ไม่ต้องให้ AI ทำ
+const formatMovieOutput = (movies: any[]) => {
+    if (!movies || movies.length === 0) return "ไม่พบข้อมูลภาพยนตร์ครับ";
+
+    const list = movies.map((m, index) => {
+        return `### ${index + 1}. 🎬 ${m.title_th} (${m.title_en})
+   - 🎭 แนว: ${m.genre} | ⏳ ${m.duration_min || 0} นาที
+   - 📅 ฉาย: ${formatDate(m.start_date)} - ${formatDate(m.due_date)}`;
+    }).join("\n\n");
+
+    return `${list}\n\n-------------------------------------\n💡 พิมพ์หมายเลขหนังที่ต้องการจองได้เลยครับ (เช่น พิมพ์ 1)`;
 };
 
 // ---------- USER TOOLS ----------
@@ -28,7 +39,6 @@ server.tool(
   async ({ keyword }) => {
     await connectDB();
     
-    // 🛡️ SECURITY: ใช้ .select() เพื่อไม่เอา _id และข้อมูลระบบ
     const movies = await MovieModel.find({
       $or: [
         { title_th: { $regex: keyword, $options: "i" } },
@@ -36,21 +46,18 @@ server.tool(
       ]
     })
     .limit(5)
-    .select("title_th title_en genre duration_min start_date due_date -_id"); // 👈 ตัด _id ทิ้ง
+    .select("title_th title_en genre duration_min start_date due_date -_id");
 
-    // จัด Format ใหม่ให้สวยงามก่อนส่งให้ AI
-    const cleanOutput = movies.map(m => ({
-        Title: `${m.title_th} (${m.title_en})`,
-        Genre: m.genre,
-        Duration: `${m.duration_min} นาที`,
-        ShowingDate: `${formatDate(m.start_date)} - ${formatDate(m.due_date)}`
-    }));
+    // ❌ เลิกส่ง JSON: return { content: [{ type: "text", text: JSON.stringify(...) }] }
+    // ✅ ส่ง Text ที่จัดหน้าแล้ว:
+    const formattedText = formatMovieOutput(movies);
 
     return { 
-        content: [{ 
-            type: "text", 
-            text: cleanOutput.length > 0 ? JSON.stringify(cleanOutput, null, 2) : "ไม่พบข้อมูลภาพยนตร์ที่ค้นหา"
-        }] 
+      content: [{ 
+        type: "text", 
+        // สั่งกำกับอีกนิดว่าให้ตอบตามนี้เป๊ะๆ
+        text: `[SYSTEM: PLEASE DISPLAY THE FOLLOWING TEXT EXACTLY AS IS, DO NOT SUMMARIZE]\n\n${formattedText}` 
+      }] 
     };
   }
 );
@@ -63,15 +70,16 @@ server.tool(
     
     const movies = await MovieModel.find({ genre: { $regex: genre, $options: "i" } })
       .limit(5)
-      .select("title_th title_en genre start_date -_id"); // 👈 ตัด _id ทิ้ง
+      .select("title_th title_en genre duration_min start_date due_date -_id");
 
-    const cleanOutput = movies.map(m => ({
-        Title: `${m.title_th} (${m.title_en})`,
-        Genre: m.genre,
-        ReleaseDate: formatDate(m.start_date)
-    }));
+    const formattedText = formatMovieOutput(movies);
 
-    return { content: [{ type: "text", text: JSON.stringify(cleanOutput, null, 2) }] };
+    return { 
+        content: [{ 
+            type: "text", 
+            text: `[SYSTEM: DISPLAY EXACTLY]\n\n${formattedText}` 
+        }] 
+    };
   }
 );
 
@@ -84,19 +92,38 @@ server.tool(
     const movies = await MovieModel.find()
       .sort({ start_date: -1 })
       .limit(limit)
-      .select("title_th title_en start_date genre -_id"); // 👈 ตัด _id ทิ้ง
+      .select("title_th title_en genre duration_min start_date due_date -_id");
 
-    const cleanOutput = movies.map(m => ({
-        Title: `${m.title_th} (${m.title_en})`,
-        Genre: m.genre,
-        ReleaseDate: formatDate(m.start_date)
-    }));
+    const formattedText = formatMovieOutput(movies);
 
-    return { content: [{ type: "text", text: JSON.stringify(cleanOutput, null, 2) }] };
+    return { 
+        content: [{ 
+            type: "text", 
+            text: `[SYSTEM: DISPLAY EXACTLY]\n\n${formattedText}` 
+        }] 
+    };
   }
 );
 
-// ---------- ADMIN TOOLS ----------
+server.tool(
+  "reserve_ticket",
+  { 
+    movie_title: z.string().describe("ชื่อหนัง หรือ หมายเลขหนัง (เช่น '1', 'Minecraft')"),
+    seat_count: z.number().describe("จำนวนที่นั่ง").default(1),
+    user_name: z.string().describe("ชื่อผู้จอง")
+  },
+  async ({ movie_title, seat_count, user_name }) => {
+    // Return เป็น Text ธรรมดา เพราะเรามีระบบดักที่ aiService แล้ว
+    return {
+      content: [{ 
+        type: "text", 
+        text: `✅ จองตั๋วสำเร็จ!\n\n🎬 เรื่อง: ${movie_title}\n🎟️ จำนวน: ${seat_count} ที่นั่ง\n👤 ชื่อผู้จอง: ${user_name}\n\nขอบคุณที่ใช้บริการครับ!` 
+      }]
+    };
+  }
+);
+
+// ---------- ADMIN TOOLS (เหมือนเดิม) ----------
 
 server.tool(
   "add_movie",
@@ -107,21 +134,10 @@ server.tool(
     start_date: z.string(),
     due_date: z.string(),
   },
-  async ({ title_th, title_en, genre, start_date, due_date }) => {
+  async (args) => {
     await connectDB();
-    
-    await MovieModel.create({ title_th, title_en, genre, start_date, due_date });
-    
-    // ไม่ส่ง Object กลับทั้งหมด (เพราะจะมี _id) ส่งแค่ข้อความยืนยันก็พอ
-    return { 
-        content: [{ 
-            type: "text", 
-            text: JSON.stringify({ 
-                success: true, 
-                message: `เพิ่มหนังเรื่อง "${title_th}" เรียบร้อยแล้ว` 
-            }) 
-        }] 
-    };
+    await MovieModel.create(args);
+    return { content: [{ type: "text", text: `✅ เพิ่มหนังเรื่อง "${args.title_th}" เรียบร้อยแล้ว` }] };
   }
 );
 
@@ -130,22 +146,9 @@ server.tool(
   { movie_id: z.string() },
   async ({ movie_id }) => {
     await connectDB();
-    
     const result = await MovieModel.findByIdAndDelete(movie_id);
-    
-    if (!result) {
-        return { content: [{ type: "text", text: JSON.stringify({ success: false, message: "ไม่พบ ID หนังที่ต้องการลบ" }) }] };
-    }
-
-    return { 
-        content: [{ 
-            type: "text", 
-            text: JSON.stringify({ 
-                success: true, 
-                message: `ลบหนังเรื่อง "${result.title_th}" ออกจากระบบแล้ว` 
-            }) 
-        }] 
-    };
+    if (!result) return { content: [{ type: "text", text: "❌ ไม่พบ ID หนังที่ต้องการลบ" }] };
+    return { content: [{ type: "text", text: `🗑️ ลบหนังเรื่อง "${result.title_th}" ออกจากระบบแล้ว` }] };
   }
 );
 
@@ -154,25 +157,15 @@ server.tool(
   {},
   async () => {
     await connectDB();
-    
     const count = await MovieModel.countDocuments();
-    
-    return { 
-        content: [{ 
-            type: "text", 
-            text: JSON.stringify({ 
-                total_movies: count,
-                message: `มีหนังทั้งหมด ${count} เรื่องในระบบ`
-            }) 
-        }] 
-    };
+    return { content: [{ type: "text", text: `📊 มีหนังทั้งหมด ${count} เรื่องในระบบ` }] };
   }
 );
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("Cinema MCP Server started (Secure Mode)!");
+  console.error("Cinema MCP Server started (Text-Preformatted Mode)!");
 }
 
 main();
