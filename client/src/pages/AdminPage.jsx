@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
     LayoutDashboard, Film, Ticket, Users, 
-    MessageSquare, BarChart3, Settings 
+    MessageSquare, BarChart3, Settings, ShieldCheck // 1. เพิ่ม ShieldCheck icon
 } from 'lucide-react';
 import '../css/AdminDashboardPage.css';
 
@@ -12,7 +12,8 @@ import BookingPage from '../components/admin/BookingPageAdmin';
 import CustomerPageAdmin from '../components/admin/CustomerPageAdmin';
 import AiChatPageAdmin from '../components/admin/AiChatPageAdmin';
 import ReportPage from '../components/admin/ReportPage';
-import SettingsPage from '../components/admin/SettingsPage'; // หน้าสุดท้ายที่เพิ่มเข้ามา
+import SettingsPage from '../components/admin/SettingsPage';
+import AdminManagementPage from '../components/admin/AdminManagementPage'; // 2. Import หน้าใหม่
 
 export default function AdminPage() {
     const [page, setPage] = useState('dashboard');
@@ -22,6 +23,7 @@ export default function AdminPage() {
         { id: 'add-movie', label: 'จัดการหนัง', icon: <Film size={20} /> },
         { id: 'bookings', label: 'การจอง', icon: <Ticket size={20} /> },
         { id: 'customers', label: 'ลูกค้า', icon: <Users size={20} /> },
+        { id: 'admins', label: 'จัดการผู้ดูแล', icon: <ShieldCheck size={20} /> }, // 3. เพิ่มเมนูใหม่
         { id: 'ai-chat', label: 'คุยกับ AI', icon: <MessageSquare size={20} /> },
         { id: 'reports', label: 'รายงาน', icon: <BarChart3 size={20} /> },
         { id: 'settings', label: 'ตั้งค่า', icon: <Settings size={20} /> },
@@ -30,7 +32,6 @@ export default function AdminPage() {
     return (
         <div className="admin-pure-layout">
             
-            {/* Sidebar ด้านซ้าย */}
             <aside className="sidebar-figma">
                 <div className="sidebar-profile-figma">
                     <div className="avatar-figma">
@@ -62,20 +63,20 @@ export default function AdminPage() {
                 </div>
             </aside>
             
-            {/* พื้นที่ Content ด้านขวา */}
             <main className="content-area-figma">
                 <div className="content-container-figma">
-                    {/* --- 2. Conditional Rendering (แสดงผลตามหน้าทีเลือก) --- */}
+                    {/* --- 4. เพิ่มเงื่อนไขการแสดงผลหน้าจัดการผู้ดูแล --- */}
                     {page === 'dashboard' && <DashboardPage />}
                     {page === 'add-movie' && <AddMoviePage onMovieAdded={() => setPage('dashboard')} />}
                     {page === 'bookings' && <BookingPage />}
                     {page === 'customers' && <CustomerPageAdmin />}
+                    {page === 'admins' && <AdminManagementPage />}
                     {page === 'ai-chat' && <AiChatPageAdmin />}
                     {page === 'reports' && <ReportPage />}
                     {page === 'settings' && <SettingsPage />}
                     
-                    {/* --- 3. ส่วนควบคุมบล็อก WIP (ตอนนี้จะไม่แสดงผลในหน้าทีทำเสร็จแล้ว) --- */}
-                    {!['dashboard', 'add-movie', 'bookings', 'customers', 'ai-chat', 'reports', 'settings'].includes(page) && (
+                    {/* --- 5. อัปเดตรายการหน้าที่ตรวจสอบ WIP --- */}
+                    {!['dashboard', 'add-movie', 'bookings', 'customers', 'admins', 'ai-chat', 'reports', 'settings'].includes(page) && (
                         <div className="wip-box">
                             <h2>กำลังพัฒนาหน้า {menuItems.find(i => i.id === page)?.label}</h2>
                         </div>

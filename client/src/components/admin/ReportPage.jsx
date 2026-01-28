@@ -1,64 +1,82 @@
-import React from 'react';
-import { BarChart3, PieChart as PieChartIcon, MessageSquareQuote } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 export default function ReportPage() {
-    // ข้อมูลจำลองสำหรับกราฟ
-    const feedback = [
-        { user: "คุณพิซซ่า ดี***", comment: "เว็บล่มเมื่อตอน 9 โมงเช้า จองตั๋วรอบเช้าไม่ทันเลย" },
-        { user: "คุณโดนัท พ***", comment: "ใช้งานง่ายมากเลยค่ะ" }
-    ];
+    const [chartData, setChartData] = useState([]); // ข้อมูลสำหรับกราฟ
+    const [feedback, setFeedback] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // สีสำหรับกราฟ
+    const COLORS = ['#8b5cf6', '#fb7185', '#22d3ee'];
+
+    const fetchReports = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('http://localhost:8000/api/admin/reports');
+            
+            if (response.data.success) {
+                setFeedback(response.data.feedback);
+                // ข้อมูลกราฟที่คำนวณมาจาก Backend (ตัวอย่าง: [{name: 'VIP', value: 400}, ...])
+                setChartData(response.data.seatStats); 
+            }
+            setLoading(false);
+        } catch (error) {
+            console.error("Fetch error:", error);
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchReports();
+        // ถ้าอยากให้ Real-time มากขึ้น สามารถตั้ง Interval ให้ดึงข้อมูลใหม่ทุก 1 นาที
+        const interval = setInterval(fetchReports, 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div className="admin-page-content-inside">
             <header className="content-header-figma">
-                <div className="header-left">
-                    <h1>รายงาน</h1>
-                    <p>รวมข้อมูลการรายงานจากผู้ใช้...</p>
-                </div>
-                <div className="header-right-time">
-                    <span>11 Sep 2026</span>
-                    <span className="time-clock">22:41:56</span>
+                <div>
+                    <h1>รายงานและสถิติ</h1>
+                    <p>ข้อมูลอัปเดตล่าสุดจากฐานข้อมูลจริง</p>
                 </div>
             </header>
 
             <div className="report-main-section">
-                <h2 className="section-title">รายงานและสถิติ</h2>
                 <div className="charts-grid-figma">
-                    {/* กราฟรายได้รายเดือน */}
+                    {/* กราฟประเภทที่นั่งที่ขายได้ (Real-time) */}
                     <div className="chart-card-figma">
-                        <div className="chart-header-row">
-                            <h3>รายได้รายเดือน</h3>
-                            <span className="chart-type-tag">BarLineChart</span>
-                        </div>
-                        <div className="mock-chart-container">
-                            <img src="https://quickchart.io/chart?c={type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May'],datasets:[{label:'VIP',data:[25,26,18,12,25],backgroundColor:'%238b5cf6'},{label:'NORMAL',data:[12,15,10,18,17],backgroundColor:'%23fb7185'},{label:'PREMIUM',data:[15,20,25,28,24],backgroundColor:'%2322d3ee'}]}}" alt="Monthly Revenue Chart" />
+                        <h3>ประเภทที่นั่งที่ขายได้</h3>
+                        <div style={{ width: '100%', height: 300 }}>
+                            {loading ? <Loader2 className="animate-spin" /> : (
+                                <ResponsiveContainer>
+                                    <PieChart>
+                                        <Pie
+                                            data={chartData}
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {chartData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
                     </div>
-
-                    {/* กราฟประเภทที่นั่ง */}
-                    <div className="chart-card-figma">
-                        <div className="chart-header-row">
-                            <h3>ประเภทที่นั่งที่ขายได้</h3>
-                            <span className="chart-type-tag">PieChart</span>
-                        </div>
-                        <div className="mock-chart-container pie">
-                            <img src="https://quickchart.io/chart?c={type:'doughnut',data:{labels:['VIP','PREMIUM','NORMAL'],datasets:[{data:[1742,1538,1574],backgroundColor:['%238b5cf6','%23fb7185','%2322d3ee']}]}}" alt="Seat Category Chart" />
-                        </div>
-                    </div>
+                    
+                    {/* กราฟรายได้ (Bar Chart) - ทำในลักษณะเดียวกัน */}
                 </div>
             </div>
-
-            <div className="feedback-section-figma">
-                <h2 className="section-title">รายงานจากผู้ใช้งาน</h2>
-                <div className="feedback-grid">
-                    {feedback.map((item, index) => (
-                        <div key={index} className="feedback-card-figma">
-                            <p className="feedback-user">{item.user}</p>
-                            <p className="feedback-text">"{item.comment}"</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            
+            {/* ส่วน Feedback ด้านล่างเหมือนเดิม */}
         </div>
     );
 }

@@ -1,63 +1,81 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Loader2 } from 'lucide-react';
 
 export default function BookingPageAdmin() {
-    // ข้อมูลจำลองตามตัวอย่างใน Figma
-    const bookings = [
-        { id: 'CB0012343', name: 'อภิญญาวุฒิ เ*****', movie: 'โดราเอมอน เดอะมู...', theater: 'Robinson (C1)', seat: 'A23, A24', time: '12:40', price: 400, status: 'ชำระแล้ว' },
-        { id: 'CB0032241', name: 'ธนชัย บ*****', movie: 'Avengers End...', theater: 'Robinson (C2)', seat: 'K20, K21', time: '11:25', price: 360, status: 'ชำระแล้ว' },
-        { id: 'CB0095843', name: 'ยุวดี แ*****', movie: 'Avengers End...', theater: 'Robinson (C2)', seat: 'B23, B24', time: '12:40', price: 400, status: 'ชำระแล้ว' },
-        { id: 'CB005520', name: 'ปรียากร ว*****', movie: 'Avatar the way..', theater: 'Robinson (C3)', seat: 'A2, A3', time: '15:15', price: 400, status: 'รอชำระ' },
-    ];
+    const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // 1. ฟังก์ชันดึงข้อมูลการจองจาก Database
+    const fetchBookings = async () => {
+        try {
+            setLoading(true);
+            // ดึงจาก Backend Port 8000 ที่คุณรันอยู่
+            const response = await axios.get('http://localhost:8000/api/admin/bookings');
+            
+            if (response.data.success) {
+                setBookings(response.data.data);
+            }
+            setLoading(false);
+        } catch (error) {
+            console.error("Fetch bookings error:", error);
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchBookings();
+    }, []);
 
     return (
         <div className="admin-page-content-inside">
             <header className="content-header-figma">
                 <div className="header-left">
                     <h1>การจอง</h1>
-                    <p>รวมข้อมูลการจองทั้งหมดในระบบ...</p>
+                    <p>รวมข้อมูลการจองทั้งหมดในระบบ MCP CINEMA...</p>
                 </div>
-                <div className="header-right-time">
-                    <span>11 Sep 2026</span>
-                    <span className="time-clock">22:41:56</span>
-                </div>
+                {/* ตัดส่วนเวลาออกเพื่อให้เหมือนหน้าอื่น */}
             </header>
 
             <div className="figma-table-container">
-                <h2 className="table-title">การจองทั้งหมด</h2>
-                <div className="table-scroll-wrapper">
-                    <table className="admin-custom-table">
-                        <thead>
-                            <tr>
-                                <th>รหัสจอง</th>
-                                <th>ชื่อ</th>
-                                <th>หนัง</th>
-                                <th>โรงภาพยนตร์</th>
-                                <th>ที่นั่ง</th>
-                                <th>เวลา</th>
-                                <th>ราคา</th>
-                                <th>สถานะ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {bookings.map((item, index) => (
-                                <tr key={index}>
-                                    <td>{item.id}</td>
-                                    <td>{item.name}</td>
-                                    <td className="text-truncate">{item.movie}</td>
-                                    <td>{item.theater}</td>
-                                    <td>{item.seat}</td>
-                                    <td>{item.time}</td>
-                                    <td>{item.price}</td>
-                                    <td>
-                                        <span className={`status-pill ${item.status === 'ชำระแล้ว' ? 'paid' : 'pending'}`}>
-                                            {item.status}
-                                        </span>
-                                    </td>
+                <h2 className="table-title">การจองทั้งหมด ({bookings.length})</h2>
+                
+                {loading ? (
+                    <div className="flex justify-center p-10">
+                        <Loader2 className="animate-spin" size={32} />
+                    </div>
+                ) : (
+                    <div className="table-scroll-wrapper">
+                        <table className="admin-custom-table">
+                            <thead>
+                                <tr>
+                                    <th>รหัสจอง</th>
+                                    <th>ชื่อ</th>
+                                    <th>หนัง</th>
+                                    <th>ที่นั่ง</th>
+                                    <th>ราคา</th>
+                                    <th>สถานะ</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {bookings.map((item, index) => (
+                                    <tr key={item._id || index}>
+                                        <td>{item.bookingNumber || item._id.substring(0, 8)}</td>
+                                        <td>{item.userId?.name || 'ลูกค้าทั่วไป'}</td>
+                                        <td className="text-truncate">{item.movieId?.title_th || 'ไม่ระบุชื่อหนัง'}</td>
+                                        <td>{item.seats?.join(', ')}</td>
+                                        <td>{item.totalPrice?.toLocaleString()} บ.</td>
+                                        <td>
+                                            <span className={`status-pill ${item.status === 'paid' || item.status === 'ชำระแล้ว' ? 'paid' : 'pending'}`}>
+                                                {item.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,27 +1,52 @@
-import React, { useState } from 'react';
-import { Send, Mic, Bot, User, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, Mic, Bot, User, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 export default function AiChatPageAdmin() {
     const [messages, setMessages] = useState([
         { role: 'assistant', text: 'สวัสดีครับ, ผม Admin Assistant มีอะไรให้รับใช้ บอกมาได้เลยครับ' }
     ]);
     const [inputText, setInputText] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+    const scrollRef = useRef(null);
 
-    const handleSend = () => {
+    // เลื่อนลงไปที่ข้อความล่าสุดอัตโนมัติ
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages]);
+
+    const handleSend = async () => {
         if (!inputText.trim()) return;
         
-        // เพิ่มข้อความของผู้ใช้
-        const newMessages = [...messages, { role: 'user', text: inputText }];
-        setMessages(newMessages);
+        const userMessage = { role: 'user', text: inputText };
+        setMessages(prev => [...prev, userMessage]);
         setInputText('');
+        setIsTyping(true);
 
-        // จำลองการตอบกลับของ AI
-        setTimeout(() => {
+        try {
+            
+            const response = await axios.post('http://localhost:5001/api/mcp/chat', {
+                message: inputText,
+                context: 'admin' 
+            });
+
+            if (response.data) {
+                setMessages(prev => [...prev, { 
+                    role: 'assistant', 
+                    text: response.data.reply 
+                }]);
+            }
+        } catch (error) {
+            console.error("MCP Chat Error:", error);
             setMessages(prev => [...prev, { 
                 role: 'assistant', 
-                text: `รับทราบครับ กำลังดำเนินการเรื่อง "${inputText}" ให้ทันที!` 
+                text: 'ขออภัยครับ ระบบเชื่อมต่อกับ MCP Server ไม่ได้ กรุณาเช็คว่ารัน mcp-server หรือยัง' 
             }]);
-        }, 1000);
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     return (
@@ -32,18 +57,15 @@ export default function AiChatPageAdmin() {
                         <Bot className="ai-icon-main" size={32} />
                         <div>
                             <h1>Admin Assistant</h1>
-                            <p>พร้อมเป็นตัวช่วยคุณแล้ว....</p>
+                            <p>พร้อมเป็นตัวช่วยจัดการระบบ MCP CINEMA...</p>
                         </div>
                     </div>
                 </div>
-                <div className="header-right-time">
-                    <span>11 Sep 2026</span>
-                    <span className="time-clock">22:41:56</span>
-                </div>
+                {/* ตัดส่วนเวลาออกแล้ว */}
             </header>
 
             <div className="chat-container-figma">
-                <div className="chat-messages-area">
+                <div className="chat-messages-area" ref={scrollRef}>
                     <div className="date-divider"><span>วันนี้</span></div>
                     
                     {messages.map((msg, index) => (
@@ -56,20 +78,27 @@ export default function AiChatPageAdmin() {
                             </div>
                         </div>
                     ))}
+                    {isTyping && (
+                        <div className="chat-bubble-wrapper assistant">
+                            <div className="avatar-mini"><Loader2 className="animate-spin" size={14} /></div>
+                            <div className="bubble-text italic text-gray-400">กำลังคิด...</div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="chat-input-section">
                     <div className="input-wrapper-figma">
                         <input 
                             type="text" 
-                            placeholder="เพิ่มหนังเรื่อง ธี่หยด3 ให้หน่อย ฉายที่โรง cinema1-2"
+                            placeholder="พิมพ์คำสั่ง เช่น 'สรุปยอดขายวันนี้' หรือ 'เพิ่มหนังใหม่'"
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                            disabled={isTyping}
                         />
                         <button className="btn-mic"><Mic size={22} /></button>
-                        <button className="btn-send-purple" onClick={handleSend}>
-                            <Send size={20} />
+                        <button className="btn-send-purple" onClick={handleSend} disabled={isTyping}>
+                            {isTyping ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
                         </button>
                     </div>
                 </div>
