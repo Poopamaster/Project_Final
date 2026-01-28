@@ -10,7 +10,7 @@ export default function AddMoviePage() {
     const fetchMovies = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:8000/api/admin/movies');
+            const response = await axios.get('http://localhost:5000/api/movies');
             if (response.data.success) {
                 setMovies(response.data.data);
             }
@@ -29,7 +29,7 @@ export default function AddMoviePage() {
     const handleDelete = async (id, title) => {
         if (window.confirm(`คุณแน่ใจใช่ไหมว่าจะลบเรื่อง "${title}"?`)) {
             try {
-                await axios.delete(`http://localhost:8000/api/admin/movies/${id}`);
+                await axios.delete(`http://localhost:5000/api/movies/${id}`);
                 fetchMovies();
             } catch (err) {
                 alert("ลบไม่สำเร็จ");

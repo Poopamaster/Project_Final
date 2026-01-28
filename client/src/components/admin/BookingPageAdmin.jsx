@@ -10,8 +10,8 @@ export default function BookingPageAdmin() {
     const fetchBookings = async () => {
         try {
             setLoading(true);
-            // ดึงจาก Backend Port 8000 ที่คุณรันอยู่
-            const response = await axios.get('http://localhost:8000/api/admin/bookings');
+            // ดึงจาก Backend Port 5000 ที่คุณรันอยู่
+            const response = await axios.get('http://localhost:5000/api/admin/bookings');
             
             if (response.data.success) {
                 setBookings(response.data.data);

@@ -126,8 +126,8 @@ exports.deleteAdmin = async (req, res) => {
 exports.getAllBookings = async (req, res) => {
     try {
         const bookings = await Booking.find()
-            .populate('userId', 'name') 
-            .populate('movieId', 'title_th title_en')
+            .populate('user_id', 'name') 
+            .populate('showtime_id') 
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, data: bookings });

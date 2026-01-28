@@ -11,7 +11,7 @@ export default function DashboardPage() {
     const fetchDashboardStats = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:8000/api/admin/stats');
+            const response = await axios.get('http://localhost:5000/api/admin/stats');
             if (response.data.success) {
                 setStatsData(response.data.data);
             }

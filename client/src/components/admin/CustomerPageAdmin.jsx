@@ -10,8 +10,8 @@ export default function CustomerPageAdmin() {
     const fetchCustomers = async () => {
         try {
             setLoading(true);
-            // เรียกไปยัง Backend Port 8000
-            const response = await axios.get('http://localhost:8000/api/admin/users');
+            // เรียกไปยัง Backend Port 5000
+            const response = await axios.get('http://localhost:5000/api/users');
             
             if (response.data.success) {
                 setCustomers(response.data.data);

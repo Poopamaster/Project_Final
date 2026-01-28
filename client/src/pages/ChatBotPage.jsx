@@ -9,7 +9,7 @@ import { useChatHistory, useChatInput, useInitialMessageProcessor } from '../hoo
 import { sendMessageToBot } from '../api/chatbotApi';
 import '../css/ChatBotPage.css';
 
-const ChatBotPage = () => {
+const ChatBotPage = ({ isEmbedded = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useContext(AuthContext);
@@ -124,17 +124,19 @@ const ChatBotPage = () => {
 
   return (
     // ✅ 3. ปรับ Layout: ให้เป็น Flex Column เพื่อให้ Navbar อยู่บน Chat อยู่ล่าง
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+<div style={{ display: 'flex', flexDirection: 'column', height: isEmbedded ? '100%' : '100vh', overflow: 'hidden' }}>
       
-      {/* ใส่ Navbar และส่งปุ่มล้างประวัติไป */}
-      <Navbar sidebarContent={customSidebarItem} />
+      {/* ✅ 1. ซ่อน Navbar ถ้าถูกนำไปฝังในหน้าอื่น */}
+      {!isEmbedded && <Navbar sidebarContent={customSidebarItem} />}
 
-      {/* Container หลักของ Chatbot ให้ยืดเต็มพื้นที่ที่เหลือ */}
-      <div className="chatbot-container" style={{ flex: 1, height: 'auto' }}>
+      {/* ✅ 2. ปรับความสูงให้ยืดหยุ่น */}
+      <div className="chatbot-container" style={{ flex: 1, height: '100%' }}>
         
         {/* --- Main Chat Window --- */}
-        <main className="chat-window">
-          <header className="chat-header">
+        <main className="chat-window" style={{ height: '100%' }}>
+          {/* ซ่อน Header ของ Chatbot ถ้าอยู่ในหน้า Admin เพราะ Admin มี Header ของตัวเองแล้ว (เลือกได้ตามใจชอบ) */}
+          {!isEmbedded && (
+            <header className="chat-header">
             <div className="header-left">
               {/* ❌ ลบปุ่ม Hamburger ออก (เพราะ Navbar มีให้แล้ว) */}
               <div className="bot-avatar-header"><Bot size={24} color="white" /></div>
@@ -144,6 +146,7 @@ const ChatBotPage = () => {
               </div>
             </div>
           </header>
+          )}
 
           <div className="messages-area">
             {messages.length <= 1 ? (

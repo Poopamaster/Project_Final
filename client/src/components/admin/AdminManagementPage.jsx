@@ -12,7 +12,7 @@ export default function AdminManagementPage() {
     const fetchAdmins = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:8000/api/admin/list');
+            const response = await axios.get('http://localhost:5000/api/admin/list');
             if (response.data.success) {
                 setAdmins(response.data.data);
             }
@@ -31,7 +31,7 @@ export default function AdminManagementPage() {
         e.preventDefault();
         setIsAdding(true);
         try {
-            const response = await axios.post('http://localhost:8000/api/admin/add', newAdmin);
+            const response = await axios.post('http://localhost:5000/api/add', newAdmin);
             if (response.data.success) {
                 alert("เพิ่มผู้ดูแลสำเร็จ!");
                 setNewAdmin({ name: '', email: '', password: '' });
@@ -47,7 +47,7 @@ export default function AdminManagementPage() {
     const handleDeleteAdmin = async (id) => {
         if (window.confirm("คุณแน่ใจหรือไม่ที่จะลบผู้ดูแลท่านนี้?")) {
             try {
-                const response = await axios.delete(`http://localhost:8000/api/admin/delete/${id}`);
+                const response = await axios.delete(`http://localhost:5000/api/delete/${id}`);
                 if (response.data.success) {
                     alert("ลบผู้ดูแลเรียบร้อยแล้ว");
                     fetchAdmins();

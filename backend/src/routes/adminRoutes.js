@@ -4,7 +4,7 @@ const adminController = require('../controllers/adminController');
 const { authenticate } = require('../middleware/authMiddleware');
 
 // ตรวจสอบสิทธิ์การเป็น Admin ก่อนเข้าถึงทุก Route ด้านล่าง
-router.use(authenticate); 
+// router.use(authenticate); 
 
 // --- ส่วนจัดการภาพยนตร์ (Movies) ---
 // 1. ค้นหาหนังจาก TMDB API
@@ -35,8 +35,6 @@ router.get('/reports', adminController.getReports);
 router.get('/list', adminController.getAllAdmins);
 router.post('/add', adminController.addAdmin);
 // เพิ่มลงในไฟล์ adminRoutes.js
-router.get('/list', adminController.getAllAdmins);
-router.post('/add', adminController.addAdmin);
 router.delete('/delete/:id', adminController.deleteAdmin);
 
 module.exports = router;

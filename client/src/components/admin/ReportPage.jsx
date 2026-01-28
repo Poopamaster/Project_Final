@@ -14,7 +14,7 @@ export default function ReportPage() {
     const fetchReports = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:8000/api/admin/reports');
+            const response = await axios.get('http://localhost:5000/api/admin/reports');
             
             if (response.data.success) {
                 setFeedback(response.data.feedback);
