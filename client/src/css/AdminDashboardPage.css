@@ -1,736 +1,849 @@
-/* =========================================
-   1. Main Layout & Scoping
-   (กำหนด Scope ห้ามหลุดไปกระทบส่วนอื่น)
-   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap');
 
-/* ตัวคลุมใหญ่สุด ทับหน้าจอทั้งหมด */
-.admin-container {
+/* บังคับให้หน้า Admin ทับ Navbar หลักของเว็บไซต์ */
+.admin-pure-layout {
   display: flex;
   width: 100vw;
   height: 100vh;
-  background-color: #121212; /* พื้นหลังสีดำเข้ม */
-  color: white;              /* ตัวหนังสือสีขาว */
-  font-family: 'Inter', system-ui, sans-serif;
-  position: fixed; /* ลอยทับหน้าอื่น */
+  background-color: #0d0f17; /* สีดำ Figma */
+  color: white;
+  font-family: 'Kanit', sans-serif;
+  overflow: hidden;
+  position: fixed; /* ใช้ Position Fixed เพื่อทับ Navbar เดิมของเว็บ */
   top: 0;
   left: 0;
-  z-index: 9999;
-  overflow: hidden; /* ไม่ให้ scroll ที่ body หลัก */
+  z-index: 99999; /* ให้ค่าสูงกว่าทุกอย่างในเว็บ */
 }
 
-/* Reset ค่าพื้นฐานเฉพาะใน Admin */
-.admin-container * {
-  box-sizing: border-box;
-}
-
-/* พื้นที่เนื้อหาขวามือ (Main Content) */
-.admin-container .main-content {
-  flex: 1; /* ขยายเต็มพื้นที่ที่เหลือจาก Sidebar */
-  position: relative;
-  overflow-y: auto; /* ให้ scroll ได้เฉพาะตรงเนื้อหา */
-  height: 100%;
-  padding: 2rem;
-  background-color: #121212;
-}
-
-/* ฉากหลังตกแต่งสีแดงจางๆ */
-.admin-container .bg-decor {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 300px;
-  background: linear-gradient(to bottom, rgba(220, 38, 38, 0.15), transparent);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* =========================================
-   2. Sidebar (เมนูซ้ายมือ)
-   ========================================= */
-.admin-container .sidebar {
-  width: 260px;
-  background-color: #1a1a1a; /* สีเทาเข้มเกือบดำ */
-  border-right: 1px solid #333333;
+/* Sidebar ตาม Figma */
+.sidebar-figma {
+  width: 280px;
+  background-color: #151823;
   display: flex;
   flex-direction: column;
-  z-index: 100;
-  transition: transform 0.3s ease; /* เอฟเฟกต์ตอนเลื่อนเข้าออก */
-}
-
-.admin-container .sidebar-header {
-  height: 70px;
-  display: flex;
-  align-items: center;
-  padding: 0 1.5rem;
-  border-bottom: 1px solid #333333;
-  font-size: 1.25rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-
-.admin-container .text-highlight {
-  color: #dc2626; /* สีแดงสด */
-}
-
-.admin-container .sidebar-nav {
-  flex: 1;
-  padding: 1.5rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.admin-container .nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
-  background: transparent;
-  border: none;
-  color: #a3a3a3; /* สีเทาอ่อน */
-  cursor: pointer;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  width: 100%;
-  text-align: left;
-  transition: all 0.2s;
-}
-
-.admin-container .nav-item:hover {
-  background-color: #262626;
-  color: white;
-}
-
-.admin-container .nav-item.active {
-  background-color: #dc2626; /* Active เป็นสีแดง */
-  color: white;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-}
-
-.admin-container .sidebar-footer {
-  padding: 1rem;
-  border-top: 1px solid #333333;
-}
-
-.admin-container .user-profile {
-  background: #262626;
-  border: none;
-  color: white;
-  padding: 10px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  font-size: 0.9rem;
-}
-
-/* =========================================
-   3. Mobile Responsive Header
-   ========================================= */
-.admin-container .mobile-header {
-  display: none; /* ซ่อนใน Desktop */
-  padding: 1rem;
-  background-color: #1a1a1a;
-  border-bottom: 1px solid #333333;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-}
-
-/* Responsive: มือถือ/แท็บเล็ต (หน้าจอเล็กกว่า 768px) */
-@media (max-width: 768px) {
-  .admin-container .mobile-header {
-    display: flex; /* โชว์แถบเมนูบนมือถือ */
-  }
-
-  .admin-container .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    transform: translateX(-100%); /* ซ่อน Sidebar ไปทางซ้าย */
-  }
-
-  .admin-container .sidebar.open {
-    transform: translateX(0); /* เลื่อน Sidebar กลับมาเมื่อกดเปิด */
-    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
-  }
-
-  .admin-container .main-content {
-    padding: 1rem; /* ลด Padding ในมือถือ */
-  }
-}
-
-/* =========================================
-   4. Dashboard Elements
-   ========================================= */
-.admin-container .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  position: relative;
-  z-index: 1;
-}
-
-.admin-container .page-title {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 700;
-  color: white;
-}
-
-.admin-container .page-subtitle {
-  margin: 5px 0 0 0;
-  color: #a3a3a3;
-  font-size: 0.9rem;
-}
-
-.admin-container .stat-badge {
-  background-color: #262626;
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: 1px solid #404040;
-  color: white;
-  font-weight: bold;
-}
-
-.admin-container .stat-badge span {
-  color: #dc2626;
-}
-
-/* Movie Grid System */
-.admin-container .movie-grid {
-  display: grid;
-  /* จัด Card อัตโนมัติ: ขั้นต่ำ 200px ถ้าจอใหญ่ก็ขยายเอง */
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem;
-  position: relative;
-  z-index: 1;
-}
-
-/* Movie Card Style */
-.admin-container .movie-card {
-  background-color: #1a1a1a;
-  border: 1px solid #333333;
-  border-radius: 12px;
-  overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.admin-container .movie-card:hover {
-  transform: translateY(-5px);
-  border-color: #dc2626;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-}
-
-.admin-container .card-poster {
-  position: relative;
-  aspect-ratio: 2/3; /* บังคับสัดส่วนโปสเตอร์ */
-  overflow: hidden;
-}
-
-.admin-container .card-poster img {
-  width: 100%;
+  padding: 40px 24px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
   height: 100%;
-  object-fit: cover;
 }
 
-.admin-container .card-content {
-  padding: 1rem;
-}
-
-.admin-container .card-title {
-  font-size: 1rem;
-  color: white;
-  margin: 0 0 4px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis; /* ตัดคำยาวๆ ด้วย ... */
-}
-
-.admin-container .card-subtitle {
-  font-size: 0.85rem;
-  color: #a3a3a3;
-  margin: 0 0 12px 0;
-}
-
-.admin-container .card-meta {
+.sidebar-profile-figma {
   display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: #737373;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 40px;
 }
 
-.admin-container .btn-remove {
-  width: 100%;
-  background-color: rgba(220, 38, 38, 0.1);
-  border: 1px solid #dc2626;
-  color: #dc2626;
-  padding: 8px;
-  border-radius: 6px;
-  cursor: pointer;
+.avatar-figma {
+  width: 52px;
+  height: 52px;
+  background-color: #1e212f;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: background 0.2s;
 }
 
-.admin-container .btn-remove:hover {
-  background-color: #dc2626;
-  color: white;
+.profile-info-figma h3 { margin: 0; font-size: 1.2rem; font-weight: 600; }
+.profile-info-figma p { margin: 0; font-size: 0.8rem; color: #94a3b8; }
+
+.menu-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+  padding-left: 10px;
 }
 
-/* Badges */
-.admin-container .status-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.admin-container .status-badge.showing { background: #22c55e; color: black; }
-.admin-container .status-badge.coming { background: #eab308; color: black; }
-.admin-container .status-badge.ended { background: #ef4444; color: white; }
-
-.admin-container .lang-badge {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  border: 1px solid rgba(255,255,255,0.3);
-}
-
-/* =========================================
-   5. Forms & Inputs (Add Movie)
-   ========================================= */
-.admin-container .search-container {
-  background-color: #1a1a1a;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #333333;
-  margin-bottom: 2rem;
-}
-
-.admin-container .search-bar {
+/* ปุ่มเมนูสีม่วง */
+.nav-menu-figma {
+  flex: 1;
   display: flex;
-  gap: 10px;
-  margin-bottom: 1.5rem;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.admin-container .form-input {
-  width: 100%;
-  background-color: #262626;
-  border: 1px solid #404040;
-  color: white;
-  padding: 12px;
-  border-radius: 8px;
+.nav-item-figma {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 16px; /* โค้งมนตาม Figma */
   font-size: 1rem;
-  outline: none;
+  font-family: 'Kanit', sans-serif;
+  transition: all 0.2s ease-in-out;
+  width: 100%;
+  text-align: left;
 }
 
-.admin-container .form-input:focus {
-  border-color: #dc2626; /* เส้นขอบแดงเมื่อกดพิมพ์ */
+.nav-item-figma:hover {
+  background-color: rgba(139, 92, 246, 0.1);
+  color: white;
 }
 
-.admin-container .btn-primary {
-  background-color: #dc2626;
+.nav-item-figma.active {
+  background-color: #8b5cf6; /* สีม่วง Figma */
+  color: white;
+  box-shadow: 0 10px 20px rgba(139, 92, 246, 0.4);
+}
+
+/* พื้นที่แสดงผล Content */
+.content-area-figma {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  background-color: #0d0f17;
+}
+
+.content-container-figma {
+  padding: 50px;
+}
+
+.sidebar-footer-figma {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #475569;
+  padding-top: 20px;
+}
+
+.wip-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  border: 2px dashed #1e293b;
+  border-radius: 30px;
+  color: #64748b;
+}
+/* การจัดวางหน้า Dashboard */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+
+.dashboard-header h1 { font-size: 2rem; margin: 0; color: white; }
+.dashboard-header p { color: #94a3b8; margin: 5px 0; }
+.dashboard-time { text-align: right; color: white; }
+.dashboard-time .clock { font-size: 1.5rem; font-weight: 600; color: #8b5cf6; }
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background: #1e212f; /* สีการ์ดตาม Figma */
+  padding: 30px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.stat-icon-bg {
+  width: 60px;
+  height: 60px;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-label { color: #94a3b8; font-size: 0.9rem; margin-bottom: 5px; }
+.stat-value { font-size: 1.8rem; font-weight: 700; color: white; margin: 0; }
+.stat-trend { color: #10b981; font-size: 0.85rem; font-weight: 600; margin-top: 5px; }
+
+/* Charts Layout */
+.charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 25px;
+}
+
+.main-chart-card, .pie-chart-card {
+  background: #1e212f;
+  padding: 30px;
+  border-radius: 24px;
+  min-height: 350px;
+}
+
+.chart-placeholder, .pie-placeholder {
+  width: 100%;
+  height: 250px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 15px;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* --- ส่วนหัวเนื้อหา --- */
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+}
+.content-header h1 { font-size: 1.8rem; margin: 0; color: white; }
+.content-header p { color: #94a3b8; font-size: 0.9rem; margin-top: 5px; }
+.header-time { text-align: right; color: white; }
+.header-time .time { display: block; font-weight: bold; color: #94a3b8; }
+
+/* --- กล่องครอบจัดการหนัง --- */
+.movie-management-box {
+  background-color: #1e212f; /* สีเทาเข้มตาม Figma */
+  border-radius: 24px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.box-header h2 { font-size: 1.5rem; color: white; margin: 0; }
+
+.btn-add-purple {
+  background-color: #8b5cf6;
   color: white;
   border: none;
-  padding: 0 20px;
-  border-radius: 8px;
-  cursor: pointer;
+  padding: 10px 20px;
+  border-radius: 12px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: center;
-  min-height: 45px;
-}
-
-.admin-container .btn-primary:hover {
-  background-color: #b91c1c;
-}
-
-.admin-container .btn-secondary {
-  background-color: transparent;
-  border: 1px solid #404040;
-  color: #a3a3a3;
-  padding: 10px 20px;
-  border-radius: 8px;
   cursor: pointer;
 }
 
-.admin-container .btn-secondary:hover {
-  border-color: white;
-  color: white;
+/* --- Grid หนัง --- */
+.movie-figma-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
 }
 
-/* Search Results Grid */
-.admin-container .search-results {
+.movie-figma-card {
+  background-color: #252836;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  text-align: center;
+  padding-bottom: 15px;
+}
+
+.movie-poster-img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+}
+
+.movie-card-info { padding: 15px; }
+.movie-card-info h3 { font-size: 1rem; color: white; margin: 0 0 5px 0; }
+.movie-meta { color: #94a3b8; font-size: 0.8rem; margin-bottom: 15px; }
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.btn-edit-blue { background: #3b82f6; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.btn-delete-red { background: #ef4444; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+
+.sales-text { color: #22c55e; font-size: 0.85rem; font-weight: bold; margin: 0; }
+/* Container ของตาราง */
+.table-container-figma {
+  background-color: #1e212f; /* สีเทาเข้ม Figma */
+  border-radius: 24px;
+  padding: 35px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table-container-figma h2 {
+  font-size: 1.5rem;
+  color: white;
+  margin-bottom: 25px;
+}
+
+/* สไตล์ตาราง */
+.figma-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #d1d5db;
+  font-size: 0.9rem;
+}
+
+.figma-table th {
+  text-align: left;
+  padding: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.figma-table td {
+  padding: 20px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* แถบสถานะ */
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-badge.paid {
+  background-color: rgba(34, 197, 94, 0.2); /* สีเขียวโปร่งแสง */
+  color: #22c55e;
+}
+
+.status-badge.pending {
+  background-color: rgba(234, 179, 8, 0.2); /* สีเหลืองโปร่งแสง */
+  color: #eab308;
+}
+
+/* เพิ่มเติม: ปรับสี Row เมื่อ Hover */
+.figma-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+/* --- Figma Table Styling --- */
+.figma-table-container {
+  background-color: #1e212f; /* พื้นหลังสีเทาเข้มตาม Figma */
+  border-radius: 24px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 20px;
+}
+
+.table-title {
+  font-size: 1.4rem;
+  color: white;
+  margin-bottom: 25px;
+  font-weight: 600;
+}
+
+.admin-custom-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-custom-table th {
+  text-align: left;
+  padding: 15px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-custom-table td {
+  padding: 18px 15px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Status Pill ตามสีใน Figma */
+.status-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-pill.paid {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #22c55e; /* สีเขียว */
+}
+
+.status-pill.pending {
+  background-color: rgba(234, 179, 8, 0.15);
+  color: #eab308; /* สีเหลือง */
+}
+
+.text-truncate {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* --- Customer Page Styling --- */
+.customer-figma-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  max-height: 400px;
-  overflow-y: auto;
+  gap: 25px;
+  margin-top: 20px;
 }
 
-.admin-container .result-card {
+.customer-card-figma {
+  background-color: #1e212f;
+  border-radius: 24px;
+  padding: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s;
+}
+
+.customer-card-figma:hover {
+  transform: translateY(-5px);
+  border-color: #8b5cf6;
+}
+
+.card-top {
   display: flex;
-  gap: 15px;
-  background-color: #0a0a0a;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #333;
-}
-
-.admin-container .result-poster {
-  width: 60px;
-  height: 90px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.admin-container .btn-outline {
-  background: transparent;
-  border: 1px solid #404040;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  margin-top: 5px;
-}
-
-.admin-container .btn-outline:hover {
-  background: white;
-  color: black;
-}
-
-/* =========================================
-   6. Split Layout (Form Add Movie)
-   ========================================= */
-.admin-container .split-form {
-  display: grid;
-  grid-template-columns: 300px 1fr; /* ซ้าย 300px ขวาที่เหลือ */
-  gap: 2rem;
-  align-items: start;
-}
-
-/* Responsive Form: มือถือให้เรียงแนวตั้ง */
-@media (max-width: 900px) {
-  .admin-container .split-form {
-    grid-template-columns: 1fr; /* เต็มจอแถวเดียว */
-  }
-  
-  .admin-container .poster-preview-panel {
-    max-width: 300px; /* จำกัดความกว้างหน่อยรูปจะได้ไม่ใหญ่เวอร์ */
-    margin: 0 auto;
-  }
-}
-
-.admin-container .poster-preview-panel {
-  background-color: #1a1a1a;
-  padding: 1rem;
-  border-radius: 12px;
-  border: 1px solid #333333;
-  text-align: center;
-}
-
-.admin-container .form-panel {
-  background-color: #1a1a1a;
-  border-radius: 12px;
-  border: 1px solid #333333;
-  padding: 2rem;
-}
-
-.admin-container .form-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Grid helper classes */
-.admin-container .grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.admin-container .grid-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1rem;
-}
-
-/* Responsive Grids ในฟอร์ม */
-@media (max-width: 600px) {
-  .admin-container .grid-2,
-  .admin-container .grid-3 {
-    grid-template-columns: 1fr; /* มือถือให้เรียงลงมาหมด */
-  }
-}
-
-.admin-container .form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-  color: #d4d4d4;
-}
-
-.admin-container .form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #333;
-}
-
-/* =========================================
-   7. Modal & Utilities
-   ========================================= */
-.admin-container .modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7); /* พื้นหลังดำจางๆ */
-  backdrop-filter: blur(4px); /* เบลอข้างหลัง */
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.admin-container .modal-content {
-  background-color: #1a1a1a;
-  padding: 2rem;
-  border-radius: 16px;
-  border: 1px solid #404040;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-}
-
-.admin-container .modal-icon-wrapper {
-  padding: 12px;
-  border-radius: 50%;
-  margin-bottom: 1rem;
-  display: inline-flex;
-}
-
-.admin-container .modal-icon-wrapper.danger { background: rgba(220, 38, 38, 0.2); color: #ef4444; }
-.admin-container .modal-icon-wrapper.success { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-
-.admin-container .loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-}
-
-.admin-container .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #333;
-  border-top-color: #dc2626; /* หมุนสีแดง */
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.admin-container .empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  color: #737373;
-  border: 2px dashed #333;
-  border-radius: 12px;
-  margin-top: 2rem;
-}
-
-.sidebar-overlay-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5); /* สีดำจางๆ 50% */
-  z-index: 90; /* อยู่ใต้ Sidebar (100) แต่อยู่บน Content */
-  backdrop-filter: blur(2px); /* เบลอข้างหลังนิดหน่อย ให้ดูหรู */
-}
-@media (max-width: 768px) {
-  .admin-container .sidebar {
-    /* ... ของเดิม ... */
-    z-index: 100; /* มั่นใจว่าสูงกว่า backdrop */
-    box-shadow: 5px 0 15px rgba(0,0,0,0.5); /* เพิ่มเงาให้ดูมีมิติ */
-  }
-}
-
-/* =========================================
-   9. Admin Top Navbar (New)
-   ========================================= */
-
-.admin-container .admin-navbar {
-  height: 70px;
-  background-color: #1a1a1a; /* สีเดียวกับ Sidebar หรืออ่อนกว่านิดหน่อย */
-  border-bottom: 1px solid #333333;
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 50; /* อยู่เหนือ Content แต่อยู่ใต้ Sidebar เวลา Mobile */
-  width: 100%;
+  align-items: flex-start;
+  margin-bottom: 20px;
 }
 
-.admin-container .navbar-left {
+.customer-avatar-bg {
+  width: 60px;
+  height: 60px;
+  background-color: rgba(139, 92, 246, 0.1);
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
 }
 
-/* ปุ่ม Hamburger (จะโชว์แค่ตอนจอมือถือ) */
-.admin-container .menu-toggle-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: none; /* Desktop ซ่อนไว้ */
-  padding: 5px;
+.cust-status-tag {
+  background-color: #2d3142;
+  color: #94a3b8;
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
-.admin-container .navbar-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
+.cust-status-tag.is-vip {
+  background-color: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.cust-name {
   color: white;
-  letter-spacing: 0.5px;
+  margin: 0 0 10px 0;
+  font-size: 1.15rem;
 }
 
-.admin-container .navbar-right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* ปุ่ม View Site */
-.admin-container .action-btn {
-  background: transparent;
-  border: 1px solid #404040;
-  color: #a3a3a3;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
+.cust-contact p {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin: 4px 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9rem;
-  transition: all 0.2s;
 }
 
-.admin-container .action-btn:hover {
-  border-color: #dc2626;
-  color: white;
+.card-footer-cust {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.admin-container .divider-vertical {
-  width: 1px;
-  height: 24px;
-  background-color: #404040;
-}
-
-/* Admin Profile Info */
-.admin-container .admin-profile {
+.stat-item {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
 }
 
-.admin-container .avatar-circle {
-  width: 36px;
-  height: 36px;
-  background-color: #dc2626;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
+.stat-item span { color: #64748b; font-size: 0.75rem; }
+.stat-item strong { color: white; font-size: 1rem; margin-top: 2px; }
+/* --- AI Chat Styling --- */
+.chat-layout {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 100px); /* ปรับให้พอดีกับหน้าจอ */
 }
 
-.admin-container .admin-name {
-  font-weight: 500;
-  color: white;
-  font-size: 0.95rem;
+.ai-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
-/* ปุ่ม Logout */
-.admin-container .logout-btn {
-  background: transparent;
-  border: none;
-  color: #a3a3a3;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.ai-icon-main {
+    color: #8b5cf6;
+    filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.5));
 }
 
-.admin-container .logout-btn:hover {
-  background-color: rgba(220, 38, 38, 0.2);
-  color: #ef4444;
+.chat-container-figma {
+    flex: 1;
+    background-color: #151823;
+    border-radius: 30px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Responsive: มือถือ */
-@media (max-width: 768px) {
-  .admin-container .admin-navbar {
-    padding: 0 1rem;
-  }
-  
-  .admin-container .menu-toggle-btn {
-    display: block; /* โชว์ปุ่มเมนู */
-  }
-
-  .admin-container .btn-label {
-    display: none; /* ซ่อนคำว่า View Site ให้เหลือแค่ไอคอน */
-  }
-
-  .admin-container .admin-name {
-    display: none; /* ซ่อนชื่อ Admin ถ้าที่แคบ */
-  }
+.chat-messages-area {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-/* --- Loader Overlay (เฉพาะใน Admin) --- */
-.admin-loader-overlay {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.8);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.date-divider {
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    line-height: 0.1em;
+    margin: 20px 0;
+    color: #475569;
+    font-size: 0.8rem;
 }
-.loader-box {
-  text-align: center;
-  color: white;
+
+.date-divider span { background:#151823; padding:0 10px; }
+
+.chat-bubble-wrapper {
+    display: flex;
+    gap: 12px;
+    max-width: 80%;
 }
-.spin {
-  animation: spin 1s linear infinite;
+
+.chat-bubble-wrapper.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.avatar-mini {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: #1e212f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8b5cf6;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.bubble-text {
+    padding: 14px 20px;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.assistant .bubble-text {
+    background: #1e212f;
+    color: #e2e8f0;
+    border-bottom-left-radius: 4px;
+}
+
+.user .bubble-text {
+    background: #8b5cf6;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+/* Input Area */
+.chat-input-section {
+    padding: 25px 30px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.input-wrapper-figma {
+    background: #252836;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px 8px 25px;
+    border: 1px solid rgba(139, 92, 246, 0.1);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.input-wrapper-figma input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    outline: none;
+    font-size: 0.95rem;
+}
+
+.btn-mic {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 10px;
+    transition: 0.2s;
+}
+
+.btn-mic:hover { color: #8b5cf6; }
+
+.btn-send-purple {
+    background: #8b5cf6;
+    border: none;
+    color: white;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-send-purple:hover {
+    background: #7c3aed;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+}
+/* เน้นข้อความคำสั่ง Admin */
+.bubble-text.admin-highlight {
+    border: 1px solid rgba(139, 92, 246, 0.5);
+    background: rgba(139, 92, 246, 0.15) !important;
+    color: #a78bfa !important;
+}
+
+/* แสดงรูปในแชท */
+.chat-image-preview {
+    max-width: 200px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+/* แถบพรีวิวรูปก่อนส่ง */
+.preview-attach {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+.preview-attach img {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+.preview-attach button {
+    position: absolute;
+    top: -5px; right: -5px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: none; color: white;
+}
+
+/* ปุ่มไมค์ขณะทำงาน */
+.btn-mic.active {
+    color: #ef4444;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.btn-clear-chat {
+    background: transparent;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 8px 15px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+/* --- Report Page Styling --- */
+.report-main-section, .feedback-section-figma {
+    margin-top: 30px;
+}
+
+.section-title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 25px;
+}
+
+.charts-grid-figma {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 25px;
+}
+
+.chart-card-figma {
+    background-color: #1e212f;
+    border-radius: 24px;
+    padding: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chart-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.chart-header-row h3 { font-size: 1.1rem; margin: 0; color: white; }
+.chart-type-tag { font-size: 0.8rem; color: #475569; font-weight: bold; }
+
+.mock-chart-container {
+    width: 100%;
+    height: 280px;
+    background-color: white;
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mock-chart-container img {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* Feedback Section */
+.feedback-grid {
+    display: flex;
+    gap: 20px;
+    background-color: #1e212f;
+    padding: 30px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.feedback-card-figma {
+    background: #252836;
+    padding: 20px;
+    border-radius: 15px;
+    flex: 1;
+}
+
+.feedback-user { color: #94a3b8; font-size: 0.8rem; margin-bottom: 8px; }
+.feedback-text { color: white; font-size: 0.95rem; font-weight: 500; }
+/* --- ปรับปรุงหน้า Settings ให้ตรงดีไซน์ --- */
+.settings-grid-figma {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* แบ่ง 2 คอลัมน์เท่ากัน */
+    gap: 24px;
+    margin-top: 24px;
+}
+
+/* กล่องการ์ดแต่ละส่วน */
+.settings-card-figma {
+    background: #1e212f;
+    border-radius: 24px; /* ปรับความโค้งให้มนเท่ากับหน้าอื่นๆ */
+    padding: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* การจัดการระบบให้ยืดเต็มความกว้าง */
+.settings-card-figma.full-width {
+    grid-column: span 2;
+}
+
+/* ปรับแต่ง Input ให้ดูพรีเมียมขึ้น */
+.input-field-figma {
+    margin-bottom: 20px;
+}
+
+.input-field-figma label {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.input-field-figma input {
+    width: 100%;
+    background: #151823; /* พื้นหลัง Input มืดกว่าตัวการ์ด */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.input-field-figma input:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+/* ปรับแต่งส่วน Switch และ Option Item */
+.option-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.option-item:last-child {
+    border-bottom: none;
+}
+
+/* ส่วนของปุ่มด้านล่างให้จัดเรียงแนวนอน */
+.settings-actions-bottom {
+    grid-column: span 2;
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+}
+
+.btn-save-settings {
+    background: #8b5cf6;
+    color: white;
+    padding: 14px 28px;
+    border-radius: 16px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.2s;
+}
+
+.btn-save-settings:hover {
+    background: #7c3aed;
+    transform: translateY(-2px);
+}
+
+.btn-logout-figma {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    padding: 14px 28px;
+    border-radius: 16px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.2s;
+}
+
+.btn-logout-figma:hover {
+    background: rgba(239, 68, 68, 0.2);
 }
