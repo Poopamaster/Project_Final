@@ -1,5 +1,6 @@
 const { chatWithAI } = require("../services/aiService");
 const ChatHistory = require("../models/ChatHistory");
+const { getToolsForUser } = require("../config/toolPermissions");
 
 exports.getHistory = async (req, res) => {
   try {
@@ -20,10 +21,17 @@ exports.getHistory = async (req, res) => {
 exports.chat = async (req, res) => {
   try {
     const { message, image } = req.body;
-    const user = req.user;
+    const user = req.user; // ในนี้มี user.role แล้ว (จาก middleware auth)
 
-    // A. ส่งให้ AI คิด
-    const botReply = await chatWithAI(user, message, image);
+    // 🛡️ SECURITY STEP: ดึงรายชื่อ Tools ที่คนนี้มีสิทธิ์ใช้
+    const allowedTools = getToolsForUser(user.role);
+
+    console.log(`👤 User: ${user.name} (${user.role}) is chatting.`);
+    console.log(`🛠️ Allowed Tools: ${allowedTools.join(", ")}`);
+
+    // A. ส่งให้ AI คิด (โดยส่ง allowedTools ไปกำกับด้วย)
+    // *คุณต้องไปแก้ aiService ให้รับ parameter นี้ด้วยนะ ดูข้อ 3*
+    const botReply = await chatWithAI(user, message, image, allowedTools);
 
     // B. เตรียมข้อความ User และ Bot
     const userMsg = {
@@ -39,26 +47,24 @@ exports.chat = async (req, res) => {
         text: botReply
     };
 
-    // C. บันทึกลง MongoDB
+    // C. บันทึกลง MongoDB (Code เดิมของคุณ)
     let history = await ChatHistory.findOne({ user: user._id });
 
     if (!history) {
-        // ถ้ายังไม่เคยคุย ให้สร้างใหม่
         history = await ChatHistory.create({
             user: user._id,
             messages: [userMsg, botMsg]
         });
     } else {
-        // ถ้ามีอยู่แล้ว ให้ Push ต่อท้าย
         history.messages.push(userMsg, botMsg);
         await history.save();
     }
 
-    // D. ส่งคำตอบกลับไปหา Frontend
+    // D. ส่งคำตอบกลับ
     res.json({
       success: true,
       reply: botReply,
-      history: history.messages // ส่งประวัติล่าสุดกลับไปเลยก็ได้
+      history: history.messages
     });
 
   } catch (error) {
