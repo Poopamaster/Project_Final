@@ -61,15 +61,15 @@ const ChatBotPage = ({ isEmbedded = false }) => {
     setIsLoading(true);
 
     try {
-      const adminResponse = await handleAdminCommand(textToSend);
+      // const adminResponse = await handleAdminCommand(textToSend);
       
-      if (adminResponse) {
-         setTimeout(() => {
-            setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: adminResponse.reply }]);
-            setIsLoading(false);
-         }, 500);
-         return;
-      }
+      // if (adminResponse) {
+      //    setTimeout(() => {
+      //       setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: adminResponse.reply }]);
+      //       setIsLoading(false);
+      //    }, 500);
+      //    return;
+      // }
 
       let base64Image = selectedImage ? await convertToBase64(selectedImage) : null;
       const data = await sendMessageToBot(textToSend, base64Image);

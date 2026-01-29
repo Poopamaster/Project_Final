@@ -17,7 +17,7 @@ const MovieSchema: Schema = new Schema(
     title_en: { type: String, required: true },
     poster_url: { type: String },
     genre: { type: String, required: true },
-    duration_min: { type: Number, required: true },
+    duration_min: { type: Number, required: true, default: 120 },
     start_date: { type: Date, required: true },
     due_date: { type: Date, required: true },
     language: { type: String, default: "TH/EN" },

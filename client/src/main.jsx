@@ -7,7 +7,6 @@ import './style.css'
 
 const GOOGLE_CLIENT_ID = "138152624506-ikkdfevmmiqib8gsnvtgklab50eqvmfa.apps.googleusercontent.com";
 
-// React จะใช้ createRoot และ render ไปที่ element id 'root'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}> 
