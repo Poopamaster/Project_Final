@@ -847,3 +847,149 @@
 .btn-logout-figma:hover {
     background: rgba(239, 68, 68, 0.2);
 }
+
+/* =========================================
+   NEW SETTINGS PAGE STYLING (V2.0)
+   แปะต่อท้ายเพื่อความสวยงามโดยไม่กระทบหน้าอื่น
+   ========================================= */
+
+/* เลย์เอาต์การจัดวางแบบ Grid 2 คอลัมน์ */
+.settings-grid-figma {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-top: 24px;
+}
+
+/* การ์ดสไตล์ Modern Dark พร้อม Effect ตอน Hover */
+.settings-card-figma {
+    background: #1e212f; /* สีเทาเข้มเข้ากับธีมหลัก */
+    border-radius: 24px;
+    padding: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.settings-card-figma:hover {
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* ส่วนหัวของการ์ดพร้อมไอคอน */
+.settings-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-card-header h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+}
+
+/* ช่องกรอกข้อมูล (Input) สไตล์ Console */
+.input-field-figma label {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.input-field-figma input {
+    width: 100%;
+    background: #0d0f17; /* พื้นหลังมืดสนิทให้ดูมีมิติ */
+    border: 1px solid #2d3142;
+    padding: 14px 18px;
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.input-field-figma input:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    background: #151823;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+/* รายการตัวเลือกแบบ Toggle */
+.option-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #151823;
+    border-radius: 18px;
+    margin-bottom: 15px;
+    border: 1px solid transparent;
+    transition: 0.2s;
+}
+
+.option-item:hover {
+    border-color: #2d3142;
+}
+
+/* ปุ่มบันทึกแบบไล่เฉดม่วง (Purple Gradient) */
+.btn-save-settings {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    padding: 16px 36px;
+    border-radius: 18px;
+    border: none;
+    font-weight: 600;
+    font-family: 'Kanit', sans-serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+}
+
+.btn-save-settings:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(139, 92, 246, 0.4);
+}
+
+/* ปุ่ม Logout แบบโปร่งแสงสีแดง */
+.btn-logout-figma {
+    background: rgba(239, 68, 68, 0.08);
+    color: #fb7185;
+    padding: 16px 28px;
+    border-radius: 18px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.2s;
+}
+
+.btn-logout-figma:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+/* บังคับแสดงตัวหนังสือในปุ่มหน้าจัดการหนัง */
+.btn-edit-blue span, 
+.btn-delete-red span,
+.btn-save-settings span {
+    display: inline-block !important;
+    margin-left: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.card-actions button {
+    padding: 10px 15px !important;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

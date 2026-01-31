@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
     LayoutDashboard, Film, Ticket, Users, 
-    MessageSquare, BarChart3, Settings, ShieldCheck // 1. เพิ่ม ShieldCheck icon
+    MessageSquare, BarChart3, Settings, ShieldCheck,
+    ClipboardList, Monitor 
 } from 'lucide-react';
 import '../css/AdminDashboardPage.css';
 
-// --- 1. Import All Sub-Pages ---
+
 import DashboardPage from '../components/admin/DashboardPage';
 import AddMoviePage from '../components/admin/AddMoviePage';
 import BookingPage from '../components/admin/BookingPageAdmin'; 
 import CustomerPageAdmin from '../components/admin/CustomerPageAdmin';
+import AdminManagementPage from '../components/admin/AdminManagementPage';
 import AiChatPageAdmin from '../components/admin/AiChatPageAdmin';
 import ReportPage from '../components/admin/ReportPage';
+import LogSystemPage from '../components/admin/LogSystemPage';
 import SettingsPage from '../components/admin/SettingsPage';
-import AdminManagementPage from '../components/admin/AdminManagementPage'; // 2. Import หน้าใหม่
 
 export default function AdminPage() {
     const [page, setPage] = useState('dashboard');
@@ -23,28 +26,25 @@ export default function AdminPage() {
         { id: 'add-movie', label: 'จัดการหนัง', icon: <Film size={20} /> },
         { id: 'bookings', label: 'การจอง', icon: <Ticket size={20} /> },
         { id: 'customers', label: 'ลูกค้า', icon: <Users size={20} /> },
-        { id: 'admins', label: 'จัดการผู้ดูแล', icon: <ShieldCheck size={20} /> }, // 3. เพิ่มเมนูใหม่
+        { id: 'admins', label: 'จัดการผู้ดูแล', icon: <ShieldCheck size={20} /> },
         { id: 'ai-chat', label: 'คุยกับ AI', icon: <MessageSquare size={20} /> },
         { id: 'reports', label: 'รายงาน', icon: <BarChart3 size={20} /> },
+        { id: 'logs', label: 'Log System', icon: <ClipboardList size={20} /> },
         { id: 'settings', label: 'ตั้งค่า', icon: <Settings size={20} /> },
     ];
 
     return (
-        <div className="admin-pure-layout">
-            
+        <div className="admin-pure-layout" style={{ display: 'flex', minHeight: '100vh', background: '#0f111a' }}>
+       
             <aside className="sidebar-figma">
                 <div className="sidebar-profile-figma">
-                    <div className="avatar-figma">
-                        <Users size={28} color="white" />
-                    </div>
+                    <div className="avatar-figma"><Users size={28} color="white" /></div>
                     <div className="profile-info-figma">
                         <h3>Admin</h3>
                         <p>ผู้จัดการระบบ</p>
                     </div>
                 </div>
-
                 <div className="menu-section-label">MENU</div>
-                
                 <nav className="nav-menu-figma">
                     {menuItems.map((item) => (
                         <button 
@@ -57,15 +57,38 @@ export default function AdminPage() {
                         </button>
                     ))}
                 </nav>
-
-                <div className="sidebar-footer-figma">
-                    MCP CINEMA v2.0
-                </div>
+                <div className="sidebar-footer-figma">MCP CINEMA v2.0</div>
             </aside>
             
-            <main className="content-area-figma">
-                <div className="content-container-figma">
-                    {/* --- 4. เพิ่มเงื่อนไขการแสดงผลหน้าจัดการผู้ดูแล --- */}
+            
+            <main className="content-area-figma" style={{ flex: 1, position: 'relative', overflowY: 'auto', padding: '40px' }}>
+                
+                
+                <div style={{ position: 'absolute', top: '30px', right: '40px', zIndex: 999 }}>
+                    <Link to="/" style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '10px', 
+                        background: '#1e293b', 
+                        color: '#f1f5f9', 
+                        padding: '12px 20px', 
+                        borderRadius: '14px', 
+                        fontSize: '0.85rem',
+                        textDecoration: 'none',
+                        border: '1px solid #334155',
+                        fontWeight: '600',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#334155'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                    >
+                        <Monitor size={18} />
+                        <span>กลับสู่หน้าหลัก</span>
+                    </Link>
+                </div>
+
+                <div className="content-container-figma" style={{ marginTop: '40px' }}>
                     {page === 'dashboard' && <DashboardPage />}
                     {page === 'add-movie' && <AddMoviePage onMovieAdded={() => setPage('dashboard')} />}
                     {page === 'bookings' && <BookingPage />}
@@ -73,14 +96,8 @@ export default function AdminPage() {
                     {page === 'admins' && <AdminManagementPage />}
                     {page === 'ai-chat' && <AiChatPageAdmin />}
                     {page === 'reports' && <ReportPage />}
+                    {page === 'logs' && <LogSystemPage />}
                     {page === 'settings' && <SettingsPage />}
-                    
-                    {/* --- 5. อัปเดตรายการหน้าที่ตรวจสอบ WIP --- */}
-                    {!['dashboard', 'add-movie', 'bookings', 'customers', 'admins', 'ai-chat', 'reports', 'settings'].includes(page) && (
-                        <div className="wip-box">
-                            <h2>กำลังพัฒนาหน้า {menuItems.find(i => i.id === page)?.label}</h2>
-                        </div>
-                    )}
                 </div>
             </main>
         </div>

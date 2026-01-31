@@ -1,7 +1,8 @@
-import React, { useContext, useState } from 'react';
-import { User, Lock, Globe, Save, LogOut, Loader2 } from 'lucide-react';
-import { AuthContext } from "../../App"; // ตรวจสอบ path ของ AuthContext ให้ถูกต้อง
+import React, { useState, useContext } from 'react';
+import { User, Lock, Globe, Save, LogOut, Loader2, ShieldCheck, Bell } from 'lucide-react';
+import { AuthContext } from "../../App"; 
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../../api/axiosInstance'; 
 
 export default function SettingsPage() {
     const { user, logout } = useContext(AuthContext);
@@ -15,40 +16,54 @@ export default function SettingsPage() {
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         setIsSaving(true);
-        // จำลองการบันทึกค่า
-        setTimeout(() => {
+        try {
+            // เรียกผ่าน axiosInstance ไปยังพอร์ต 8000 ตามโครงสร้างที่วางไว้
+            // await axiosInstance.put('/admin/settings', { ... });
+            
+            setTimeout(() => {
+                setIsSaving(false);
+                alert("บันทึกการตั้งค่าระบบ MCP CINEMA v2.0 เรียบร้อยแล้ว");
+            }, 1500); 
+        } catch (error) {
+            console.error(error);
             setIsSaving(false);
-            alert("บันทึกการตั้งค่าเรียบร้อยแล้ว");
-        }, 1000);
+        }
     };
 
     return (
-        <div className="admin-page-content-inside">
-            <header className="content-header-figma">
+        <div className="admin-page-content-inside settings-layout">
+            <header className="content-header-figma mb-8">
                 <div className="header-left">
-                    <h1>ตั้งค่า</h1>
-                    <p>จัดการข้อมูลบัญชีและตั้งค่าระบบ MCP CINEMA v2.0</p>
+                    <h1>ตั้งค่าระบบ</h1>
+                    <p>จัดการความปลอดภัยและกำหนดค่าการทำงานของระบบจัดการโรงภาพยนตร์</p>
                 </div>
-                {/* ตัดส่วนเวลาออกเพื่อให้เหมือนหน้าอื่น */}
             </header>
 
             <div className="settings-grid-figma">
-                {/* Profile Section */}
+                
+                {/* Profile Section - แสดงข้อมูลจริงของผู้ใช้ */}
                 <div className="settings-card-figma">
                     <div className="settings-card-header">
-                        <User size={20} />
-                        <h3>ข้อมูลโปรไฟล์</h3>
+                        <User size={22} color="#8b5cf6" />
+                        <h3>ข้อมูลบัญชีผู้ดูแล</h3>
                     </div>
                     <div className="settings-form-group">
                         <div className="input-field-figma">
-                            <label>ชื่อ-นามสกุล</label>
-                            <input type="text" defaultValue={user?.name || "Admin MCP Cinema"} />
+                            <label>ชื่อผู้ดูแลระบบ</label>
+                            <input 
+                                type="text" 
+                                defaultValue={user?.name || "Administrator"} 
+                            />
                         </div>
                         <div className="input-field-figma">
-                            <label>อีเมล</label>
-                            <input type="email" defaultValue={user?.email || "admin@mcp-cinema.com"} disabled />
+                            <label>อีเมล (ใช้สำหรับเข้าสู่ระบบ)</label>
+                            <input 
+                                type="email" 
+                                defaultValue={user?.email || "admin@mcp-cinema.com"} 
+                                disabled 
+                            />
                         </div>
                     </div>
                 </div>
@@ -56,60 +71,71 @@ export default function SettingsPage() {
                 {/* Security Section */}
                 <div className="settings-card-figma">
                     <div className="settings-card-header">
-                        <Lock size={20} />
+                        <Lock size={22} color="#fb7185" />
                         <h3>ความปลอดภัย</h3>
                     </div>
                     <div className="settings-form-group">
-                        <button className="btn-secondary-figma">เปลี่ยนรหัสผ่าน</button>
-                        <div className="toggle-row-figma">
-                            <span>ยืนยันตัวตนสองชั้น (2FA)</span>
+                        <button className="btn-logout-figma" style={{ width: '100%', marginBottom: '15px', justifyContent: 'center' }}>
+                            <ShieldCheck size={18} /> เปลี่ยนรหัสผ่านใหม่
+                        </button>
+                        <div className="option-item">
+                            <span className="text-sm text-gray-300">ยืนยันตัวตนสองชั้น (2FA)</span>
                             <label className="switch-figma">
                                 <input type="checkbox" />
-                                <span className="slider-figma round"></span>
+                                <span className="slider-figma"></span>
                             </label>
                         </div>
                     </div>
                 </div>
 
-                {/* System Settings */}
+                {/* System Settings - ไม่มี Feedback Table ตามความต้องการ */}
                 <div className="settings-card-figma full-width">
                     <div className="settings-card-header">
-                        <Globe size={20} />
-                        <h3>การจัดการระบบ</h3>
+                        <Globe size={22} color="#22d3ee" />
+                        <h3>การจัดการระบบโรงภาพยนตร์</h3>
                     </div>
-                    <div className="settings-options-list">
+                    <div className="settings-grid-figma" style={{ marginTop: 0 }}>
                         <div className="option-item">
                             <div className="option-info">
-                                <strong>เปิดโหมดจองตั๋วล่วงหน้า</strong>
-                                <p>อนุญาตให้ลูกค้าจองตั๋วก่อนหนังฉาย 7 วัน</p>
+                                <strong>ระบบแจ้งเตือนการจอง</strong>
+                                <p>ส่งอีเมลยืนยันให้ลูกค้าอัตโนมัติ</p>
                             </div>
                             <label className="switch-figma">
                                 <input type="checkbox" defaultChecked />
-                                <span className="slider-figma round"></span>
+                                <span className="slider-figma"></span>
                             </label>
                         </div>
+
                         <div className="option-item">
                             <div className="option-info">
-                                <strong>ปิดปรับปรุงระบบ AI</strong>
-                                <p>ปิดการทำงานของ Chatbot ชั่วคราว</p>
+                                <strong>โหมดปิดปรับปรุงระบบ</strong>
+                                <p>ปิดระบบการจองชั่วคราวเพื่อซ่อมบำรุง</p>
                             </div>
                             <label className="switch-figma">
                                 <input type="checkbox" />
-                                <span className="slider-figma round"></span>
+                                <span className="slider-figma"></span>
                             </label>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div className="settings-actions-bottom">
-                    <button className="btn-save-settings" onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
-                        {isSaving ? " กำลังบันทึก..." : " บันทึกการตั้งค่า"}
-                    </button>
-                    <button className="btn-logout-figma" onClick={handleLogout}>
-                        <LogOut size={18} /> ออกจากระบบ
-                    </button>
-                </div>
+            {/* ส่วนปุ่มกดที่ใช้ Class จาก CSS บรรทัด 851+ */}
+            <div className="settings-actions-bottom">
+                <button 
+                    className="btn-save-settings" 
+                    onClick={handleSave} 
+                    disabled={isSaving}
+                >
+                    {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} 
+                    {isSaving ? " กำลังบันทึก..." : " บันทึกการเปลี่ยนแปลง"}
+                </button>
+                <button 
+                    className="btn-logout-figma" 
+                    onClick={handleLogout}
+                >
+                    <LogOut size={20} /> ออกจากระบบ
+                </button>
             </div>
         </div>
     );
