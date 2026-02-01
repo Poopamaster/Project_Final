@@ -11,10 +11,11 @@ const MovieCard = ({ movie }) => {
   const movieId = safeMovie.id || safeMovie._id;
 
   // 1. ดึง URL: ใช้ poster_url ที่มาจาก DB หรือใช้ Placeholder
-  const imageUrl = safeMovie.poster_url || safeMovie.image || "https://via.placeholder.com/300x450?text=No+Image";
+  // ✅ แก้ไข: เปลี่ยนจาก via.placeholder.com เป็น placehold.co
+  const imageUrl = safeMovie.poster_url || safeMovie.image || "https://placehold.co/300x450?text=No+Image";
 
   // 2. ชื่อเรื่อง
-  const movieTitle = safeMovie.title_th || safeMovie.title || "ไม่มีชื่อเรื่อง";
+  const movieTitle = safeMovie.title_th || safeMovie.title_en || "ไม่มีชื่อเรื่อง";
 
   const handleClick = () => {
     // ตรวจสอบว่ามี ID ไหม ถ้ามีให้พาไปหน้า Booking
@@ -32,7 +33,11 @@ const MovieCard = ({ movie }) => {
         alt={movieTitle}
         className="movie-img-custom"
         // ถ้าลิงก์รูปเสีย ให้ใช้ภาพ Placeholder แทน
-        onError={(e) => e.target.src = "https://placehold.co/300x450?text=No+Image"}/>
+        onError={(e) => {
+            e.target.onerror = null; // ป้องกัน Loop ถ้ารูปสำรองเสียด้วย
+            e.target.src = "https://placehold.co/300x450?text=No+Image";
+        }}
+      />
 
       <div className="movie-overlay-custom">
         <h3 className="movie-title-custom">

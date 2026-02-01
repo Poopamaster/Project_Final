@@ -8,7 +8,8 @@ const { authenticate } = require('../middleware/authMiddleware');
 
 // --- ส่วนจัดการภาพยนตร์ (Movies) ---
 // 1. ค้นหาหนังจาก TMDB API
-router.get('/tmdb/search', adminController.searchTMDB);
+router.get('/search-tmdb', adminController.searchTMDB);
+router.post('/movies/add-tmdb', adminController.addMovieFromTMDB);
 
 // 2. เพิ่มหนังใหม่ลง Database
 router.post('/movies', adminController.createMovie);
@@ -34,8 +35,10 @@ router.get('/users', adminController.getAllUsers);
 router.get('/reports', adminController.getReports);
 router.get('/list', adminController.getAllAdmins);
 router.post('/add', adminController.addAdmin);
+router.post('/promote', adminController.promoteAdmin);
 // เพิ่มลงในไฟล์ adminRoutes.js
 router.delete('/delete/:id', adminController.deleteAdmin);
+
 
 
 

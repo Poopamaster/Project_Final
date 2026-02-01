@@ -19,6 +19,7 @@ exports.searchTMDB = async (req, res) => {
         });
 
         const results = response.data.results.map(m => ({
+            id: m.id,
             title_th: m.title,
             title_en: m.original_title,
             description: m.overview,
@@ -30,6 +31,51 @@ exports.searchTMDB = async (req, res) => {
         res.json({ success: true, results });
     } catch (error) {
         res.status(500).json({ message: "Error contacting TMDB" });
+    }
+};
+
+exports.addMovieFromTMDB = async (req, res) => {
+    try {
+        const { tmdbId } = req.body;
+        if (!tmdbId) return res.status(400).json({ message: "ระบุ TMDB ID" });
+
+        // 1. ดึงรายละเอียดหนังจาก TMDB (ต้องใช้ endpoint /movie/:id เพื่อเอา Runtime และ Genres)
+        const response = await axios.get(`${process.env.TMDB_BASE_URL}/movie/${tmdbId}`, {
+            params: {
+                api_key: process.env.TMDB_API_KEY,
+                language: 'th-TH'
+            }
+        });
+
+        const data = response.data;
+
+        // 2. แปลงข้อมูลให้เข้ากับ Schema ของเรา
+        const newMovieData = {
+            title_th: data.title,
+            title_en: data.original_title,
+            poster_url: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : null,
+            genre: data.genres ? data.genres.map(g => g.name).join('/') : 'General',
+            duration_min: data.runtime || 120, // ถ้าไม่มีเวลา ให้ default 120
+            language: data.original_language === 'th' ? 'TH' : 'EN/TH',
+            description: data.overview,
+            // วันฉาย: default เป็นวันนี้, วันออกโรง: อีก 14 วัน (แก้ทีหลังได้)
+            start_date: new Date(),
+            due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) 
+        };
+
+        // 3. ตรวจสอบว่ามีหนังนี้ในระบบหรือยัง
+        const existingMovie = await Movie.findOne({ title_en: newMovieData.title_en });
+        if (existingMovie) {
+            return res.status(400).json({ message: "หนังเรื่องนี้มีในระบบแล้ว" });
+        }
+
+        // 4. บันทึก
+        const movie = await Movie.create(newMovieData);
+        res.status(201).json({ success: true, message: "เพิ่มหนังจาก TMDB สำเร็จ", movie });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "เพิ่มหนังไม่สำเร็จ", error: error.message });
     }
 };
 
@@ -158,25 +204,6 @@ exports.getAllAdmins = async (req, res) => {
     }
 };
 
-exports.addAdmin = async (req, res) => {
-    try {
-        const { name, email, password } = req.body;
-        // เช็คว่ามี email นี้หรือยัง
-        const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ message: "อีเมลนี้ถูกใช้งานแล้ว" });
-
-        const newAdmin = await User.create({
-            name,
-            email,
-            password, // อย่าลืมใส่ Logic hash password ใน Model หรือที่นี่นะครับ
-            role: 'admin'
-        });
-
-        res.status(201).json({ success: true, data: newAdmin });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
 exports.getReports = async (req, res) => {
     try {
         // ดึงรายงาน/Feedback จริงจาก DB
@@ -201,5 +228,36 @@ exports.getReports = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.promoteAdmin = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // 1. ค้นหา User จากอีเมล
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้งานอีเมลนี้ในระบบ" });
+        }
+
+        // 2. ตรวจสอบว่าเป็น Admin อยู่แล้วหรือยัง
+        if (user.role === 'admin') {
+            return res.status(400).json({ success: false, message: "ผู้ใช้นี้เป็นผู้ดูแลระบบอยู่แล้ว" });
+        }
+
+        // 3. อัปเดต Role เป็น admin
+        user.role = 'admin';
+        await user.save();
+
+        res.status(200).json({ 
+            success: true, 
+            message: `แต่งตั้ง ${user.name} เป็นผู้ดูแลระบบเรียบร้อยแล้ว`,
+            data: user 
+        });
+
+    } catch (error) {
+        console.error("Promote Admin Error:", error);
+        res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการดำเนินการ" });
     }
 };
