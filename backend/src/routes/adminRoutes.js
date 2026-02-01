@@ -37,4 +37,6 @@ router.post('/add', adminController.addAdmin);
 // เพิ่มลงในไฟล์ adminRoutes.js
 router.delete('/delete/:id', adminController.deleteAdmin);
 
+
+
 module.exports = router;

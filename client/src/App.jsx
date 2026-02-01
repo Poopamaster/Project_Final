@@ -14,6 +14,7 @@ import SeatSelectionPage from "./pages/SeatSelectionPage";
 import AdminPage from './pages/AdminPage';
 import './style.css';
 import HistoryPage from './pages/HistoryPage';
+import LogSystemPage from './components/admin/LogSystemPage';
 
 export const AuthContext = createContext(null);
 
@@ -179,6 +180,7 @@ function App() {
                 <Route path="/history" element={<HistoryPage />} />
 
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/logs" element={<AdminPage><LogSystemPage /></AdminPage>} />
 
                 {/* หน้า Chatbot ยังคงต้อง Login */}
                 <Route

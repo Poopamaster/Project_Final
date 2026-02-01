@@ -18,7 +18,7 @@ export default function AiChatPageAdmin() {
                 </div>
             </header>
 
-            {/* ✅ ดึง ChatBotPage มาแสดงผล และบอกมันว่าเป็น Embedded mode */}
+            
             <div className="admin-chat-embedded-container" style={{ flex: 1, overflow: 'hidden', marginTop: '20px' }}>
                 <ChatBotPage isEmbedded={true} /> 
             </div>

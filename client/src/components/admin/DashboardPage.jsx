@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Ticket, Users, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance'; 
 import '../../css/AdminDashboardPage.css';
 
 export default function DashboardPage() {
     const [statsData, setStatsData] = useState({ sales: 0, tickets: 0, users: 0 });
     const [loading, setLoading] = useState(true);
 
-    // 1. ฟังก์ชันดึงข้อมูลสถิติจาก Backend Port 8000
     const fetchDashboardStats = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:5000/api/admin/stats');
+            
+            const response = await axiosInstance.get('/admin/stats');
             if (response.data.success) {
-                setStatsData(response.data.data);
+                setStatsData(response.data.data || { sales: 0, tickets: 0, users: 0 });
             }
             setLoading(false);
         } catch (error) {
@@ -24,6 +24,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchDashboardStats();
+        // ดึงข้อมูลใหม่ทุก 5 นาที
         const interval = setInterval(fetchDashboardStats, 300000);
         return () => clearInterval(interval);
     }, []);
@@ -31,19 +32,19 @@ export default function DashboardPage() {
     const statsCards = [
         { 
             label: 'ยอดขายทั้งหมด', 
-            value: `${statsData.sales.toLocaleString()} บ.`, 
+            value: `${(statsData.sales || 0).toLocaleString()} บ.`, 
             trend: '+12.73%', 
             icon: <TrendingUp size={24} color="#8b5cf6" /> 
         },
         { 
             label: 'จำนวนตั๋วที่ขายได้', 
-            value: `${statsData.tickets} ใบ`, 
+            value: `${statsData.tickets || 0} ใบ`, 
             trend: '+13.43%', 
             icon: <Ticket size={24} color="#8b5cf6" /> 
         },
         { 
             label: 'ผู้ใช้ในระบบ', 
-            value: `${statsData.users} คน`, 
+            value: `${statsData.users || 0} คน`, 
             trend: '+7.4%', 
             icon: <Users size={24} color="#8b5cf6" /> 
         },
@@ -56,12 +57,12 @@ export default function DashboardPage() {
                     <h1>ภาพรวมของระบบ</h1>
                     <p>ข้อมูลสถิติจากฐานข้อมูล MCP CINEMA v2.0</p>
                 </div>
-                {/* ตัดส่วน dashboard-time ออกแล้ว */}
             </header>
 
             {loading ? (
-                <div className="flex justify-center p-10">
-                    <Loader2 className="animate-spin" size={40} color="#8b5cf6" />
+                <div className="flex justify-center p-10 text-center" style={{ width: '100%' }}>
+                    <Loader2 className="animate-spin" size={40} color="#8b5cf6" style={{ margin: '0 auto' }} />
+                    <p style={{ marginTop: '15px', color: '#94a3b8' }}>กำลังอัปเดตสถิติล่าสุด...</p>
                 </div>
             ) : (
                 <div className="stats-grid">

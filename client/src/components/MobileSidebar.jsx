@@ -2,102 +2,88 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './MobileSidebar.css';
 
-// ใช้ Lucide React
-import { Home, MessageSquare, Film, History, LogOut, X, User, LayoutDashboard } from 'lucide-react';
+// ✅ เพิ่ม ClipboardList เข้ามาในกลุ่มไอคอน
+import { 
+  Home, MessageSquare, Film, History, LogOut, 
+  X, User, LayoutDashboard, ClipboardList, BarChart3, Settings 
+} from 'lucide-react';
 
-// ✅ 1. เพิ่ม children เข้าไปใน props (เพื่อรับปุ่มพิเศษจากหน้าอื่น)
 const MobileSidebar = ({ isOpen, onClose, user, handleLogout, children }) => {
   const location = useLocation();
-
-  // ฟังก์ชันเช็คว่าหน้าไหน Active อยู่
   const isActive = (path) => location.pathname === path ? 'active' : '';
 
   return (
     <>
-      {/* --- ฉากหลังสีดำจางๆ (Overlay) --- */}
-      <div 
-        className={`sidebar-overlay ${isOpen ? 'active' : ''}`} 
-        onClick={onClose}
-      ></div>
+      <div className={`sidebar-overlay ${isOpen ? 'active' : ''}`} onClick={onClose}></div>
 
-      {/* --- ตัว Sidebar --- */}
       <div className={`mobile-sidebar ${isOpen ? 'active' : ''}`}>
-        
-        {/* ปุ่มปิด X */}
-        <button className="close-btn" onClick={onClose}>
-            <X size={24} />
-        </button>
+        <button className="close-btn" onClick={onClose}><X size={24} /></button>
 
-        {/* --- ส่วนหัว: โปรไฟล์ผู้ใช้ --- */}
         <div className="sidebar-header">
             {user ? (
                 <div className="user-profile-compact">
-                    <div className="avatar-circle">
-                        {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                    </div>
+                    <div className="avatar-circle">{user.name?.charAt(0).toUpperCase()}</div>
                     <div className="user-info">
                         <h4>{user.name}</h4>
-                        <p>{user.email || 'Member'}</p>
+                        <p>{user.email}</p>
                         {user.role === 'admin' && <span className="sidebar-badge">Admin</span>}
                     </div>
                 </div>
             ) : (
-                <Link to="/login" className="user-profile-compact guest" onClick={onClose}>
-                     <div className="avatar-circle" style={{background: '#334155'}}>
-                        <User size={20} />
-                     </div>
-                     <div className="user-info">
-                        <h4>ผู้เยี่ยมชม</h4>
-                        <p>คลิกเพื่อเข้าสู่ระบบ</p>
-                     </div>
-                </Link>
+                <div className="user-profile-compact guest">
+                    <div className="avatar-circle"><User size={20} /></div>
+                    <div className="user-info"><h4>ผู้เยี่ยมชม</h4></div>
+                </div>
             )}
         </div>
 
         <div className="divider"></div>
 
-        {/* --- รายการเมนู --- */}
         <nav className="sidebar-nav">
-            <div className="menu-label">QUICK MENU</div>
+            <div className="menu-label">MENU</div>
             
+            {/* เมนูสำหรับ User ทั่วไป */}
             <Link to="/" className={`nav-item ${isActive('/')}`} onClick={onClose}>
-                <Home size={20} />
-                <span>หน้าแรก</span>
+                <Home size={20} /> <span>ภาพรวม</span>
             </Link>
 
-            <Link to="/chatbot" className={`nav-item ${isActive('/chatbot')}`} onClick={onClose}>
-                <MessageSquare size={20} />
-                <span>แชทบอท AI</span>
-            </Link>
-
-            <Link to="/movies" className={`nav-item ${isActive('/movies')}`} onClick={onClose}>
-                <Film size={20} />
-                <span>ภาพยนตร์</span>
-            </Link>
-
-            <Link to="/history" className={`nav-item ${isActive('/history')}`} onClick={onClose}>
-                <History size={20} />
-                <span>ประวัติการจอง</span>
-            </Link>
-
-            {/* ✅ 2. แทรก children ตรงนี้ (ปุ่มพิเศษจะโผล่ตรงนี้) */}
-            {children}
-
-            {/* เมนูพิเศษสำหรับ Admin */}
+            {/* เมนูสำหรับ Admin (แทรก Log System ตรงนี้) */}
             {user && user.role === 'admin' && (
-                <Link to="/admin" className={`nav-item ${isActive('/admin')}`} onClick={onClose}>
-                    <LayoutDashboard size={20} color="#eab308" />
-                    <span style={{color: '#eab308'}}>ระบบหลังบ้าน</span>
-                </Link>
+                <>
+                    <Link to="/admin/movies" className={`nav-item ${isActive('/admin/movies')}`} onClick={onClose}>
+                        <Film size={20} /> <span>จัดการหนัง</span>
+                    </Link>
+
+                    <Link to="/admin/bookings" className={`nav-item ${isActive('/admin/bookings')}`} onClick={onClose}>
+                        <History size={20} /> <span>การจอง</span>
+                    </Link>
+
+                    <Link to="/admin/customers" className={`nav-item ${isActive('/admin/customers')}`} onClick={onClose}>
+                        <User size={20} /> <span>ลูกค้า</span>
+                    </Link>
+
+                    <Link to="/admin/reports" className={`nav-item ${isActive('/admin/reports')}`} onClick={onClose}>
+                        <BarChart3 size={20} /> <span>รายงาน</span>
+                    </Link>
+
+                    {/* ✅ เพิ่มเมนู Log System ตรงนี้ครับ */}
+                    <Link to="/admin/logs" className={`nav-item ${isActive('/admin/logs')}`} onClick={onClose}>
+                        <ClipboardList size={20} /> <span>Log System</span>
+                    </Link>
+
+                    <Link to="/admin/settings" className={`nav-item ${isActive('/admin/settings')}`} onClick={onClose}>
+                        <Settings size={20} /> <span>ตั้งค่า</span>
+                    </Link>
+                </>
             )}
+
+            {children}
         </nav>
 
-        {/* --- ส่วนท้าย: ปุ่ม Logout --- */}
         {user && (
             <div className="sidebar-footer">
                 <button className="logout-btn" onClick={handleLogout}>
-                    <LogOut size={20} />
-                    <span>ออกจากระบบ</span>
+                    <LogOut size={20} /> <span>ออกจากระบบ</span>
                 </button>
             </div>
         )}
