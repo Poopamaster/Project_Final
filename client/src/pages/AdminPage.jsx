@@ -17,6 +17,7 @@ import AiChatPageAdmin from '../components/admin/AiChatPageAdmin';
 import ReportPage from '../components/admin/ReportPage';
 import LogSystemPage from '../components/admin/LogSystemPage';
 import SettingsPage from '../components/admin/SettingsPage';
+import ShowtimePageAdmin from '../components/admin/ShowtimePageAdmin';
 
 export default function AdminPage() {
     const [page, setPage] = useState('dashboard');
@@ -24,6 +25,7 @@ export default function AdminPage() {
     const menuItems = [
         { id: 'dashboard', label: 'ภาพรวม', icon: <LayoutDashboard size={20} /> },
         { id: 'add-movie', label: 'จัดการหนัง', icon: <Film size={20} /> },
+        { id: 'showtime', label: 'จัดการรอบหนัง', icon: <Monitor size={20} /> },
         { id: 'bookings', label: 'การจอง', icon: <Ticket size={20} /> },
         { id: 'customers', label: 'ลูกค้า', icon: <Users size={20} /> },
         { id: 'admins', label: 'จัดการผู้ดูแล', icon: <ShieldCheck size={20} /> },
@@ -91,6 +93,7 @@ export default function AdminPage() {
                 <div className="content-container-figma" style={{ marginTop: '40px' }}>
                     {page === 'dashboard' && <DashboardPage />}
                     {page === 'add-movie' && <AddMoviePage onMovieAdded={() => setPage('dashboard')} />}
+                    {page === 'showtime' && <ShowtimePageAdmin />}
                     {page === 'bookings' && <BookingPage />}
                     {page === 'customers' && <CustomerPageAdmin />}
                     {page === 'admins' && <AdminManagementPage />}

@@ -15,6 +15,7 @@ import AdminPage from './pages/AdminPage';
 import './style.css';
 import HistoryPage from './pages/HistoryPage';
 import LogSystemPage from './components/admin/LogSystemPage';
+import ShowtimePageAdmin from './components/admin/ShowtimePageAdmin';
 
 export const AuthContext = createContext(null);
 
@@ -181,7 +182,7 @@ function App() {
 
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/admin/logs" element={<AdminPage><LogSystemPage /></AdminPage>} />
-
+                <Route path="/admin/showtime" element={<ShowtimePageAdmin />} />
                 {/* หน้า Chatbot ยังคงต้อง Login */}
                 <Route
                     path="/chatbot"
