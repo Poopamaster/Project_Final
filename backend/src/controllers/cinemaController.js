@@ -1,4 +1,5 @@
 const Cinema = require('../models/cinemaModel');
+const saveLog = require('../utils/logger'); // ✅ นำเข้า logger มาใช้งาน
 
 // --- ส่วนจัดการ Cinema (สาขา) ---
 
@@ -12,6 +13,19 @@ exports.createCinema = async (req, res) => {
             address,
             province,
             phone
+        });
+
+        // ✅ บันทึก Log เมื่อมีการเพิ่มสาขาใหม่
+        await saveLog({
+            req,
+            action: 'create',
+            table: 'Cinema',
+            targetId: newCinema._id,
+            newVal: { 
+                name: name, 
+                province: province 
+            },
+            note: `เพิ่มสาขาใหม่: ${name} (จังหวัด${province})`
         });
 
         res.status(201).json({ success: true, data: newCinema });

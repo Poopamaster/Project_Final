@@ -2,15 +2,23 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './MobileSidebar.css';
 
-// ✅ เพิ่ม ClipboardList เข้ามาในกลุ่มไอคอน
 import { 
   Home, MessageSquare, Film, History, LogOut, 
-  X, User, LayoutDashboard, ClipboardList, BarChart3, Settings 
+  X, User, LayoutDashboard, ClipboardList, BarChart3, Settings, ArrowRight, ArrowLeft
 } from 'lucide-react';
 
 const MobileSidebar = ({ isOpen, onClose, user, handleLogout, children }) => {
   const location = useLocation();
-  const isActive = (path) => location.pathname === path ? 'active' : '';
+  
+  // ✅ 1. เช็คว่าตอนนี้ user อยู่ในหน้า Admin หรือไม่
+  const isAdminPage = location.pathname.startsWith('/admin');
+
+  // ฟังก์ชันเช็ค active (ปรับให้รองรับ admin path)
+  const isActive = (path) => {
+    if (path === '/' && location.pathname === '/') return 'active';
+    if (path !== '/' && location.pathname.startsWith(path)) return 'active';
+    return '';
+  };
 
   return (
     <>
@@ -19,6 +27,7 @@ const MobileSidebar = ({ isOpen, onClose, user, handleLogout, children }) => {
       <div className={`mobile-sidebar ${isOpen ? 'active' : ''}`}>
         <button className="close-btn" onClick={onClose}><X size={24} /></button>
 
+        {/* --- Header Profile --- */}
         <div className="sidebar-header">
             {user ? (
                 <div className="user-profile-compact">
@@ -26,6 +35,7 @@ const MobileSidebar = ({ isOpen, onClose, user, handleLogout, children }) => {
                     <div className="user-info">
                         <h4>{user.name}</h4>
                         <p>{user.email}</p>
+                        {/* แสดง Badge เฉพาะถ้าเป็น Admin */}
                         {user.role === 'admin' && <span className="sidebar-badge">Admin</span>}
                     </div>
                 </div>
@@ -40,16 +50,16 @@ const MobileSidebar = ({ isOpen, onClose, user, handleLogout, children }) => {
         <div className="divider"></div>
 
         <nav className="sidebar-nav">
-            <div className="menu-label">MENU</div>
             
-            {/* เมนูสำหรับ User ทั่วไป */}
-            <Link to="/" className={`nav-item ${isActive('/')}`} onClick={onClose}>
-                <Home size={20} /> <span>ภาพรวม</span>
-            </Link>
-
-            {/* เมนูสำหรับ Admin (แทรก Log System ตรงนี้) */}
-            {user && user.role === 'admin' && (
+            {/* ✅ 2. กรณีอยู่หน้า Admin Dashboard (แสดงเมนู Admin) */}
+            {user?.role === 'admin' && isAdminPage ? (
                 <>
+                    <div className="menu-label">ADMIN MENU</div>
+                    
+                    <Link to="/admin" className={`nav-item ${isActive('/admin')}`} onClick={onClose}>
+                        <LayoutDashboard size={20} /> <span>แดชบอร์ด</span>
+                    </Link>
+
                     <Link to="/admin/movies" className={`nav-item ${isActive('/admin/movies')}`} onClick={onClose}>
                         <Film size={20} /> <span>จัดการหนัง</span>
                     </Link>
@@ -66,7 +76,6 @@ const MobileSidebar = ({ isOpen, onClose, user, handleLogout, children }) => {
                         <BarChart3 size={20} /> <span>รายงาน</span>
                     </Link>
 
-                    {/* ✅ เพิ่มเมนู Log System ตรงนี้ครับ */}
                     <Link to="/admin/logs" className={`nav-item ${isActive('/admin/logs')}`} onClick={onClose}>
                         <ClipboardList size={20} /> <span>Log System</span>
                     </Link>
@@ -74,6 +83,43 @@ const MobileSidebar = ({ isOpen, onClose, user, handleLogout, children }) => {
                     <Link to="/admin/settings" className={`nav-item ${isActive('/admin/settings')}`} onClick={onClose}>
                         <Settings size={20} /> <span>ตั้งค่า</span>
                     </Link>
+
+                    <div className="divider"></div>
+                    
+                    {/* ปุ่มกลับหน้าบ้าน */}
+                    <Link to="/" className="nav-item special-link" onClick={onClose}>
+                        <ArrowLeft size={20} /> <span>กลับสู่หน้าเว็บไซต์</span>
+                    </Link>
+                </>
+            ) : (
+                /* ✅ 3. กรณีอยู่หน้า User ทั่วไป (Home) */
+                <>
+                    <div className="menu-label">MENU</div>
+                    
+                    <Link to="/" className={`nav-item ${isActive('/')}`} onClick={onClose}>
+                        <Home size={20} /> <span>ภาพรวม</span>
+                    </Link>
+                    <Link to="/chatbot" className={`nav-item ${isActive('/chatbot')}`} onClick={onClose}>
+                        <MessageSquare size={20} /> <span>แชทบอท</span>
+                    </Link>
+                    <Link to="/movies" className={`nav-item ${isActive('/movies')}`} onClick={onClose}>
+                        <Film size={20} /> <span>ภาพยนตร์</span>
+                    </Link>
+                    <Link to="/history" className={`nav-item ${isActive('/history')}`} onClick={onClose}>
+                        <History size={20} /> <span>ประวัติการจอง</span>
+                    </Link>
+
+                    {/* ✅ ปุ่มทางลับเข้าหลังบ้าน (แสดงเฉพาะ Admin) */}
+                    {user?.role === 'admin' && (
+                        <>
+                            <div className="divider"></div>
+                            <Link to="/admin" className="nav-item special-admin-link" onClick={onClose}>
+                                <LayoutDashboard size={20} /> 
+                                <span>เข้าสู่ระบบจัดการ (Admin)</span>
+                                <ArrowRight size={16} style={{marginLeft: 'auto'}}/>
+                            </Link>
+                        </>
+                    )}
                 </>
             )}
 
@@ -86,6 +132,13 @@ const MobileSidebar = ({ isOpen, onClose, user, handleLogout, children }) => {
                     <LogOut size={20} /> <span>ออกจากระบบ</span>
                 </button>
             </div>
+        )}
+        {!user && (
+            <div className="sidebar-footer">
+                <Link to="/login" className="login-btn" onClick={onClose}>
+                    <User size={20} /> <span>เข้าสู่ระบบ / สมัครสมาชิก</span>
+                </Link>
+                </div>
         )}
       </div>
     </>

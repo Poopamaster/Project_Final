@@ -1,0 +1,211 @@
+/* src/css/LogSystem.css */
+.log-page-container {
+    padding: 25px;
+    color: #f1f5f9;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.log-header {
+    margin-bottom: 35px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.log-icon-box {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    padding: 14px;
+    border-radius: 18px;
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.log-title-section h1 {
+    font-size: 1.9rem;
+    font-weight: 850;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.log-title-section p {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    margin-top: 4px;
+}
+
+.log-table-card {
+    background: rgba(23, 25, 35, 0.6);
+    backdrop-filter: blur(15px);
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.log-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.log-table th {
+    background: rgba(255, 255, 255, 0.03);
+    text-align: left;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 22px 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.log-table td {
+    padding: 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    vertical-align: top;
+}
+
+.log-time-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.log-date-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #cbd5e1;
+}
+
+.log-clock-badge {
+    font-size: 0.8rem;
+    color: #a78bfa;
+    background: rgba(139, 92, 246, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    width: fit-content;
+    font-weight: 700;
+}
+
+.user-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-main-info .email {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    display: block;
+}
+
+.user-main-info .role {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+
+.activity-label {
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.label-update { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+.label-create { background: rgba(16, 185, 129, 0.15); color: #4ade80; }
+.label-login { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+.table-id-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.table-name {
+    font-size: 0.85rem;
+    color: #f1f5f9;
+    font-weight: 500;
+}
+
+.target-id-small {
+    font-size: 0.7rem;
+    color: #475569;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.diff-container {
+    background: rgba(10, 11, 18, 0.5);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.diff-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+}
+
+.diff-key { color: #94a3b8; font-weight: 600; }
+.diff-old { color: #f87171; text-decoration: line-through; opacity: 0.8; }
+.diff-new { color: #4ade80; font-weight: 700; }
+
+.note-card {
+    background: rgba(139, 92, 246, 0.04);
+    border-left: 4px solid #8b5cf6;
+    padding: 12px 16px;
+    border-radius: 0 12px 12px 0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    line-height: 1.5;
+}
+
+.log-table-card {
+    background: rgba(23, 25, 35, 0.6);
+    backdrop-filter: blur(15px);
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+
+    overflow-x: auto; 
+}
+
+.log-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    min-width: 1200px; 
+}
+
+.log-table th, 
+.log-table td {
+    padding: 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    vertical-align: middle;
+
+    white-space: nowrap; 
+}
+
+.note-card {
+    background: rgba(139, 92, 246, 0.04);
+    border-left: 4px solid #8b5cf6;
+    padding: 12px 16px;
+    border-radius: 0 12px 12px 0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

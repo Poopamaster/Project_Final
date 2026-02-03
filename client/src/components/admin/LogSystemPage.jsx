@@ -1,87 +1,151 @@
 import React, { useState } from 'react';
-import { ClipboardList, Search, Filter, User, Calendar, Activity, Download } from 'lucide-react';
+import { ClipboardList, ArrowRight, Bot, ShieldCheck, Clock, Calendar, Database, Activity, Info, Hash } from 'lucide-react';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+import '../../css/LogSystem.css'; // ตรวจสอบว่าไฟล์ CSS มีการตั้งค่า white-space: nowrap แล้ว
 
 export default function LogSystemPage() {
+    // 📝 ข้อมูลจำลอง (Mock Data)
     const [logs] = useState([
-        { id: 1, admin: 'Admin ธรรมธร', action: 'เพิ่มหนังใหม่', target: 'ธี่หยด 2', date: '2026-01-31 14:20', status: 'SUCCESS' },
-        { id: 2, admin: 'Admin ธรรมธร', action: 'ลบผู้ดูแล', target: 'test_admin@mail.com', date: '2026-01-31 13:45', status: 'DANGER' },
-        { id: 3, admin: 'System', action: 'Backup Database', target: 'Port 8000', date: '2026-01-31 12:00', status: 'INFO' },
-        { id: 4, admin: 'Admin ธรรมธร', action: 'แก้ไขราคาตั๋ว', target: 'โรง 1 (Sriracha)', date: '2026-01-31 10:30', status: 'WARNING' },
-        { id: 5, admin: 'Admin ธรรมธร', action: 'เข้าสู่ระบบ', target: 'Dashboard', date: '2026-01-31 09:00', status: 'SUCCESS' },
+        {
+            _id: "L001",
+            timestamp: "2026-02-04T10:30:00",
+            user_email: "AI_Assistant@mcp.com",
+            role: "ai",
+            action: "update",
+            table_name: "Booking",
+            target_id: "BK-995421",
+            old_value: { status: "pending", payment: "unpaid" },
+            new_value: { status: "cancelled", payment: "expired" },
+            note: "AI ยกเลิกตั๋วอัตโนมัติเนื่องจากเกินระยะเวลาการชำระเงินที่กำหนดในระบบ"
+        },
+        {
+            _id: "L002",
+            timestamp: "2026-02-04T09:15:22",
+            user_email: "admin@mcp.com",
+            role: "admin",
+            action: "login",
+            table_name: "User",
+            target_id: "ADM-001",
+            old_value: null,
+            new_value: null,
+            note: "แอดมินเข้าสู่ระบบสำเร็จ (Verified Session)"
+        },
+        {
+            _id: "L003",
+            timestamp: "2026-02-03T21:45:10",
+            user_email: "thammatorn@kaset.ac.th",
+            role: "user",
+            action: "update",
+            table_name: "Booking",
+            target_id: "BK-884210",
+            old_value: { seats: "A1, A2" },
+            new_value: { seats: "A1, A2, A3" },
+            note: "ลูกค้าแก้ไขจำนวนที่นั่งเพิ่มเติมผ่านหน้าเว็บหลัก"
+        }
     ]);
 
-    return (
-        <div className="admin-page-content-inside">
-            {/* Header Area */}
-            <header className="content-header-figma" style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div className="header-left">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <ClipboardList size={30} color="#8b5cf6" />
-                        <h1 style={{ fontSize: '1.8rem', color: 'white', margin: 0 }}>Log System</h1>
+    // ✅ ฟังก์ชันแสดงความแตกต่างแบบแนวนอน (No Wrap)
+    const renderDiff = (oldVal, newVal) => {
+        if (!newVal) return <span style={{ color: '#475569', fontSize: '0.75rem', fontStyle: 'italic' }}>No changes detected</span>;
+        if (!oldVal) return <div style={{ color: '#4ade80', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>+ Initialized: {JSON.stringify(newVal)}</div>;
+        
+        return (
+            <div className="diff-container" style={{ display: 'flex', gap: '20px', whiteSpace: 'nowrap' }}>
+                {Object.keys(newVal).map(key => (
+                    <div key={key} className="diff-line" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <span className="diff-key" style={{ marginRight: '5px', color: '#94a3b8', fontWeight: '600' }}>{key}:</span>
+                        <span className="diff-old" style={{ color: '#f87171', textDecoration: 'line-through', opacity: 0.8 }}>{oldVal[key]}</span>
+                        <ArrowRight size={10} color="#475569" style={{ margin: '0 8px' }} />
+                        <span className="diff-new" style={{ color: '#4ade80', fontWeight: '700' }}>{newVal[key]}</span>
                     </div>
-                    <p style={{ color: '#94a3b8', marginTop: '5px' }}>ตรวจสอบประวัติกิจกรรมการทำงานของแอดมินย้อนหลัง</p>
+                ))}
+            </div>
+        );
+    };
+
+    return (
+        <div className="log-page-container">
+            <header className="log-header">
+                <div className="log-icon-box">
+                    <ClipboardList size={26} color="white" />
                 </div>
-                <button style={{ background: '#1e212f', border: '1px solid #334155', color: 'white', padding: '10px 20px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Download size={16} /> Export CSV
-                </button>
+                <div className="log-title-section">
+                    <h1>Log System</h1>
+                    <p>ระบบติดตามกิจกรรมย้อนหลังในสภาพแวดล้อมจำลอง (Sandbox)</p>
+                </div>
             </header>
 
-            {/* Filter Section - บังคับความกว้างไม่ให้เบียดกัน */}
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '25px' }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-                    <input 
-                        type="text" 
-                        placeholder="ค้นหาชื่อแอดมิน, กิจกรรม หรือข้อมูลเป้าหมาย..." 
-                        style={{ width: '100%', padding: '14px 14px 14px 50px', background: '#151823', border: '1px solid #334155', borderRadius: '15px', color: 'white', outline: 'none' }}
-                    />
-                </div>
-                <button className="btn-save-settings" style={{ minWidth: '130px', justifyContent: 'center' }}>
-                    <Filter size={18} /> <span>ตัวกรอง</span>
-                </button>
-            </div>
-
-            {/* Table Area - แก้ไขจุดที่ทำให้ตัวหนังสือทับกัน */}
-            <div className="figma-table-container" style={{ background: '#1e212f', padding: '25px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <h2 style={{ color: 'white', fontSize: '1.1rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Activity size={18} color="#8b5cf6" /> รายการกิจกรรมล่าสุด
-                </h2>
-                
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="admin-custom-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid #334155', textAlign: 'left' }}>
-                                <th style={{ padding: '15px', color: '#94a3b8', fontSize: '0.85rem' }}>วัน-เวลา</th>
-                                <th style={{ padding: '15px', color: '#94a3b8', fontSize: '0.85rem' }}>ผู้ดำเนินการ</th>
-                                <th style={{ padding: '15px', color: '#94a3b8', fontSize: '0.85rem' }}>กิจกรรม</th>
-                                <th style={{ padding: '15px', color: '#94a3b8', fontSize: '0.85rem' }}>เป้าหมาย/ข้อมูล</th>
-                                <th style={{ padding: '15px', color: '#94a3b8', fontSize: '0.85rem' }}>สถานะ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {logs.map((log) => (
-                                <tr key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                    <td style={{ padding: '20px 15px', color: '#cbd5e1', fontSize: '0.9rem' }}>{log.date}</td>
-                                    <td style={{ padding: '20px 15px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div style={{ width: '32px', height: '32px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <User size={16} color="#a78bfa" />
-                                            </div>
-                                            <span style={{ color: 'white', fontWeight: '500' }}>{log.admin}</span>
+            {/* ✅ Container ที่อนุญาตให้เลื่อนแนวนอน */}
+            <div className="log-table-card" style={{ overflowX: 'auto' }}>
+                <table className="log-table" style={{ minWidth: '1300px', tableLayout: 'auto' }}>
+                    <thead>
+                        <tr>
+                            <th style={{ whiteSpace: 'nowrap' }}>วัน / เวลา</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>ผู้ดำเนินการ</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>กิจกรรม / ตาราง</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>การเปลี่ยนแปลง (Diff)</th>
+                            <th style={{ whiteSpace: 'nowrap' }}>หมายเหตุ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {logs.map((log) => (
+                            <tr key={log._id}>
+                                {/* วันและเวลา */}
+                                <td>
+                                    <div className="log-time-group" style={{ whiteSpace: 'nowrap' }}>
+                                        <div className="log-date-text">
+                                            <Calendar size={13} style={{ marginRight: 6, opacity: 0.6 }} /> 
+                                            {dayjs(log.timestamp).format('DD/MM/YYYY')}
                                         </div>
-                                    </td>
-                                    <td style={{ padding: '20px 15px', color: 'white' }}>{log.action}</td>
-                                    <td style={{ padding: '20px 15px', color: '#94a3b8', fontSize: '0.85rem' }}>{log.target}</td>
-                                    <td style={{ padding: '20px 15px' }}>
-                                        <span className={`status-pill ${log.status.toLowerCase()}`} style={{ fontSize: '0.75rem', padding: '5px 12px', fontWeight: '700' }}>
-                                            {log.status}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                                        <div className="log-clock-badge">
+                                            <Clock size={12} style={{ marginRight: 4 }} /> 
+                                            {dayjs(log.timestamp).format('HH:mm:ss')}
+                                        </div>
+                                    </div>
+                                </td>
+
+                                {/* ผู้ดำเนินการ */}
+                                <td>
+                                    <div className="user-identity" style={{ whiteSpace: 'nowrap' }}>
+                                        {log.role === 'ai' ? 
+                                            <div style={{ background: 'rgba(74, 222, 128, 0.1)', padding: 10, borderRadius: 12 }}><Bot size={20} color="#4ade80" /></div> : 
+                                            <div style={{ background: 'rgba(139, 92, 246, 0.1)', padding: 10, borderRadius: 12 }}><ShieldCheck size={20} color="#a78bfa" /></div>
+                                        }
+                                        <div className="user-main-info">
+                                            <span className="email">{log.user_email}</span>
+                                            <span className="role" style={{ color: log.role === 'ai' ? '#4ade80' : '#8b5cf6' }}>{log.role.toUpperCase()}</span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                {/* กิจกรรมและตาราง */}
+                                <td>
+                                    <div className="table-id-stack" style={{ whiteSpace: 'nowrap' }}>
+                                        <div className={`activity-label label-${log.action}`} style={{ width: 'fit-content' }}>
+                                            <Activity size={12} /> {log.action.toUpperCase()}
+                                        </div>
+                                        <div className="table-name"><Database size={13} style={{ marginRight: 6, color: '#64748b' }} /> {log.table_name}</div>
+                                        <div className="target-id-small"><Hash size={11} style={{ marginRight: 4 }} /> ID: {log.target_id}</div>
+                                    </div>
+                                </td>
+
+                                {/* การเปลี่ยนแปลง (Diff แนวนอน) */}
+                                <td style={{ verticalAlign: 'middle' }}>
+                                    {renderDiff(log.old_value, log.new_value)}
+                                </td>
+
+                                {/* หมายเหตุ */}
+                                <td style={{ verticalAlign: 'middle' }}>
+                                    <div className="note-card" style={{ whiteSpace: 'nowrap', maxWidth: 'none' }}>
+                                        <Info size={14} style={{ marginRight: 8, verticalAlign: 'middle', opacity: 0.7 }} />
+                                        {log.note}
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

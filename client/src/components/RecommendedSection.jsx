@@ -10,20 +10,20 @@ const RecommendedSection = () => {
   const [error, setError] = useState(null);
 
   // ✅ 2. ดึงข้อมูลเมื่อโหลดหน้าเว็บ
-// ✅ 2. ดึงข้อมูลเมื่อโหลดหน้าเว็บ
+  // ✅ 2. ดึงข้อมูลเมื่อโหลดหน้าเว็บ
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await getAllMovies(); // เปลี่ยนชื่อตัวแปรเป็น response ให้ไม่งง
-        
+
         // --- แก้ตรงนี้ครับ ---
         // เช็คก่อนว่า response มี field .data หรือไม่ (เผื่อ API ส่งมาต่างกัน)
         if (response.data) {
-             setMovies(response.data); // เจาะเอา Array ออกมา
+          setMovies(response.data); // เจาะเอา Array ออกมา
         } else {
-             setMovies(response); // กรณีที่ API ส่ง Array มาตรงๆ (เผื่อไว้)
+          setMovies(response); // กรณีที่ API ส่ง Array มาตรงๆ (เผื่อไว้)
         }
-        
+
         setLoading(false);
       } catch (err) {
         console.error("Failed to load movies:", err);
@@ -39,17 +39,17 @@ const RecommendedSection = () => {
   const getMovieCategory = (movie) => {
     const today = new Date();
     const startDate = new Date(movie.start_date);
-    
+
     // ถ้าวันฉาย มากกว่า วันนี้ = Coming Soon
     if (startDate > today) {
-        return 'coming_soon';
+      return 'coming_soon';
     }
     // ถ้าวันฉาย น้อยกว่าหรือเท่ากับ วันนี้ = Now Showing
     return 'now_showing';
   };
 
-  if (loading) return <div className="loading-text" style={{padding: '2rem', textAlign: 'center', color: 'white'}}>กำลังโหลดข้อมูลภาพยนตร์...</div>;
-  if (error) return <div className="error-text" style={{padding: '2rem', textAlign: 'center', color: 'red'}}>{error}</div>;
+  if (loading) return <div className="loading-text" style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>กำลังโหลดข้อมูลภาพยนตร์...</div>;
+  if (error) return <div className="error-text" style={{ padding: '2rem', textAlign: 'center', color: 'red' }}>{error}</div>;
 
   // --- จัดกลุ่มหนัง ---
 
@@ -72,8 +72,12 @@ const RecommendedSection = () => {
           recommendedMovies.map((movie) => (
             <div key={movie._id} className="movie-item-wrapper">
               <MovieCard movie={movie} />
+              <div className='title'>{movie.title_th || movie.title_en}</div>
               <div className="genre-badge">
-                {movie.genre || "Action"}
+                {movie.genre}
+              </div>
+              <div className="date-badge badge-expiring">
+                {movie.duration_min ? `${movie.duration_min} นาที` : 'ฉายแล้ว'}
               </div>
             </div>
           ))
@@ -89,6 +93,7 @@ const RecommendedSection = () => {
           nowShowingMovies.map((movie) => (
             <div key={movie._id} className="movie-item-wrapper">
               <MovieCard movie={movie} />
+              <div className='title'>{movie.title_th || movie.title_en}</div>
               <div className="genre-badge">
                 {movie.genre || "ไม่ระบุ"}
               </div>
@@ -109,6 +114,7 @@ const RecommendedSection = () => {
           upcomingMovies.map((movie) => (
             <div key={movie._id} className="movie-item-wrapper">
               <MovieCard movie={movie} />
+              <div className='title'>{movie.title_en}</div>
               <div className="genre-badge">
                 {movie.genre || "ไม่ระบุ"}
               </div>

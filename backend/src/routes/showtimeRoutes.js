@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+
 const { createShowtime, getShowtimesByMovie, getShowtimeById,getAllShowtimes, getShowtimeSeats } = require('../controllers/showtimeController');
 
 router.post('/', createShowtime);                // สร้างรอบฉาย

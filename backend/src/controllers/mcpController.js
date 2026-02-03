@@ -1,9 +1,9 @@
 const { client } = require("../services/mcpClient");
+const saveLog = require('../utils/logger'); // ✅ นำเข้า logger มาใช้งาน
 
 // Helper function: แปลงผลลัพธ์จาก MCP (Text JSON) เป็น Object ปกติ
 const parseMcpResult = (result) => {
     try {
-        // MCP ส่งกลับมาเป็น { content: [{ type: 'text', text: 'JSON_STRING' }] }
         const textData = result.content[0].text;
         return JSON.parse(textData);
     } catch (error) {
@@ -12,10 +12,10 @@ const parseMcpResult = (result) => {
     }
 };
 
-// 1. ค้นหาหนัง (User Tool)
+// 1. ค้นหาหนัง (User Tool) - (ไม่ต้องเก็บ Log เพื่อไม่ให้ขยะเต็มตาราง)
 exports.searchMovies = async (req, res) => {
     try {
-        const { keyword } = req.query; // รับจาก URL query parameter
+        const { keyword } = req.query; 
         if (!keyword) return res.status(400).json({ error: "Keyword required" });
 
         const result = await client.callTool({
@@ -60,21 +60,26 @@ exports.findLatestMovies = async (req, res) => {
 // 4. เพิ่มหนัง (Admin Tool)
 exports.addMovie = async (req, res) => {
     try {
-        // รับข้อมูลจาก Body (JSON)
         const { title_th, title_en, genre, start_date, due_date } = req.body;
 
         const result = await client.callTool({
             name: "add_movie",
-            arguments: { 
-                title_th, 
-                title_en, 
-                genre, 
-                start_date, 
-                due_date 
-            }
+            arguments: { title_th, title_en, genre, start_date, due_date }
         });
 
-        res.json(parseMcpResult(result));
+        const finalResult = parseMcpResult(result);
+
+        // ✅ บันทึก Log: AI ทำการเพิ่มหนังผ่าน MCP
+        await saveLog({
+            req: { user: { email: 'MCP_Agent', role: 'ai' } }, // ระบุว่าเป็น AI Action
+            action: 'create',
+            table: 'Movie',
+            targetId: finalResult?.data?._id || "mcp_gen",
+            newVal: { title: title_th, genre: genre },
+            note: `AI (MCP) ทำการเพิ่มภาพยนตร์ใหม่: ${title_th}`
+        });
+
+        res.json(finalResult);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -83,14 +88,25 @@ exports.addMovie = async (req, res) => {
 // 5. ลบหนัง (Admin Tool)
 exports.deleteMovie = async (req, res) => {
     try {
-        const { id } = req.params; // รับ ID จาก URL Parameter
+        const { id } = req.params;
 
         const result = await client.callTool({
             name: "delete_movie",
             arguments: { movie_id: id }
         });
 
-        res.json(parseMcpResult(result));
+        const finalResult = parseMcpResult(result);
+
+        // ✅ บันทึก Log: AI ทำการลบหนังผ่าน MCP
+        await saveLog({
+            req: { user: { email: 'MCP_Agent', role: 'ai' } },
+            action: 'delete',
+            table: 'Movie',
+            targetId: id,
+            note: `AI (MCP) ทำการลบภาพยนตร์รหัส: ${id}`
+        });
+
+        res.json(finalResult);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

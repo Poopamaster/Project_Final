@@ -1,6 +1,7 @@
 const { chatWithAI } = require("../services/aiService");
 const ChatHistory = require("../models/ChatHistory");
 const { getToolsForUser } = require("../config/toolPermissions");
+const saveLog = require('../utils/logger'); // ✅ นำเข้า logger มาใช้งาน
 
 exports.getHistory = async (req, res) => {
   try {
@@ -30,7 +31,6 @@ exports.chat = async (req, res) => {
     console.log(`🛠️ Allowed Tools: ${allowedTools.join(", ")}`);
 
     // A. ส่งให้ AI คิด (โดยส่ง allowedTools ไปกำกับด้วย)
-    // *คุณต้องไปแก้ aiService ให้รับ parameter นี้ด้วยนะ ดูข้อ 3*
     const botReply = await chatWithAI(user, message, image, allowedTools);
 
     // B. เตรียมข้อความ User และ Bot
@@ -47,7 +47,7 @@ exports.chat = async (req, res) => {
         text: botReply
     };
 
-    // C. บันทึกลง MongoDB (Code เดิมของคุณ)
+    // C. บันทึกลง MongoDB
     let history = await ChatHistory.findOne({ user: user._id });
 
     if (!history) {
@@ -59,6 +59,19 @@ exports.chat = async (req, res) => {
         history.messages.push(userMsg, botMsg);
         await history.save();
     }
+
+    // ✅ STEP C.5: บันทึก Log เมื่อ AI มีการโต้ตอบ
+    await saveLog({
+        req: { user: { email: 'AI_Assistant', role: 'ai' } }, // ระบุว่าเป็น AI
+        action: 'create',
+        table: 'ChatHistory',
+        targetId: history._id,
+        newVal: { 
+            user: user.email, 
+            question: message?.substring(0, 50) + (message?.length > 50 ? "..." : "") 
+        },
+        note: `AI ตอบกลับผู้ใช้ ${user.email}`
+    });
 
     // D. ส่งคำตอบกลับ
     res.json({
@@ -76,7 +89,20 @@ exports.chat = async (req, res) => {
 // 3. ล้างประวัติ (DELETE)
 exports.clearHistory = async (req, res) => {
     try {
-        await ChatHistory.findOneAndDelete({ user: req.user._id });
+        const userId = req.user._id;
+        const result = await ChatHistory.findOneAndDelete({ user: userId });
+
+        if (result) {
+            // ✅ บันทึก Log เมื่อมีการล้างประวัติแชท
+            await saveLog({
+                req,
+                action: 'delete',
+                table: 'ChatHistory',
+                targetId: result._id,
+                note: `ผู้ใช้ ${req.user.email} ทำการล้างประวัติการแชทกับ AI`
+            });
+        }
+
         res.json({ success: true, message: "History cleared" });
     } catch (error) {
         res.status(500).json({ error: "Failed to clear history" });

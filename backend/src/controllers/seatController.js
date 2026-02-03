@@ -1,6 +1,7 @@
 const SeatType = require('../models/seatTypeModel');
 const Seat = require('../models/seatModel');
 const Auditorium = require('../models/auditoriumModel');
+const saveLog = require('../utils/logger'); // ✅ นำเข้า logger มาใช้งาน
 
 // --- 1. จัดการ SeatType (ประเภทเก้าอี้) ---
 
@@ -8,6 +9,17 @@ exports.createSeatType = async (req, res) => {
     try {
         // เช่น name: "Premium", price: 200
         const seatType = await SeatType.create(req.body);
+
+        // ✅ บันทึก Log เมื่อสร้างประเภทที่นั่งใหม่
+        await saveLog({
+            req,
+            action: 'create',
+            table: 'SeatType',
+            targetId: seatType._id,
+            newVal: { name: seatType.name, price: seatType.price },
+            note: `เพิ่มประเภทที่นั่งใหม่: ${seatType.name} ราคา ${seatType.price} บาท`
+        });
+
         res.status(201).json({ success: true, data: seatType });
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -54,6 +66,19 @@ exports.autoGenerateSeats = async (req, res) => {
         }
 
         const createdSeats = await Seat.insertMany(seatsToCreate);
+
+        // ✅ บันทึก Log เมื่อมีการ Gen ที่นั่งจำนวนมาก (Bulk Create)
+        await saveLog({
+            req,
+            action: 'create',
+            table: 'Seat',
+            targetId: auditorium_id, // ใช้ ID โรงฉายเป็นตัวอ้างอิง
+            newVal: { 
+                count: createdSeats.length, 
+                rows: `${alphabet[start_row_index]} - ${alphabet[start_row_index + row_count - 1]}` 
+            },
+            note: `ระบบ Generate ที่นั่งอัตโนมัติจำนวน ${createdSeats.length} ที่นั่ง ในโรงฉาย ID: ${auditorium_id}`
+        });
 
         res.status(201).json({ 
             success: true, 

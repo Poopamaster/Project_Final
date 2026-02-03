@@ -1,6 +1,6 @@
-// controllers/bookingController.js
 const Booking = require('../models/bookingModel');
 const Seat = require('../models/seatModel');
+const saveLog = require('../utils/logger'); // ✅ นำเข้าตัวช่วยบันทึก Log
 
 // ✅ Import Email Service ที่เราแยกไว้
 const emailService = require('../services/emailService'); 
@@ -76,8 +76,7 @@ exports.createBooking = async (req, res) => {
             status: 'confirmed'
         });
 
-        // --- STEP 4: Populate Data (สำคัญมาก! เพื่อเอาข้อมูลไปส่งเมล) ---
-        // เราต้องดึงข้อมูลให้ครบ ทั้งชื่อหนัง, โรง, ประเภทที่นั่ง
+        // --- STEP 4: Populate Data (สำคัญมาก! เพื่อเอาข้อมูลไปส่งเมลและบันทึก Log) ---
         const fullBooking = await Booking.findById(newBooking._id)
             .populate('user_id')
             .populate({
@@ -92,9 +91,22 @@ exports.createBooking = async (req, res) => {
                 populate: { path: 'seat_type_id' }
             });
 
+        // ✅ STEP 4.5: บันทึก Log เมื่อจองตั๋วสำเร็จ
+        await saveLog({
+            req,
+            action: 'create',
+            table: 'Booking',
+            targetId: newBooking._id,
+            newVal: {
+                movie: fullBooking.showtime_id?.movie_id?.title_th || "Unknown Movie",
+                seats: fullBooking.seats.map(s => `${s.row_label}${s.seat_number}`).join(', '),
+                total_price: totalPrice
+            },
+            note: `จองตั๋วสำเร็จ หมายเลข ${bookingNumber} โดย ${fullBooking.user_id?.email}` //
+        });
+
         // --- STEP 5: ส่งอีเมล (เรียกใช้ Service) ---
         if (fullBooking.user_id && fullBooking.user_id.email) {
-
             emailService.sendBookingConfirmation(fullBooking.user_id.email, fullBooking); 
         }
 

@@ -1,5 +1,5 @@
-// src/controllers/omiseController.js
 const omiseService = require('../services/paymentService'); // เรียกใช้ Service
+const saveLog = require('../utils/logger'); // ✅ นำเข้า logger มาใช้งาน
 
 exports.createPromptPayQR = async (req, res) => {
     try {
@@ -7,6 +7,16 @@ exports.createPromptPayQR = async (req, res) => {
         
         // เรียกใช้ Service
         const result = await omiseService.createPromptPayQR(amount, bookingId);
+
+        // ✅ บันทึก Log: เมื่อลูกค้าขอสร้าง QR Code เพื่อจ่ายเงิน
+        await saveLog({
+            req,
+            action: 'create',
+            table: 'Payment',
+            targetId: bookingId,
+            newVal: { amount: amount, method: 'PromptPay' },
+            note: `ลูกค้าสร้าง QR Code สำหรับชำระเงินยอด ${amount} บาท (Booking: ${bookingId})`
+        });
 
         res.status(200).json({
             message: "สร้าง QR Code และบันทึกรายการสำเร็จ",
@@ -16,7 +26,6 @@ exports.createPromptPayQR = async (req, res) => {
 
     } catch (error) {
         console.error("Create QR Error:", error.message);
-        // แยก status code ตามประเภท error (แบบง่ายๆ)
         res.status(400).json({ message: error.message });
     }
 };
@@ -46,6 +55,16 @@ exports.simulatePaymentSuccess = async (req, res) => {
 
         // เรียกใช้ Service
         const updatedPayment = await omiseService.simulatePaymentSuccess(chargeId);
+
+        // ✅ บันทึก Log: เมื่อระบบจำลองการจ่ายเงินสำเร็จ
+        await saveLog({
+            req: { user: { email: 'Payment_Simulator', role: 'ai' } }, // ระบุว่าเป็น AI/System Action
+            action: 'update',
+            table: 'Payment',
+            targetId: chargeId,
+            newVal: { status: 'successful' },
+            note: `ระบบจำลองสถานะชำระเงินสำเร็จ (Charge ID: ${chargeId})`
+        });
 
         console.log(`[SIMULATION] Charge ${chargeId} marked as paid.`);
         

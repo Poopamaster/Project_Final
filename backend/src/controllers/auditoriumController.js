@@ -1,5 +1,6 @@
 const Auditorium = require('../models/auditoriumModel');
 const Cinema = require('../models/cinemaModel');
+const saveLog = require('../utils/logger'); // ✅ นำเข้า logger มาใช้งาน
 
 // POST /api/auditoriums (สร้างโรงฉาย)
 exports.createAuditorium = async (req, res) => {
@@ -19,6 +20,21 @@ exports.createAuditorium = async (req, res) => {
             format
         });
 
+        // ✅ บันทึก Log เมื่อมีการสร้างโรงฉายใหม่
+        await saveLog({
+            req,
+            action: 'create',
+            table: 'Auditorium',
+            targetId: newAuditorium._id,
+            newVal: { 
+                name: name, 
+                cinema: cinemaExists.name,
+                capacity: capacity,
+                format: format 
+            },
+            note: `เพิ่มโรงฉาย "${name}" ที่สาขา ${cinemaExists.name}`
+        });
+
         res.status(201).json({ success: true, data: newAuditorium });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
@@ -36,7 +52,6 @@ exports.getAllAuditoriums = async (req, res) => {
 };
 
 // GET /api/auditoriums/cinema/:cinemaId (ดูโรงฉาย เฉพาะสาขาที่เลือก)
-// ตรงนี้เราย้ายมาไว้ที่นี่แทน
 exports.getAuditoriumsByCinemaId = async (req, res) => {
     try {
         const auditoriums = await Auditorium.find({ cinema_id: req.params.cinemaId });
