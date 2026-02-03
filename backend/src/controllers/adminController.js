@@ -208,3 +208,34 @@ exports.promoteAdmin = async (req, res) => {
         res.status(500).json({ success: false, message: "เกิดข้อผิดพลาด" });
     }
 };
+
+exports.promoteAdmin = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // 1. ค้นหา User จากอีเมล
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้งานอีเมลนี้ในระบบ" });
+        }
+
+        // 2. ตรวจสอบว่าเป็น Admin อยู่แล้วหรือยัง
+        if (user.role === 'admin') {
+            return res.status(400).json({ success: false, message: "ผู้ใช้นี้เป็นผู้ดูแลระบบอยู่แล้ว" });
+        }
+
+        // 3. อัปเดต Role เป็น admin
+        user.role = 'admin';
+        await user.save();
+
+        res.status(200).json({ 
+            success: true, 
+            message: `แต่งตั้ง ${user.name} เป็นผู้ดูแลระบบเรียบร้อยแล้ว`,
+            data: user 
+        });
+
+    } catch (error) {
+        console.error("Promote Admin Error:", error);
+        res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการดำเนินการ" });
+    }
+};
