@@ -67,27 +67,40 @@ const BookingPage = () => {
 
     // 2. Filter รอบฉายตามวันที่
     useEffect(() => {
-        // Reset ค่าเมื่อเปลี่ยนวัน
+        console.log("🛠️ All Showtimes Raw:", allShowtimes); // เช็คว่าข้อมูลมาถึงมั้ย
+
+        // Reset ค่า
         setSelectedShowtime(null);
         setSelectedSeats([]);
         setShowPayment(false);
         setBookingId(null);
 
         if (dates.length > 0 && allShowtimes.length > 0) {
-            const selectedDateStr = dates[selectedDateIndex].fullDate;
+            const selectedDateObj = new Date(dates[selectedDateIndex].fullDate);
             const now = new Date();
 
             const filtered = allShowtimes.filter(st => {
-                const isSameDate = st.start_time.startsWith(selectedDateStr);
+                const showtimeDate = new Date(st.start_time);
+
+                // --- แก้จุดที่ 1: เทียบวันที่แบบแม่นยำ (ตัดเวลาทิ้ง เทียบแค่วัน/เดือน/ปี) ---
+                // ใช้ 'en-CA' เพื่อให้ได้ format YYYY-MM-DD ตรงกันทั้งคู่
+                const isSameDate = showtimeDate.toLocaleDateString('en-CA') === selectedDateObj.toLocaleDateString('en-CA');
+
                 if (!isSameDate) return false;
 
-                // กรองรอบที่ผ่านไปแล้ว (เฉพาะวันปัจจุบัน)
-                const showtimeDate = new Date(st.start_time);
-                if (selectedDateIndex === 0 && showtimeDate < now) return false;
+                // --- แก้จุดที่ 2: เช็ครอบฉายที่ผ่านไปแล้ว ---
+                // ถ้าพี่กำลังเทสระบบ ให้ comment 2 บรรทัดข้างล่างนี้ทิ้งไปก่อนครับ! 
+                // เพราะถ้าพี่เพิ่มรอบ 10:00 โมง แต่ตอนนี้ 16:00 มันจะโดนซ่อน
+                // if (selectedDateIndex === 0 && showtimeDate < now) {
+                //      return false; 
+                // }
 
                 return true;
             });
 
+            console.log("✅ Filtered Showtimes:", filtered); // ดูว่าเหลือรอดกี่รอบ
+
+            // เรียงเวลา
             filtered.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
             setCurrentShowtimes(filtered);
         } else {
@@ -218,7 +231,7 @@ const BookingPage = () => {
 
     // Helper หาค่าราคาเพื่อแสดงใน Legend
     const getPriceByType = (keyword) => {
-        const foundSeat = allSeats.find(s => 
+        const foundSeat = allSeats.find(s =>
             (s.seat_type_id?.name || '').toLowerCase().includes(keyword)
         );
         return foundSeat?.seat_type_id?.price || '-';

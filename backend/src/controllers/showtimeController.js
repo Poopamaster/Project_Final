@@ -7,57 +7,50 @@ exports.createShowtime = async (req, res) => {
     try {
         const { movie_id, auditorium_id, start_time, base_price, language } = req.body;
 
-        // --- Step A: คำนวณเวลาจบ (End Time) อัตโนมัติ ---
-        // เราต้องไปดึงความยาวหนัง (duration_min) มาบวกกับ start_time
+        // 1. ไปหาข้อมูลหนังก่อน เพื่อเอาความยาว (duration_min)
         const movie = await Movie.findById(movie_id);
-        if (!movie) return res.status(404).json({ message: "Movie not found" });
+        if (!movie) return res.status(404).json({ message: "ไม่พบข้อมูลหนัง (Movie not found)" });
 
+        // 2. คำนวณเวลาจบ (End Time) ** จุดสำคัญ **
         const start = new Date(start_time);
-        // บวกเวลาหนัง + เผื่อเวลาทำความสะอาด 20 นาที (แล้วแต่ Business logic)
-        const end = new Date(start.getTime() + (movie.duration_min + 20) * 60000); 
+        const duration = movie.duration_min || 120; // ถ้าไม่มีความยาว ให้ Default 2 ชม.
+        // เวลาจบ = เวลาเริ่ม + (นาทีหนัง + พักโรง 20 นาที)
+        const end = new Date(start.getTime() + (duration + 20) * 60000);
 
-        // --- Step B: ตรวจสอบว่ารอบฉาย "ชนกัน" ในโรงเดียวกันหรือไม่ (Overlap Check) ---
-        // Logic: ถ้าโรงเดียวกัน และ (เวลาใหม่เริ่มก่อนอันเก่าจบ) และ (เวลาใหม่จบหลังอันเก่าเริ่ม)
-        const conflict = await Showtime.findOne({
-            auditorium_id,
-            $or: [
-                { start_time: { $lt: end, $gte: start } }, // เริ่มทับช่วงคนอื่น
-                { end_time: { $gt: start, $lte: end } },   // จบทับช่วงคนอื่น
-                { start_time: { $lte: start }, end_time: { $gte: end } } // ครอบทับทั้งอัน
-            ]
-        });
+        // 3. (Optional) เช็คเวลาชนกันที่นี่...
 
-        if (conflict) {
-            return res.status(400).json({ message: "เวลานี้มีการใช้โรงฉายไปแล้ว (Time Overlap)" });
-        }
-
-        // --- Step C: บันทึก ---
+        // 4. สร้าง Object และยัด end_time เข้าไปให้ครบตาม Model
         const newShowtime = await Showtime.create({
             movie_id,
             auditorium_id,
             start_time: start,
-            end_time: end,
+            end_time: end,      // ✅ ใส่ให้แล้ว Model จะไม่ด่า
             language: language || "TH",
-            base_price
+            base_price: base_price || 160
         });
 
         res.status(201).json({ success: true, data: newShowtime });
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("Create Showtime Error:", error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// 2. ดึงรอบฉาย "ตามหนัง" (User กดหนังเรื่องไหน ก็เห็นรอบเรื่องนั้น)
-// Frontend จะใช้: /api/showtimes/movie/:movieId
-exports.getShowtimesByMovie = async (req, res) => {
+// 2. ดึงรอบฉายทั้งหมด (สำหรับตาราง Admin)
+exports.getAllShowtimes = async (req, res) => {
     try {
-        const { movieId } = req.params; // รับจาก URL /movie/:movieId
-
-        // ✅ ต้อง Query โดยระบุ movie_id ให้ตรงกับที่รับมา
-        const showtimes = await Showtime.find({ movie_id: movieId })
-            .populate('auditorium_id') // เพื่อเอาชื่อโรง
-            .sort({ start_time: 1 });  // เรียงเวลา
+        const showtimes = await Showtime.find()
+            .populate('movie_id', 'title_th title_en poster_url duration_min') // ดึงข้อมูลหนัง
+            .populate({
+                path: 'auditorium_id',
+                select: 'name cinema_id',
+                populate: {
+                    path: 'cinema_id',
+                    select: 'name' // ดึงชื่อสาขา
+                }
+            })
+            .sort({ start_time: -1 }); // เรียงจากใหม่ไปเก่า
 
         res.status(200).json({ success: true, data: showtimes });
     } catch (error) {
@@ -65,13 +58,51 @@ exports.getShowtimesByMovie = async (req, res) => {
     }
 };
 
-// 3. ดึงข้อมูลรอบฉายเดี่ยวๆ (เอาไว้ตอน User กดเลือก time slot แล้วจะไปหน้าเลือกที่นั่ง)
+// 3. ลบรอบฉาย (Admin) - ✅ เพิ่มส่วนนี้เพื่อให้ปุ่มถังขยะทำงาน
+exports.deleteShowtime = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedShowtime = await Showtime.findByIdAndDelete(id);
+
+        if (!deletedShowtime) {
+            return res.status(404).json({ success: false, message: "ไม่พบรอบฉายที่ต้องการลบ" });
+        }
+
+        res.status(200).json({ success: true, message: "ลบรอบฉายเรียบร้อยแล้ว" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// 4. ดึงรอบฉาย "ตามหนัง" (สำหรับหน้า Movie Details ของ User)
+exports.getShowtimesByMovie = async (req, res) => {
+    try {
+        const { movieId } = req.params;
+        
+        // ✅ แก้ไข: ลบเงื่อนไข start_time ออก เพื่อให้ดึงรอบฉายทั้งหมด (รวมรอบที่ผ่านไปแล้วด้วย)
+        const showtimes = await Showtime.find({ 
+            movie_id: movieId 
+            // start_time: { $gte: new Date() } // <-- Comment บรรทัดนี้ทิ้งไปก่อนครับ
+        })
+            .populate('auditorium_id')
+            .sort({ start_time: 1 });
+
+        res.status(200).json({ success: true, data: showtimes });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// 5. ดึงข้อมูลรอบฉายเดี่ยวๆ (สำหรับหน้า Booking)
 exports.getShowtimeById = async (req, res) => {
     try {
         const showtime = await Showtime.findById(req.params.id)
-            .populate('movie_id')      // เอาข้อมูลหนังมาโชว์หัวกระดาษ
-            .populate('auditorium_id'); // เอาข้อมูลโรง
-            
+            .populate('movie_id')
+            .populate({
+                path: 'auditorium_id',
+                populate: { path: 'cinema_id' }
+            });
+
         if (!showtime) return res.status(404).json({ message: "Showtime not found" });
 
         res.status(200).json({ success: true, data: showtime });
@@ -80,40 +111,17 @@ exports.getShowtimeById = async (req, res) => {
     }
 };
 
-exports.getAllShowtimes = async (req, res) => {
-    try {
-        // ดึงข้อมูลรอบฉายทั้งหมด + ดึงข้อมูลหนัง + ดึงข้อมูลโรง + ดึงข้อมูลสาขา
-        const showtimes = await Showtime.find()
-            .populate('movie_id', 'title poster duration_min') // เอาชื่อหนัง, รูป, เวลา
-            .populate({
-                path: 'auditorium_id',
-                select: 'name cinema_id', // เอาชื่อโรง
-                populate: {
-                    path: 'cinema_id',    // **Deep Populate** เข้าไปเอาชื่อสาขาด้วย
-                    select: 'name'
-                }
-            })
-            .sort({ start_time: -1 }); // เรียงจากเวลาล่าสุดมาเก่า
-
-        res.status(200).json({ success: true, data: showtimes });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
+// 6. ดึงที่นั่ง (ถ้ามี Logic แยก)
 exports.getShowtimeSeats = async (req, res) => {
     try {
-        const { id } = req.params; // รับ showtimeId
-
-        // 1. หา Showtime ก่อน เพื่อดูว่าฉายที่โรงไหน (auditorium_id)
+        const { id } = req.params;
         const showtime = await Showtime.findById(id);
         if (!showtime) return res.status(404).json({ message: "Showtime not found" });
 
-        // 2. ไปดึงที่นั่งทั้งหมดของโรงนั้นมา
-        // เรียง A->Z และ 1->10
+        // ✅ แก้ตรงนี้: เพิ่ม .populate('seat_type_id')
         const seats = await Seat.find({ auditorium_id: showtime.auditorium_id })
-            .populate('seat_type_id') // เอาข้อมูลราคา/ประเภทมาด้วย
-            .sort({ row_label: 1, seat_number: 1 }); 
+            .populate('seat_type_id') // <--- หัวใจสำคัญ! ต้องดึงข้อมูลประเภทที่นั่ง (และราคา) มาด้วย
+            .sort({ row_label: 1, seat_number: 1 });
 
         res.status(200).json({ success: true, data: seats });
     } catch (error) {
