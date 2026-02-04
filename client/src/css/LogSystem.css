@@ -1,83 +1,219 @@
-/* client/src/css/LogSystem.css */
-
+/* --- Global Layout & Theme --- */
 .log-page-container {
-    background: transparent;
+    padding: 30px;
+    background-color: #0b1120; /* พื้นหลังสีดำน้ำเงินเข้มสุด (Midnight) */
+    min-height: 100vh;
     color: #e2e8f0;
+    font-family: 'Inter', 'Prompt', sans-serif;
 }
 
+/* --- Header Section --- */
 .log-header {
     display: flex;
     align-items: center;
     gap: 15px;
     margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #1e293b;
 }
 
-.log-icon-box {
-    background: #1e293b;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid #334155;
+.log-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    background: linear-gradient(to right, #60a5fa, #a78bfa); /* ไล่สีฟ้า-ม่วง */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-/* ตัวการ์ดที่คุมตารางและให้เลื่อนแนวนอน */
-.log-table-card {
-    background: #111827; /* พื้นหลังสีเข้มตามรูป */
-    border-radius: 16px;
-    border: 1px solid #1f2937;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+.log-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+/* --- Table Structure --- */
+.log-table-wrapper {
+    overflow-x: auto;
 }
 
 .log-table {
-    border-collapse: collapse;
     width: 100%;
+    min-width: 1100px;
+    border-collapse: separate;
+    border-spacing: 0 10px; /* เว้นระยะห่างระหว่างการ์ด */
 }
 
-/* Header ของตาราง */
+/* --- Table Header (ปรับใหม่ตามขอ) --- */
 .log-table th {
-    background: #1f2937;
-    color: #94a3b8;
+    text-align: left;
+    color: #64748b; /* สีเทาเข้มจางๆ แบบรูปต้นแบบ */
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    padding: 16px 24px;
-    text-align: left;
+    letter-spacing: 0.05em; /* เพิ่มระยะห่างตัวอักษรนิดหน่อย */
+    padding: 0 20px 10px 20px;
+}
+
+/* --- Table Rows (Card Style) --- */
+.log-table tbody tr {
+    background-color: #162032; /* สีพื้นหลังการ์ด (Blue Gray เข้ม) */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
+}
+
+.log-table tbody tr:hover {
+    background-color: #1e293b; /* Hover แล้วสว่างขึ้นนิดนึง */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
 }
 
 .log-table td {
-    padding: 20px 24px;
-    border-bottom: 1px solid #1f2937;
+    padding: 16px 20px;
+    vertical-align: top;
+    border-top: 1px solid #1e293b; /* เส้นขอบบน */
+    border-bottom: 1px solid #1e293b; /* เส้นขอบล่าง */
 }
 
-/* การจัดการข้อมูลในแต่ละ Cell */
-.log-date-text { color: #94a3b8; font-size: 0.85rem; display: flex; align-items: center; }
-.log-clock-badge { color: #64748b; font-size: 0.8rem; margin-top: 4px; display: flex; align-items: center; }
+.log-table td:first-child {
+    border-left: 1px solid #1e293b;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
 
-.user-identity { display: flex; align-items: center; gap: 12px; }
-.user-main-info { display: flex; flex-direction: column; }
-.user-main-info .email { font-size: 0.85rem; color: #f1f5f9; }
-.user-main-info .role { font-size: 0.7rem; font-weight: 700; margin-top: 2px; }
+.log-table td:last-child {
+    border-right: 1px solid #1e293b;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
 
-/* Activity Labels */
-.activity-label {
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 700;
+/* --- Column 1: User Profile & Context --- */
+.user-wrapper {
+    display: flex;
+    gap: 12px;
+}
+
+.role-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+/* Icon Colors */
+.icon-ai { background: rgba(16, 185, 129, 0.15); color: #34d399; } /* เขียว */
+.icon-admin { background: rgba(139, 92, 246, 0.15); color: #a78bfa; } /* ม่วง */
+.icon-user { background: rgba(59, 130, 246, 0.15); color: #60a5fa; } /* ฟ้า */
+
+.user-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #f1f5f9;
+}
+
+.meta-badges {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge-role { background: #334155; color: #94a3b8; }
+
+/* Action Badges (สีสดตามรูปต้นแบบ) */
+.action-create { background: #059669; color: #fff; } /* เขียวเข้ม */
+.action-update { background: #d97706; color: #fff; } /* ส้ม */
+.action-login { background: #4f46e5; color: #fff; } /* ม่วงน้ำเงิน */
+
+.context-row {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: #64748b;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.context-item { display: flex; align-items: center; gap: 4px; }
+
+/* --- Column 2: Changes (Diff) --- */
+.diff-container {
+    display: flex;
+    flex-direction: column;
     gap: 6px;
 }
-.label-update { background: rgba(56, 189, 248, 0.1); color: #38bdf8; }
-.label-login { background: rgba(139, 92, 246, 0.1); color: #a78bfa; }
 
-.table-name { font-size: 0.85rem; color: #cbd5e1; margin-top: 8px; }
-.target-id-small { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
-
-.note-card {
-    background: rgba(30, 41, 59, 0.5);
-    padding: 10px 16px;
-    border-radius: 8px;
+.diff-item {
+    background: #0f172a; /* พื้นหลัง Diff เข้มกว่าการ์ด */
+    border: 1px solid #1e293b;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
     font-size: 0.8rem;
+    display: grid;
+    grid-template-columns: 80px 1fr; /* Key กว้าง 80px */
+    align-items: center;
+}
+
+.diff-key {
     color: #94a3b8;
+    font-weight: 600;
+}
+
+.diff-val-wrapper {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.val-old {
+    color: #ef4444; /* แดง */
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.val-new {
+    color: #4ade80; /* เขียวสว่าง */
+}
+
+.arrow-icon { color: #475569; }
+
+/* --- Column 3: Timestamp --- */
+.time-wrapper {
+    text-align: right;
+}
+.date-text {
+    font-weight: 600;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+}
+.time-text {
+    color: #64748b;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+/* --- Column 4: Note --- */
+.note-wrapper {
+    display: flex;
+    gap: 6px;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    line-height: 1.4;
 }
