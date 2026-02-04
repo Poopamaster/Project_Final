@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Search, Save, X, Calendar, Clock, Film } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, X } from 'lucide-react';
 import axiosInstance from "../../api/axiosInstance";
 
 export default function AddMoviePage() {
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
 
-    // ✅ ปรับ State Modal ให้เป็น null เริ่มต้นเพื่อเช็คเงื่อนไข
+    // Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingMovie, setEditingMovie] = useState(null);
 
@@ -25,7 +23,7 @@ export default function AddMoviePage() {
             }
             setLoading(false);
         } catch (err) {
-            setError("ไม่สามารถดึงข้อมูลหนังได้");
+            alert("ไม่สามารถดึงข้อมูลหนังได้");
             setLoading(false);
         }
     };
@@ -73,13 +71,12 @@ export default function AddMoviePage() {
         }
     };
 
-    // ✅ ฟังก์ชันเปิด Modal แก้ไข (Force Update State)
     const openEditModal = (movie) => {
         setEditingMovie({ ...movie });
         setIsEditModalOpen(true);
     };
 
-    // ✅ ฟังก์ชันบันทึกข้อมูลแก้ไขลง Database พอร์ต 8000
+    // ✅ แก้ไข: เพิ่ม field ให้ครบตาม Database Schema
     const handleUpdateMovie = async (e) => {
         e.preventDefault();
         if (!editingMovie) return;
@@ -87,21 +84,22 @@ export default function AddMoviePage() {
         try {
             const response = await axiosInstance.put(`/movies/${editingMovie._id}`, {
                 title_th: editingMovie.title_th,
+                title_en: editingMovie.title_en,   // ✅ เพิ่ม
+                poster_url: editingMovie.poster_url, // ✅ เพิ่ม
                 genre: editingMovie.genre,
+                duration_min: Number(editingMovie.duration_min), // ✅ แปลงเป็น Number
                 start_date: editingMovie.start_date,
                 due_date: editingMovie.due_date,
-                duration_min: editingMovie.duration_min,
                 language: editingMovie.language
             });
 
             if (response.data.success) {
-                alert("บันทึกการแก้ไขลง Database เรียบร้อยแล้ว!");
+                alert("บันทึกการแก้ไขเรียบร้อยแล้ว!");
                 setIsEditModalOpen(false);
-                fetchMovies(); // โหลดข้อมูลใหม่เพื่ออัปเดตสถานะหน้าจอ
+                fetchMovies();
             }
         } catch (err) {
-            alert("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่");
-            console.error(err);
+            alert("บันทึกไม่สำเร็จ: " + (err.response?.data?.message || err.message));
         }
     };
 
@@ -153,20 +151,10 @@ export default function AddMoviePage() {
                         <div className="movie-figma-grid">
                             {searchResults.map(result => (
                                 <div key={result.id} className="movie-figma-card">
-                                    {/* ✅ แก้ไข 1: ใช้ result.poster_url (เพราะ backend ต่อลิงก์มาให้แล้ว) */}
-                                    <img
-                                        src={result.poster_url || "https://placehold.co/500x750?text=No+Image"}
-                                        className="movie-poster-img"
-                                        alt={result.title_th}
-                                        onError={(e) => {
-                                            e.target.onerror = null;
-                                            e.target.src = "https://placehold.co/500x750?text=Error";
-                                        }}
-                                    />
+                                    <img src={result.poster_url || "https://placehold.co/500x750?text=No+Image"} className="movie-poster-img" alt={result.title_th} />
                                     <div className="movie-card-info">
-                                        {/* ✅ แก้ไข 2: ใช้ result.title_th */}
                                         <h3>{result.title_th}</h3>
-
+                                        <p style={{fontSize: '0.8rem', color: '#94a3b8'}}>{result.title_en}</p>
                                         <button className="btn-add-purple" onClick={() => handleAddFromTMDB(result)} style={{ width: '100%', marginTop: '10px' }}>
                                             <Save size={14} /> <span>บันทึกลงระบบ</span>
                                         </button>
@@ -182,41 +170,22 @@ export default function AddMoviePage() {
                                 <section key={status} className="mb-10">
                                     <h3 className="category-title" style={{
                                         color: status === 'showing' ? '#10b981' : status === 'soon' ? '#8b5cf6' : '#ef4444',
-                                        marginBottom: '15px',
-                                        borderLeft: '4px solid',
-                                        paddingLeft: '10px'
+                                        marginBottom: '15px', borderLeft: '4px solid', paddingLeft: '10px'
                                     }}>
-                                        {status === 'showing' ? '🍿 กำลังฉายอยู่' : status === 'soon' ? '🗓️ Coming Soon' : '🚫 ออกจากโปรแกรม'}
-                                        ({categorizeMovies(status).length})
+                                        {status === 'showing' ? '🍿 กำลังฉายอยู่' : status === 'soon' ? '🗓️ Coming Soon' : '🚫 ออกจากโปรแกรม'} ({categorizeMovies(status).length})
                                     </h3>
                                     <div className="movie-figma-grid">
                                         {categorizeMovies(status).map(movie => (
                                             <div key={movie._id} className="movie-figma-card" style={{ background: '#1e212f' }}>
-                                                <img
-                                                    src={movie.poster_url || "https://placehold.co/500x750?text=No+Image"}
-                                                    className="movie-poster-img"
-                                                    alt={movie.title_th}
-                                                    onError={(e) => {
-                                                        e.target.onerror = null;
-                                                        e.target.src = "https://placehold.co/500x750?text=No+Image";
-                                                    }}
-                                                />
+                                                <img src={movie.poster_url || "https://placehold.co/500x750?text=No+Image"} className="movie-poster-img" alt={movie.title_th} />
                                                 <div className="movie-card-info">
-                                                    <h3 style={{ fontSize: '1rem', color: 'white', marginBottom: '10px' }}>{movie.title_th}</h3>
+                                                    <h3 style={{ fontSize: '1rem', color: 'white', marginBottom: '5px' }}>{movie.title_th}</h3>
+                                                    <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>{movie.title_en}</p>
                                                     <div className="card-actions" style={{ display: 'flex', gap: '8px' }}>
-                                                        {/* ✅ ปุ่มแก้ไข: เรียกใช้ openEditModal */}
-                                                        <button
-                                                            className="btn-edit-blue"
-                                                            onClick={(e) => { e.preventDefault(); openEditModal(movie); }}
-                                                            style={{ flex: 1, justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
-                                                        >
+                                                        <button className="btn-edit-blue" onClick={() => openEditModal(movie)} style={{ flex: 1, justifyContent: 'center' }}>
                                                             <Edit2 size={14} /> <span>แก้ไข</span>
                                                         </button>
-                                                        <button
-                                                            className="btn-delete-red"
-                                                            onClick={() => handleDelete(movie._id, movie.title_th)}
-                                                            style={{ flex: 1, justifyContent: 'center' }}
-                                                        >
+                                                        <button className="btn-delete-red" onClick={() => handleDelete(movie._id, movie.title_th)} style={{ flex: 1, justifyContent: 'center' }}>
                                                             <Trash2 size={14} /> <span>ลบ</span>
                                                         </button>
                                                     </div>
@@ -231,59 +200,85 @@ export default function AddMoviePage() {
                 )}
             </div>
 
-            {/* ✅ Modal แก้ไข: เพิ่มเช็ค && editingMovie */}
+            {/* ✅ Modal แก้ไข: เพิ่ม Input ให้ครบตาม DB Schema */}
             {isEditModalOpen && editingMovie && (
-                <div className="admin-loader-overlay" style={{ background: 'rgba(0,0,0,0.85)', zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, width: '100%', height: '100%' }}>
-                    <div className="settings-card-figma" style={{ width: '550px', position: 'relative', background: '#1e212f', padding: '30px', borderRadius: '24px' }}>
+                <div className="admin-loader-overlay" style={{ background: 'rgba(0,0,0,0.85)', zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', overflowY: 'auto' }}>
+                    <div className="settings-card-figma" style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', background: '#1e212f', padding: '30px', borderRadius: '24px' }}>
                         <button className="close-modal-btn" onClick={() => setIsEditModalOpen(false)} style={{ position: 'absolute', right: '20px', top: '20px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
                             <X size={24} />
                         </button>
-                        <div className="settings-card-header" style={{ marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <div className="settings-card-header" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
                             <Edit2 size={24} color="#8b5cf6" />
                             <h3 style={{ fontSize: '1.3rem', color: 'white' }}>แก้ไขข้อมูลภาพยนตร์</h3>
                         </div>
-                        <form onSubmit={handleUpdateMovie} className="settings-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                        <form onSubmit={handleUpdateMovie} className="settings-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            
+                            {/* Title TH */}
                             <div className="input-field-figma">
-                                <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>ชื่อภาพยนตร์ (ภาษาไทย)</label>
-                                <input
-                                    type="text"
-                                    value={editingMovie.title_th || ''}
-                                    onChange={(e) => setEditingMovie({ ...editingMovie, title_th: e.target.value })}
-                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }}
-                                    required
-                                />
+                                <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>ชื่อภาพยนตร์ (TH) <span style={{color:'red'}}>*</span></label>
+                                <input type="text" value={editingMovie.title_th || ''} onChange={(e) => setEditingMovie({ ...editingMovie, title_th: e.target.value })} required 
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }} />
                             </div>
+
+                            {/* Title EN (เพิ่มใหม่) */}
                             <div className="input-field-figma">
-                                <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>หมวดหมู่ (Genre)</label>
-                                <input
-                                    type="text"
-                                    value={editingMovie.genre || ''}
-                                    onChange={(e) => setEditingMovie({ ...editingMovie, genre: e.target.value })}
-                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }}
-                                />
+                                <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>ชื่อภาพยนตร์ (EN) <span style={{color:'red'}}>*</span></label>
+                                <input type="text" value={editingMovie.title_en || ''} onChange={(e) => setEditingMovie({ ...editingMovie, title_en: e.target.value })} required 
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }} />
                             </div>
+
+                            {/* Poster URL (เพิ่มใหม่) */}
+                            <div className="input-field-figma">
+                                <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>Poster URL</label>
+                                <input type="text" value={editingMovie.poster_url || ''} onChange={(e) => setEditingMovie({ ...editingMovie, poster_url: e.target.value })}
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }} />
+                            </div>
+
+                            {/* Genre & Duration */}
+                            <div className="grid grid-cols-2 gap-4" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px' }}>
+                                <div className="input-field-figma">
+                                    <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>หมวดหมู่ (Genre)</label>
+                                    <input type="text" value={editingMovie.genre || ''} onChange={(e) => setEditingMovie({ ...editingMovie, genre: e.target.value })}
+                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }} />
+                                </div>
+                                <div className="input-field-figma">
+                                    <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>เวลา (นาที)</label>
+                                    <input type="number" value={editingMovie.duration_min || ''} onChange={(e) => setEditingMovie({ ...editingMovie, duration_min: e.target.value })} required
+                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }} />
+                                </div>
+                            </div>
+
+                            {/* Language (เพิ่มใหม่) */}
+                            <div className="input-field-figma">
+                                <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>ระบบเสียง (Language)</label>
+                                <select value={editingMovie.language || 'TH/EN'} onChange={(e) => setEditingMovie({ ...editingMovie, language: e.target.value })}
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }}>
+                                    <option value="TH">Audio: Thai</option>
+                                    <option value="EN">Audio: English</option>
+                                    <option value="TH/EN">Audio: TH / Sub: EN</option>
+                                    <option value="EN/TH">Audio: EN / Sub: TH</option>
+                                </select>
+                            </div>
+
+                            {/* Dates */}
                             <div className="grid grid-cols-2 gap-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                                 <div className="input-field-figma">
-                                    <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>วันที่เริ่มฉาย</label>
-                                    <input
-                                        type="date"
-                                        value={editingMovie.start_date ? editingMovie.start_date.split('T')[0] : ''}
-                                        onChange={(e) => setEditingMovie({ ...editingMovie, start_date: e.target.value })}
-                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }}
-                                    />
+                                    <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>เริ่มฉาย</label>
+                                    <input type="date" value={editingMovie.start_date ? new Date(editingMovie.start_date).toISOString().split('T')[0] : ''} 
+                                    onChange={(e) => setEditingMovie({ ...editingMovie, start_date: e.target.value })}
+                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }} />
                                 </div>
                                 <div className="input-field-figma">
-                                    <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>วันที่สิ้นสุดการฉาย</label>
-                                    <input
-                                        type="date"
-                                        value={editingMovie.due_date ? editingMovie.due_date.split('T')[0] : ''}
-                                        onChange={(e) => setEditingMovie({ ...editingMovie, due_date: e.target.value })}
-                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }}
-                                    />
+                                    <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>สิ้นสุด</label>
+                                    <input type="date" value={editingMovie.due_date ? new Date(editingMovie.due_date).toISOString().split('T')[0] : ''} 
+                                    onChange={(e) => setEditingMovie({ ...editingMovie, due_date: e.target.value })}
+                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }} />
                                 </div>
                             </div>
+
                             <button type="submit" className="btn-save-settings" style={{ width: '100%', marginTop: '10px', justifyContent: 'center', padding: '15px', borderRadius: '16px' }}>
-                                <Save size={18} /> <span>บันทึกการเปลี่ยนแปลงลงฐานข้อมูล</span>
+                                <Save size={18} /> <span>บันทึกการเปลี่ยนแปลง</span>
                             </button>
                         </form>
                     </div>

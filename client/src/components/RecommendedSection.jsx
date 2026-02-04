@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import MovieCard from './MovieCard';
-// ✅ 1. Import API ที่คุณมีอยู่แล้ว
 import { getAllMovies } from '../api/movieApi';
 import '../css/RecommendedSection.css';
 
@@ -9,21 +8,15 @@ const RecommendedSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ✅ 2. ดึงข้อมูลเมื่อโหลดหน้าเว็บ
-  // ✅ 2. ดึงข้อมูลเมื่อโหลดหน้าเว็บ
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await getAllMovies(); // เปลี่ยนชื่อตัวแปรเป็น response ให้ไม่งง
-
-        // --- แก้ตรงนี้ครับ ---
-        // เช็คก่อนว่า response มี field .data หรือไม่ (เผื่อ API ส่งมาต่างกัน)
+        const response = await getAllMovies();
         if (response.data) {
-          setMovies(response.data); // เจาะเอา Array ออกมา
+          setMovies(response.data);
         } else {
-          setMovies(response); // กรณีที่ API ส่ง Array มาตรงๆ (เผื่อไว้)
+          setMovies(response);
         }
-
         setLoading(false);
       } catch (err) {
         console.error("Failed to load movies:", err);
@@ -31,21 +24,32 @@ const RecommendedSection = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
-  // ✅ 3. ฟังก์ชันแยกประเภทหนังตามวันที่ (Database Logic)
+  // ✅ 3. แก้ไข Logic การแบ่งประเภทหนัง (เพิ่ม due_date)
   const getMovieCategory = (movie) => {
-    const today = new Date();
+    const now = new Date();
     const startDate = new Date(movie.start_date);
+    const dueDate = new Date(movie.due_date);
 
-    // ถ้าวันฉาย มากกว่า วันนี้ = Coming Soon
-    if (startDate > today) {
+    // ปรับเวลาให้เป็น 00:00:00 เพื่อเปรียบเทียบเฉพาะ "วัน" (Optional: ช่วยให้แม่นยำขึ้น)
+    // now.setHours(0, 0, 0, 0);
+    // startDate.setHours(0, 0, 0, 0);
+    // dueDate.setHours(23, 59, 59, 999); // ให้ due_date ครอบคลุมจนจบวัน
+
+    // 1. ยังไม่ถึงวันฉาย -> Coming Soon
+    if (now < startDate) {
       return 'coming_soon';
     }
-    // ถ้าวันฉาย น้อยกว่าหรือเท่ากับ วันนี้ = Now Showing
-    return 'now_showing';
+    // 2. เลยวันฉายมาแล้ว AND ยังไม่เลยวันสิ้นสุด -> Now Showing
+    else if (now >= startDate && now <= dueDate) {
+      return 'now_showing';
+    }
+    // 3. นอกเหนือจากนั้น (เลย due_date ไปแล้ว) -> Ended
+    else {
+      return 'ended';
+    }
   };
 
   if (loading) return <div className="loading-text" style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>กำลังโหลดข้อมูลภาพยนตร์...</div>;
@@ -53,14 +57,15 @@ const RecommendedSection = () => {
 
   // --- จัดกลุ่มหนัง ---
 
-  // 1. ภาพยนตร์แนะนำ (ตัวอย่าง: เอา 4 เรื่องแรก หรือถ้ามี field 'is_recommended' ใน DB ก็ใช้ได้)
-  const recommendedMovies = movies.slice(0, 10);
-
-  // 2. กำลังฉาย
+  // 1. กำลังฉาย (Now Showing)
   const nowShowingMovies = movies.filter(movie => getMovieCategory(movie) === 'now_showing');
 
-  // 3. โปรแกรมหน้า
+  // 2. โปรแกรมหน้า (Coming Soon)
   const upcomingMovies = movies.filter(movie => getMovieCategory(movie) === 'coming_soon');
+
+  // 3. ภาพยนตร์แนะนำ (Recommended)
+  // แนะนำให้เลือกจาก "กำลังฉาย" เท่านั้น (จะได้ไม่เอาหนังเก่า หรือหนังที่ยังไม่ฉายมาแนะนำ)
+  const recommendedMovies = nowShowingMovies.slice(0, 10); 
 
   return (
     <div className="rec-container">
