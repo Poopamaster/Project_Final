@@ -197,3 +197,25 @@ exports.getShowtimeSeats = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// 7. ลบรอบฉายแบบกลุ่ม (Delete Batch)
+exports.deleteMultipleShowtimes = async (req, res) => {
+    try {
+        const { ids } = req.body; // รับ Array ของ _id เช่น ["id1", "id2", "id3"]
+
+        if (!ids || ids.length === 0) {
+            return res.status(400).json({ success: false, message: "กรุณาระบุรายการที่ต้องการลบ" });
+        }
+
+        // คำสั่ง deleteMany โดยเช็คว่า _id อยู่ใน list ที่ส่งมาไหม ($in)
+        const result = await Showtime.deleteMany({ _id: { $in: ids } });
+
+        res.status(200).json({ 
+            success: true, 
+            message: `ลบเรียบร้อย ${result.deletedCount} รายการ` 
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
