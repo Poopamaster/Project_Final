@@ -1,0 +1,339 @@
+/* ShowtimePageAdmin.css */
+:root {
+  --bg-main: #1e212f;
+  --bg-dark: #161925;
+  --bg-input: #0f172a;
+  --border-color: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --primary-color: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --danger-color: #ef4444;
+  --success-color: #22c55e;
+  --accent-cyan: #22d3ee;
+  --accent-gold: #fbbf24;
+}
+
+.admin-page {
+  color: var(--text-primary);
+  font-family: 'Kanit', sans-serif;
+  padding: 20px;
+}
+
+/* Header Section */
+.page-header {
+  margin-bottom: 35px;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  margin: 5px 0 0 0;
+}
+
+/* Create Form Section */
+.create-section {
+  margin-top: 30px;
+}
+
+.create-details {
+  background: var(--bg-dark);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.create-summary {
+  cursor: pointer;
+  padding: 15px 20px;
+  background: var(--bg-main);
+  color: #a78bfa;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  list-style: none; /* Hide default arrow */
+}
+
+.summary-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-content {
+  padding: 25px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  outline: none;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus, .form-select:focus {
+  border-color: var(--primary-color);
+}
+
+/* Time Selection */
+.time-selection-wrapper {
+  margin-bottom: 25px;
+}
+
+.time-picker-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.time-picker-box {
+  display: flex;
+  align-items: center;
+  background: var(--bg-input);
+  border-radius: 8px;
+  padding: 5px;
+  border: 1px solid var(--border-color);
+}
+
+.time-dropdown {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  padding: 8px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  text-align: center;
+  appearance: none;
+}
+
+.time-separator {
+  color: #64748b;
+  font-weight: bold;
+  padding: 0 5px;
+}
+
+.btn-add-time {
+  background: var(--primary-color);
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.5);
+}
+
+.selected-tags {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.tag-badge {
+  background: #6d28d9;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.btn-submit {
+  width: 100%;
+  background: linear-gradient(to right, #7c3aed, #9333ea);
+  color: white;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  transition: transform 0.1s;
+}
+
+.btn-submit:active {
+  transform: scale(0.98);
+}
+
+/* Filter Bar */
+.filter-bar {
+  margin-bottom: 20px;
+  padding: 10px;
+  background: var(--bg-dark);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  position: sticky;
+  top: 60%;
+  z-index: 20;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: flex-end;
+}
+
+.filter-input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: #e2e8f0;
+  border: 1px solid var(--border-color);
+  min-width: 140px;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.btn-reset {
+  background: var(--border-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px; /* Square button */
+}
+
+.bulk-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.selection-count {
+  color: var(--accent-gold);
+  font-weight: bold;
+}
+
+.btn-delete-bulk {
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+/* Table */
+.table-container {
+  background: var(--bg-main);
+  border-radius: 24px;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.data-table th {
+  color: #64748b;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  padding: 0 15px;
+}
+
+.data-table tr.data-row {
+  background: rgba(17, 19, 31, 0.5);
+  transition: background 0.2s;
+}
+
+.data-table tr.selected {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.data-table td {
+  padding: 15px;
+}
+
+.checkbox-cell, .action-cell {
+  text-align: center;
+}
+
+.custom-checkbox {
+  transform: scale(1.3);
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.text-movie-title { font-weight: 600; color: #fff; }
+.text-movie-duration { font-size: 0.8rem; color: var(--text-secondary); }
+.text-cinema { color: var(--accent-cyan); font-size: 0.9rem; }
+.text-cinema-loc { font-size: 0.75rem; color: #64748b; }
+.text-date { color: #e2e8f0; }
+.text-time { color: var(--accent-gold); font-weight: bold; }
+
+.btn-icon-delete {
+  color: var(--danger-color);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 50px;
+  color: #64748b;
+}
+
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
