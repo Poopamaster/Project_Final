@@ -5,8 +5,9 @@ const showtimeSchema = new mongoose.Schema({
     auditorium_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Auditorium', required: true },
     start_time: { type: Date, required: true },
     end_time: { type: Date, required: true },
-    language: { type: String, required: true }, // TH, EN, JP
-    base_price: { type: Number, required: true }
+    language: { type: String, required: true },
+    base_price: { type: Number, required: true },
+    batch_id: { type: String, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Showtime', showtimeSchema);

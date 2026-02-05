@@ -1,6 +1,8 @@
 const Showtime = require('../models/showtimeModel');
 const Movie = require('../models/movieModel');
 const Seat = require('../models/seatModel');
+const { v4: uuidv4 } = require('uuid');
+const dayjs = require('dayjs');
 
 // 1. สร้างรอบฉาย (Admin)
 exports.createShowtime = async (req, res) => {
@@ -33,6 +35,73 @@ exports.createShowtime = async (req, res) => {
 
     } catch (error) {
         console.error("Create Showtime Error:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// 1.5 สร้างรอบฉายแบบกลุ่ม (Bulk Create) - 🌟 ฟีเจอร์ใหม่
+exports.createBulkShowtimes = async (req, res) => {
+    try {
+        // รับค่าช่วงเวลา และรอบเวลาที่เป็น Array เช่น ["10:30", "14:00", "18:00"]
+        const { movie_id, auditorium_id, start_date, end_date, time_slots, base_price, language } = req.body;
+
+        // 1. ตรวจสอบข้อมูลหนังเพื่อเอา Duration
+        const movie = await Movie.findById(movie_id);
+        if (!movie) return res.status(404).json({ message: "ไม่พบข้อมูลหนัง" });
+
+        const duration = movie.duration_min || 120; // Default 2 ชม.
+        const showtimesToInsert = [];
+        const batchId = uuidv4(); // สร้างรหัสกลุ่ม (Batch ID) เพื่อให้รู้ว่าชุดนี้สร้างมาพร้อมกัน
+
+        // 2. แปลงวันที่เริ่มต้นและสิ้นสุด
+        let currentDate = dayjs(start_date);
+        const lastDate = dayjs(end_date);
+
+        // 3. วนลูป: ตั้งแต่วันแรก จนถึงวันสุดท้าย
+        while (currentDate.isBefore(lastDate) || currentDate.isSame(lastDate, 'day')) {
+            
+            // 4. วนลูป: ตามเวลาที่เลือกในแต่ละวัน (Time Slots)
+            for (const timeStr of time_slots) {
+                // timeStr format = "HH:mm" เช่น "14:30"
+                const [hour, minute] = timeStr.split(':');
+
+                // สร้าง start_time โดยเอา วันที่ปัจจุบัน + เวลาจาก timeStr
+                const start = currentDate.hour(hour).minute(minute).second(0).toDate();
+
+                // คำนวณ end_time
+                const end = new Date(start.getTime() + (duration + 20) * 60000); // หนัง + พัก 20 นาที
+
+                // สร้าง Object เตรียมบันทึก
+                showtimesToInsert.push({
+                    movie_id,
+                    auditorium_id,
+                    start_time: start,
+                    end_time: end,
+                    language: language || "TH",
+                    base_price: base_price || 160,
+                    batch_id: batchId // ✅ เก็บ Batch ID ไว้เผื่อลบยกแก๊ง
+                });
+            }
+
+            // ขยับไปวันถัดไป
+            currentDate = currentDate.add(1, 'day');
+        }
+
+        // 5. บันทึกข้อมูลทั้งหมดลง Database ทีเดียว (ประสิทธิภาพสูงกว่าวน create ทีละรอบ)
+        if (showtimesToInsert.length > 0) {
+            await Showtime.insertMany(showtimesToInsert);
+            res.status(201).json({ 
+                success: true, 
+                message: `สร้างรอบฉายสำเร็จทั้งหมด ${showtimesToInsert.length} รอบ`,
+                data: showtimesToInsert,
+                batch_id: batchId
+            });
+        } else {
+            res.status(400).json({ success: false, message: "ไม่มีการสร้างรอบฉาย (โปรดตรวจสอบวันที่และเวลา)" });
+        }
+
+    } catch (error) {
+        console.error("Bulk Create Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
