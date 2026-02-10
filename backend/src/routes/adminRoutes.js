@@ -20,6 +20,9 @@ router.get('/movies', adminController.getAllMovies);
 // 4. ลบหนังออกจากระบบ
 router.delete('/movies/:id', adminController.deleteMovie);
 
+// 5. อัพเดตข้อมูลหนัง (เช่น วันที่ฉาย, ภาพโปสเตอร์, ฯลฯ)
+router.put('/movies/:id', adminController.updateMovie);
+
 
 // --- ส่วนสถิติและรายงาน (Dashboard & Bookings) ---
 // 5. ดึงข้อมูลสถิติยอดขาย, ตั๋ว, และจำนวนผู้ใช้ (สำหรับหน้า Dashboard)

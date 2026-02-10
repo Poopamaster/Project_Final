@@ -73,12 +73,12 @@
     width: 100%;
 }
 
-.form-group {
+.login-form.form-group {
     margin-bottom: 1.25rem;
     text-align: left;
 }
 
-.form-group label {
+.login-form.form-group label {
     display: block;
     font-weight: 600;
     font-size: 0.9rem;
@@ -86,7 +86,8 @@
     margin-bottom: 0.5rem;
 }
 
-.form-input {
+.login-form .form-input {
+    color: black;
     width: 100%;
     padding: 0.75rem 1rem;
     border: 1px solid #d1d5db;
@@ -101,13 +102,13 @@
     /* สำคัญเพื่อไม่ให้ padding ดัน layout */
 }
 
-.form-input:focus {
+.login-form .form-input:focus {
     border-color: #3b5bdb;
     background-color: #fff;
     box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.1);
 }
 
-.form-input::placeholder {
+.login-form .form-input::placeholder {
     color: #9ca3af;
 }
 

@@ -261,3 +261,19 @@ exports.promoteAdmin = async (req, res) => {
         res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการดำเนินการ" });
     }
 };
+
+exports.updateMovie = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // ค้นหาและอัปเดตข้อมูลตาม ID ที่ส่งมา
+        const updatedMovie = await Movie.findByIdAndUpdate(id, req.body, { new: true });
+        
+        if (!updatedMovie) {
+            return res.status(404).json({ success: false, message: "ไม่พบหนังเรื่องนี้" });
+        }
+
+        res.status(200).json({ success: true, data: updatedMovie });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

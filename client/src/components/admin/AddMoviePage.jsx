@@ -82,7 +82,7 @@ export default function AddMoviePage() {
         if (!editingMovie) return;
 
         try {
-            const response = await axiosInstance.put(`/movies/${editingMovie._id}`, {
+            const response = await axiosInstance.put(`/admin/movies/${editingMovie._id}`, {
                 title_th: editingMovie.title_th,
                 title_en: editingMovie.title_en,   // ✅ เพิ่ม
                 poster_url: editingMovie.poster_url, // ✅ เพิ่ม

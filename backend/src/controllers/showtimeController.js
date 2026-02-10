@@ -1,7 +1,6 @@
 const Showtime = require('../models/showtimeModel');
 const Movie = require('../models/movieModel');
 const Seat = require('../models/seatModel');
-const { v4: uuidv4 } = require('uuid');
 const dayjs = require('dayjs');
 
 // 1. สร้างรอบฉาย (Admin)
