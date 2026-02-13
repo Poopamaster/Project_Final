@@ -1,12 +1,13 @@
 // src/services/aiService.js
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { client } = require("./mcpClient");
-const { getSystemPrompt } = require("../utils/promptGenerator");
+const { client } = require("./mcpClient"); // ตรวจสอบ path ให้ถูกต้อง
+const { getSystemPrompt } = require("../utils/promptGenerator"); // ตรวจสอบ path ให้ถูกต้อง
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // 🧠 1. ตัวแปรเก็บความจำ (In-Memory Session)
+// หมายเหตุ: ใน Production ควรใช้ Redis หรือ Database
 const chatSessions = {}; 
 
 function fileToGenerativePart(base64String) {
@@ -18,13 +19,19 @@ function fileToGenerativePart(base64String) {
   return { inlineData: { mimeType: matches[1], data: matches[2] } };
 }
 
-// ฟังก์ชันจัดหน้า (Formatter) - เหมือนเดิม
+// ฟังก์ชันจัดหน้า (Formatter) - ใช้สำหรับข้อมูล Text ปกติเท่านั้น
 function forceFormatOutput(rawData) {
     try {
         const data = JSON.parse(rawData);
+        
+        // ถ้าเป็น Visual Data ให้คืนค่าเดิมกลับไปเลย ไม่ต้องจัด format
+        if (rawData.includes("::VISUAL::") || data.type) {
+            return rawData;
+        }
+
         if (Array.isArray(data)) {
             const list = data.map((m, index) => {
-                const title = m.Title || m.title_th + ` (${m.title_en})`; 
+                const title = m.Title || m.title_th + ` (${m.title_en || ''})`; 
                 const genre = m.Genre || m.genre || "-";
                 const date = m.ReleaseDate || m.ShowingDate || m.start_date || "-";
                 return `### ${index + 1}. 🎬 ${title}\n   - 🎭 แนว: ${genre}\n   - 📅 ฉาย: ${date}`;
@@ -39,11 +46,10 @@ function forceFormatOutput(rawData) {
     }
 }
 
-// ✨ 2. ฟังก์ชันหลัก (ปรับแก้ให้รับ allowedToolNames)
-// allowedToolNames = Array รายชื่อเครื่องมือที่ผ่านการเช็คสิทธิ์มาจาก Controller แล้ว
+// ✨ 2. ฟังก์ชันหลัก
 exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = []) => {
   try {
-    const userId = user.id || "default_user"; 
+    const userId = user.id || user._id.toString() || "default_user"; 
     console.log(`🚀 Request from user: ${userId} (${user.role})`);
     console.log(`🛡️ Injecting Tools: ${allowedToolNames.join(", ")}`);
 
@@ -54,15 +60,14 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
     let history = chatSessions[userId];
 
     // 🛠️ ENGINEERING HIGHLIGHT: Dynamic Tool Injection 🛠️
-    // 1. ดึง Tools ทั้งหมดจาก MCP Server
     const mcpTools = await client.listTools();
     
-    // 2. กรอง (Filter) เอาเฉพาะ Tools ที่มีชื่ออยู่ใน allowedToolNames
+    // กรอง (Filter) เอาเฉพาะ Tools ที่มีสิทธิ์ใช้
     const filteredTools = mcpTools.tools.filter(tool => 
         allowedToolNames.includes(tool.name)
     );
 
-    // 3. แปลงร่างเป็น format ของ Google Gemini
+    // แปลงร่างเป็น format ของ Google Gemini
     const googleTools = {
       functionDeclarations: filteredTools.map((tool) => ({
         name: tool.name,
@@ -84,11 +89,11 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
     - You only have access to the tools provided. If a user asks for a feature you don't have (like 'delete_movie' for a normal user), politely refuse and say you don't have permission.
     `;
 
-    // 4. สร้าง Model โดยส่งไปแค่ googleTools (ที่กรองแล้ว)
+    // 4. สร้าง Model
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite", // แนะนำ 1.5 flash เพราะ function calling เสถียรกว่า 2.5-lite
+      model: "gemini-2.5-flash", // หรือ gemini-2.5-flash-lite ตามโควต้าที่มี
       systemInstruction: getSystemPrompt(user) + "\n\n" + extraPrompt,
-      tools: filteredTools.length > 0 ? [googleTools] : [], // ถ้าไม่มี tool เลยก็ไม่ต้องส่ง
+      tools: filteredTools.length > 0 ? [googleTools] : [],
     });
 
     const chat = model.startChat({ history: history });
@@ -117,15 +122,39 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
         const functionName = call.name;
         const functionArgs = call.args;
 
+        // เรียกใช้งาน Tool ผ่าน MCP Client
         const mcpResult = await client.callTool({
           name: functionName,
           arguments: functionArgs,
         });
 
-        mcpFinalText = forceFormatOutput(mcpResult.content[0].text);
+        const toolOutput = mcpResult.content[0].text;
+
+        // 🔥🔥🔥 [จุดที่แก้ไขสำคัญ] 🔥🔥🔥
+        // ตรวจสอบว่า Tool ส่งกลับมาเป็น Visual Component หรือไม่ (มี Tag ::VISUAL::)
+        if (toolOutput.includes("::VISUAL::")) {
+            console.log("🎨 Visual Layout detected, returning directly.");
+            
+            // บันทึก History ก่อน return (เพื่อให้ AI จำได้ว่าส่งอะไรไป)
+            chatSessions[userId].push({
+                role: "user",
+                parts: [{ text: userMessage }]
+            });
+            chatSessions[userId].push({
+                role: "model",
+                parts: [{ text: toolOutput }] // บันทึก Raw Visual Data
+            });
+
+            // ✅ Return ทันทีเพื่อให้ Frontend ไป Parse เป็น Component
+            return toolOutput; 
+        }
+        // 🔥🔥🔥 [จบส่วนแก้ไข] 🔥🔥🔥
+
+        // ถ้าไม่ใช่ Visual ให้เข้า Format ปกติ
+        mcpFinalText = forceFormatOutput(toolOutput);
       }
 
-      // บันทึกความจำ (Manual Memory Save)
+      // บันทึกความจำกรณี Text ปกติ
       if (mcpFinalText) {
         chatSessions[userId].push({
             role: "user",
@@ -139,17 +168,18 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
       }
     }
 
-    // กรณีคุยปกติ
+    // กรณีคุยปกติ (ไม่มีการเรียก Tool)
+    const botText = response.text();
     chatSessions[userId].push({
         role: "user",
         parts: [{ text: userMessage }]
     });
     chatSessions[userId].push({
         role: "model",
-        parts: [{ text: response.text() }]
+        parts: [{ text: botText }]
     });
 
-    return response.text();
+    return botText;
 
   } catch (error) {
     console.error("Gemini Native Error:", error);
