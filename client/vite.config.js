@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
           // 3. ตั้งค่า Proxy ไปหา Backend
           // ถ้าในไฟล์ .env มีค่า VITE_API_URL ก็จะใช้ค่านั้น
           // ถ้าไม่มี ก็จะใช้ http://localhost:5000 เป็นค่าเริ่มต้น
-          target: env.VITE_API_URL || 'http://localhost:5000',
+          target: env.VITE_API_URL || 'http://localhost:8000',
           changeOrigin: true,
           secure: false,
         },

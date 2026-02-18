@@ -3,7 +3,7 @@
 .movie-card-custom {
   position: relative !important;
   width: 100%;
-  height: 450px;             /* 1. เพิ่มความสูงเผื่อไว้เลยครับ (จาก 400->450) */
+  height: 450px; 
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
@@ -12,7 +12,6 @@
   cursor: pointer;
 }
 
-/* รูปภาพ */
 .movie-img-custom {
   width: 100% !important;
   height: 100% !important;
@@ -21,26 +20,20 @@
   transition: transform 0.5s ease;
 }
 
-/* ส่วน Overlay */
 .movie-overlay-custom {
   position: absolute !important;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0.4) 100%); /* ปรับสีดำให้เข้มขึ้นข้างล่าง */
+  background: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0.4) 100%);
   z-index: 10;
-  
-  /* จัด layout */
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* เนื้อหาอยู่ด้านล่าง */
+  justify-content: flex-end; 
   align-items: center;
-  
-  /* เว้นที่ว่างด้านล่างไว้ให้ปุ่ม (สำคัญ!) */
   padding: 20px 20px 80px 20px; 
   box-sizing: border-box;
-  
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -53,7 +46,6 @@
   transform: scale(1.1);
 }
 
-/* ชื่อหนัง */
 .movie-title-custom {
   font-size: 1.2rem;
   font-weight: bold;
@@ -61,15 +53,8 @@
   color: #fff;
   margin-bottom: 10px;
   line-height: 1.4;
-  
-  /* บังคับตัดคำถ้าเกิน 2 บรรทัด */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
-/* ข้อมูลหนัง */
 .movie-info-custom {
   display: flex;
   flex-direction: column;
@@ -77,17 +62,14 @@
   gap: 5px;
   font-size: 0.9rem;
   color: #ddd;
-  margin-bottom: 0; /* ไม่ต้องดันแล้ว เพราะปุ่มแยกไปอยู่ต่างหาก */
 }
 
-/* --- ไฮไลท์: ปุ่มกดแบบยึดตำแหน่งตายตัว --- */
 .btn-more-custom {
-  position: absolute;      /* สั่งลอยตัวอิสระจากเนื้อหาอื่น */
-  bottom: 20px;            /* ยึดติดขอบล่าง 20px เสมอ */
-  left: 50%;               /* จัดกึ่งกลางแนวนอน */
-  transform: translateX(-50%); /* จัดกึ่งกลางให้เป๊ะ */
-  
-  width: 80%;              /* ความกว้างปุ่ม */
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
   padding: 12px 0;
   background-color: #fff;
   color: #000;

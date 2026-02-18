@@ -2,10 +2,10 @@
 
 /* --- Container --- */
 .rec-container {
-  width: 95%; /* มือถือให้กว้างเกือบเต็มจอ */
-  max-width: 1800px; /* ล็อกความกว้างสูงสุดสำหรับจอใหญ่ */
+  width: 95%; 
+  max-width: 1800px; 
   margin: 0 auto;
-  padding: 1rem 0 3rem; /* ลด padding ด้านข้าง ให้ content จัดการเอง */
+  padding: 1rem 0 3rem; 
   color: white;
 }
 
@@ -13,17 +13,16 @@
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
   font-weight: bold;
-  padding-left: 0.5rem; /* ขยับหัวข้อเล็กน้อย */
-  border-left: 4px solid #3B82F6; /* ลูกเล่นเส้นข้างหัวข้อ */
+  padding-left: 0.5rem; 
+  border-left: 4px solid #3B82F6; 
   line-height: 1.2;
 }
 
-/* --- Grid System (Responsive หัวใจสำคัญ) --- */
+/* --- Grid System --- */
 .rec-grid {
   display: grid;
-  /* ปรับ minmax เป็น 200px เพื่อให้รองรับมือถือจอเล็กได้ดีขึ้น */
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem; /* ระยะห่างระหว่างการ์ด */
+  gap: 1.5rem; 
 }
 
 /* --- Movie Card --- */
@@ -31,15 +30,15 @@
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  aspect-ratio: 2/3; /* บังคับสัดส่วนภาพเป็นแนวตั้งมาตรฐานโปสเตอร์หนัง (แทนการ fix height) */
-  background-color: #1e293b; /* สีพื้นหลังกันกรณีรูปโหลดไม่มา */
+  aspect-ratio: 2/3; 
+  background-color: #1e293b; 
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .movie-card:hover {
-  transform: translateY(-5px); /* ลอยขึ้นนิดหน่อย */
+  transform: translateY(-5px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
   z-index: 2;
 }
@@ -73,12 +72,30 @@
   opacity: 1;
 }
 
+/* --- ข้อมูลด้านล่างรูปภาพ (จุดที่แก้ไข) --- */
+.movie-item-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 .movie-title {
-  font-size: 1.1rem;
-  font-weight: bold;
-  margin-bottom: 8px;
-  color: white;
-  line-height: 1.4;
+  display: block !important;    /* บังคับให้แสดงผล */
+  color: #ffffff !important;   /* บังคับสีขาวนวล */
+  font-family: 'Prompt', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  text-align: left;
+  line-height: 1.5;
+
+  /* --- โค้ดบังคับบรรทัดเดียวและใส่ ... --- */
+  white-space: nowrap;         /* ห้ามขึ้นบรรทัดใหม่ */
+  overflow: hidden;            /* ตัดส่วนที่เกินออก */
+  text-overflow: ellipsis;     /* ใส่จุดไข่ปลา (...) */
+  
+  /* จองพื้นที่ความสูงไว้ 1 บรรทัดเสมอ */
+  height: 1.5rem; 
 }
 
 .movie-info {
@@ -104,12 +121,7 @@
   background-color: #2563EB;
 }
 
-/* --- Date Badges (ย้ายจาก Inline Style มาที่นี่) --- */
-.movie-item-wrapper {
-  display: flex;
-  flex-direction: column;
-}
-
+/* --- Date Badges --- */
 .date-badge {
   margin-top: 10px;
   text-align: center;
@@ -118,44 +130,38 @@
   padding: 6px 10px;
   border-radius: 8px;
   display: inline-block;
-  width: 100%; /* ให้เต็มความกว้างการ์ด */
+  width: 100%; 
 }
 
-/* สีแดง (ลาจอ) */
 .badge-expiring {
   color: #ff6b6b;
   background-color: rgba(255, 107, 107, 0.1);
   border: 1px solid rgba(255, 107, 107, 0.3);
 }
 
-/* สีเขียว (เข้าฉาย) */
 .badge-upcoming {
   color: #4ade80;
   background-color: rgba(74, 222, 128, 0.1);
   border: 1px solid rgba(74, 222, 128, 0.3);
 }
 
-  .genre-badge {
-  display: block;           /* ให้เต็มบรรทัด */
+.genre-badge {
+  display: block;
   width: 100%;
-  margin-top: 8px;          /* ห่างจากรูปการ์ดนิดหน่อย */
-  padding: 6px 10px;        /* พื้นที่ภายในกรอบ */
-  
-  background-color: #334155; /* สีพื้นหลัง (เทาอมน้ำเงิน) */
-  color: #f1f5f9;           /* สีตัวอักษร (ขาวนวล) */
-  border: 1px solid #475569; /* เส้นขอบบางๆ */
-  
-  font-size: 0.8rem;        /* ขนาดตัวอักษร */
-  text-align: center;       /* จัดกลาง */
-  border-radius: 4px;       /* มุมมนนิดๆ (ถ้าอยากได้เหลี่ยมเป๊ะให้แก้เป็น 0px) */
-  
-  /* กรณีชื่อประเภทยาวเกินไป ให้ตัดคำ */
+  margin-top: 8px;
+  padding: 6px 10px;
+  background-color: #334155;
+  color: #f1f5f9;
+  border: 1px solid #475569;
+  font-size: 0.8rem;
+  text-align: center;
+  border-radius: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* --- Media Queries สำหรับหน้าจอใหญ่ --- */
+/* --- Media Queries --- */
 @media (min-width: 768px) {
   .rec-container {
     width: 90%;
@@ -163,7 +169,7 @@
   }
   
   .rec-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); /* จอใหญ่ขยายการ์ดให้กว้างขึ้น */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 2rem;
   }
 

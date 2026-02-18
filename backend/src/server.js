@@ -4,7 +4,7 @@ const app = require('./app');
 const connectDB = require('./config/db');
 const { startMcpClient } = require('./services/mcpClient');
 
-const PORT = process.env.PORT || 5000; 
+const PORT = process.env.PORT || 8000; 
 
 // 1. เชื่อมต่อ Database
 connectDB();
