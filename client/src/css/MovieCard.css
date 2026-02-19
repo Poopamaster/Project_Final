@@ -1,24 +1,20 @@
 /* src/css/MovieCard.css */
 
 .movie-card-custom {
-  position: relative !important;
-  width: 100%;
-  height: 450px;             /* 1. เพิ่มความสูงเผื่อไว้เลยครับ (จาก 400->450) */
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  background-color: #000;
-  margin-bottom: 20px;
-  cursor: pointer;
+    position: relative !important;
+    width: 100%;
+    height: auto !important; /* ✅ เปลี่ยนเป็น auto */
+    aspect-ratio: 2 / 3;    /* ✅ ใช้ตัวนี้คุมทรงรูปภาพแทน */
+    border-radius: 16px;
+    overflow: hidden;
+    background-color: #000;
 }
 
-/* รูปภาพ */
 .movie-img-custom {
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover !important;
+  object-fit: cover !important; /* ถ้ารูปสั้นหรือยาวไป มันจะตัด (Crop) แทนการบีบรูป */
   display: block;
-  transition: transform 0.5s ease;
 }
 
 /* ส่วน Overlay */

@@ -12,7 +12,7 @@
   position: fixed; /* ใช้ Position Fixed เพื่อทับ Navbar เดิมของเว็บ */
   top: 0;
   left: 0;
-  z-index: 99999; /* ให้ค่าสูงกว่าทุกอย่างในเว็บ */
+  z-index: 9000; /* ให้ค่าสูงกว่าทุกอย่างในเว็บ */
 }
 
 /* Sidebar ตาม Figma */

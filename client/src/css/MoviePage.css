@@ -95,7 +95,6 @@ body {
     text-align: center;
     margin-bottom: 20px;
     background: linear-gradient(90deg, #fff, #aaa);
-    -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -147,9 +146,13 @@ body {
 
 .movie-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 40px; /* เพิ่มระยะห่างระหว่างการ์ดให้ดูไม่อึดอัด */
-    padding-bottom: 40px;
+    /* ✅ ใช้ minmax 220px และไม่เกิน 1fr */
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+    gap: 30px;
+    padding: 20px;
+    justify-content: center;
+    max-width: 1300px; /* ✅ เพิ่มบรรทัดนี้: ล็อกความกว้างไม่ให้การ์ดขยายจนรูปเบี้ยว */
+    margin: 0 auto;    /* ✅ เพิ่มบรรทัดนี้: จัดกลุ่ม Grid ให้อยู่กลางจอ */
 }
 
 .movie-card {
@@ -281,9 +284,11 @@ body {
 
     /* ✅ แก้ไข: ปรับ Grid มือถือให้แสดง 2 คอลัมน์ (ซ้าย-ขวา) */
     .movie-grid {
-        grid-template-columns: repeat(2, 1fr); /* 2 คอลัมน์ */
-        gap: 15px; /* ลดระยะห่าง */
-        padding: 0 10px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* ปรับให้ยืดหยุ่นตามความกว้างจอ */
+        gap: 12px;
+        padding: 10px;
+        justify-content: center; /* จัดกลุ่มการ์ดให้อยู่กลางหน้าจอ */
     }
 
     .movie-card {

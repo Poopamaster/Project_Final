@@ -1,3 +1,5 @@
+/* src/css/navbar.css */
+
 .navbar {
   display: flex;
   align-items: center;
@@ -118,6 +120,44 @@
   transform: scale(1.1);
 }
 
+.nav-admin-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.1); /* พื้นหลังใสๆ */
+    color: #fbbf24; /* สีเหลืองทอง ให้ดูพรีเมียม/Admin */
+    border: 1px solid #fbbf24;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin-right: 1rem; /* เว้นระยะห่างจากชื่อ User */
+}
+
+.nav-admin-btn:hover {
+    background-color: #fbbf24;
+    color: black;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+/* ปรับ User Info ให้จัดเรียงสวยขึ้น */
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* ชิดขวา */
+    line-height: 1.2;
+}
+
+.user-badge {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 /* --- Responsive Layout (Mobile) --- */
 @media (max-width: 768px) {
   .menu-icon {
@@ -163,55 +203,8 @@
     display: flex;
     justify-content: center;
   }
-}
 
-.nav-admin-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: rgba(255, 255, 255, 0.1); /* พื้นหลังใสๆ */
-    color: #fbbf24; /* สีเหลืองทอง ให้ดูพรีเมียม/Admin */
-    border: 1px solid #fbbf24;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    margin-right: 1rem; /* เว้นระยะห่างจากชื่อ User */
-}
-
-.nav-admin-btn:hover {
-    background-color: #fbbf24;
-    color: black;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
-}
-
-/* ปรับ User Info ให้จัดเรียงสวยขึ้น */
-.nav-user-profile {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.user-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end; /* ชิดขวา */
-    line-height: 1.2;
-}
-
-.user-badge {
-    font-size: 0.7rem;
-    color: #9ca3af;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .nav-admin-btn {
+  .nav-admin-btn {
         margin-right: 0;
         width: 100%; /* เต็มจอในมือถือ */
         justify-content: center;
@@ -227,4 +220,56 @@
     .user-info {
         align-items: center;
     }
+}
+
+/* =========================================
+   ✅ LOADING SCREEN STYLES (เพิ่มส่วนนี้)
+   ========================================= */
+
+/* ฉากหลังคลุมเต็มหน้าจอ */
+.global-loader-overlay {
+    position: fixed;      /* ลอยทับทุกอย่าง */
+    top: 0;
+    left: 0;
+    width: 100vw;         /* กว้างเต็มจอ */
+    height: 100vh;        /* สูงเต็มจอ */
+    background-color: rgba(11, 17, 32, 0.95); /* สีพื้นหลังดำโปร่งแสงนิดๆ */
+    display: flex;        /* ใช้ Flexbox จัดกลาง */
+    justify-content: center; /* กลางแนวนอน */
+    align-items: center;     /* กลางแนวตั้ง */
+    z-index: 99999;       /* เลขเยอะๆ เพื่อให้ทับ Navbar และทุกอย่าง */
+    backdrop-filter: blur(5px); /* เบลอฉากหลังนิดๆ เพื่อความสวยงาม */
+}
+
+/* กล่องเนื้อหาข้างใน (Icon + ข้อความ) */
+.full-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    color: white;
+    text-align: center;
+}
+
+/* ข้อความ Loading */
+.full-loader p {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    color: #fff;
+}
+
+.full-loader small {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+/* Animation หมุนติ้วๆ */
+.spin-animation {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }

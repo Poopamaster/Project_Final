@@ -2,6 +2,7 @@ const Showtime = require('../models/showtimeModel');
 const Movie = require('../models/movieModel');
 const Seat = require('../models/seatModel');
 const dayjs = require('dayjs');
+const { v4: uuidv4 } = require('uuid'); // <--- เพิ่มบรรทัดนี้
 
 // 1. สร้างรอบฉาย (Admin)
 exports.createShowtime = async (req, res) => {

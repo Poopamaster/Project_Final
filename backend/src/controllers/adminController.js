@@ -169,15 +169,33 @@ exports.deleteAdmin = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
 exports.getAllBookings = async (req, res) => {
     try {
         const bookings = await Booking.find()
-            .populate('user_id', 'name') 
-            .populate('showtime_id') 
+            // 1. ดึง User: เอาทั้ง name และ email (Frontend น้องใช้ search email ด้วย)
+            .populate('user_id', 'name email') 
+            
+            // 2. ดึงข้อมูลรอบฉาย และเจาะเข้าไปเอา "ข้อมูลหนัง" และ "โรงหนัง"
+            .populate({
+                path: 'showtime_id',
+                populate: [
+                    { path: 'movie_id', select: 'title_th title_en' }, // เจาะเอาชื่อหนัง
+                    { path: 'auditorium_id' } // (ถ้ามี) เจาะเอาชื่อโรง/สาขา
+                ]
+            })
+
+            // 3. ดึงข้อมูลที่นั่ง: เพื่อให้โชว์เลขที่นั่ง เช่น A1, B2 (ไม่ใช่โชว์ ID ยาวๆ)
+            .populate({
+                path: 'seats',
+                populate: { path: 'seat_type_id' } // เจาะเอาประเภทที่นั่ง/ราคามาด้วย
+            })
+            
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, data: bookings });
     } catch (error) {
+        console.error("Get All Bookings Error:", error);
         res.status(500).json({ success: false, error: error.message });
     }
 };
