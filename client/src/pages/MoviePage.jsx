@@ -5,6 +5,7 @@ import '../css/MoviePage.css';
 
 import { getAllMovies } from '../api/movieApi';
 import { getAllCinemas } from '../api/cinemaApi';
+import { getAllShowtimes } from '../api/showtimeApi'; // ✅ ต้องดึงตัวนี้มาเชื่อม!
 
 function MoviePage() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ function MoviePage() {
   const [activeTab, setActiveTab] = useState('now_showing');
   const [movies, setMovies] = useState([]);
   const [cinemas, setCinemas] = useState([]);
+  const [showtimes, setShowtimes] = useState([]); // ✅ เพิ่ม State รอบฉาย
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,13 +24,20 @@ function MoviePage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [moviesRes, cinemasRes] = await Promise.all([
+        // ดึง 3 อย่างพร้อมกัน: หนัง, สาขา, และรอบฉาย
+        const [moviesRes, cinemasRes, showtimesRes] = await Promise.all([
             getAllMovies(),
-            getAllCinemas()
+            getAllCinemas(),
+            getAllShowtimes() 
         ]);
 
-        setMovies(Array.isArray(moviesRes.data) ? moviesRes.data : (Array.isArray(moviesRes) ? moviesRes : []));
-        setCinemas(Array.isArray(cinemasRes.data) ? cinemasRes.data : (Array.isArray(cinemasRes) ? cinemasRes : []));
+        const movieData = moviesRes.data?.data || moviesRes.data || moviesRes;
+        const cinemaData = cinemasRes.data?.data || cinemasRes.data || cinemasRes;
+        const showtimeData = showtimesRes.data?.data || showtimesRes.data || showtimesRes;
+
+        setMovies(Array.isArray(movieData) ? movieData : []);
+        setCinemas(Array.isArray(cinemaData) ? cinemaData : []);
+        setShowtimes(Array.isArray(showtimeData) ? showtimeData : []);
 
         setLoading(false);
       } catch (err) {
@@ -40,43 +49,43 @@ function MoviePage() {
     fetchData();
   }, []);
 
-  // ✅ 1. ใช้ Logic การแบ่งหมวดหมู่ที่แม่นยำ (เหมือน RecommendedSection)
   const getMovieCategory = (movie) => {
     const now = new Date();
     const startDate = new Date(movie.start_date);
     const dueDate = new Date(movie.due_date);
-
-    if (now < startDate) {
-      return 'coming_soon';
-    } else if (now >= startDate && now <= dueDate) {
-      return 'now_showing';
-    } else {
-      return 'ended';
-    }
+    if (now < startDate) return 'coming_soon';
+    if (now >= startDate && now <= dueDate) return 'now_showing';
+    return 'ended';
   };
 
-  // ✅ 2. ปรับปรุง Logic การ Filter
-  const filteredMovies = movies.filter(movie => {
-    // กรองตามสถานะ Tab (Now Showing / Coming Soon)
-    const category = getMovieCategory(movie);
-    const matchTab = category === activeTab;
-
-    // กรองตาม Dropdown หนัง
-    const matchMovie = selectedMovieId ? movie._id === selectedMovieId : true;
-
-    // กรองตาม Dropdown โรงหนัง 
-    // หมายเหตุ: ตรงนี้ถ้าใน Object Movie มี field cinemas: [] ให้เช็ค include ได้เลย
-    // หรือถ้ามี table Showtime ต้องไป Filter ที่นั่นแทนครับ
-    const matchCinema = selectedCinemaId 
-        ? (movie.cinemas && movie.cinemas.includes(selectedCinemaId)) || true // ตอนนี้ใส่ true ไว้ก่อนกันหลุด
-        : true; 
-
-    return matchTab && matchMovie && matchCinema;
+  // ✅ 1. กรองรายชื่อหนังใน Dropdown ตามสาขาที่เลือก
+  // เพื่อไม่ให้ User เลือกหนังที่ไม่มีฉายในสาขานั้น
+  const moviesInDropdown = movies.filter(m => {
+    const matchTab = getMovieCategory(m) === activeTab;
+    if (!selectedCinemaId) return matchTab;
+    
+    // เช็คว่าในรอบฉาย (Showtimes) มีหนังเรื่องนี้ในสาขานี้ไหม
+    return showtimes.some(st => 
+        (st.movie_id?._id === m._id || st.movie_id === m._id) && 
+        (st.cinema_id?._id === selectedCinemaId || st.cinema_id === selectedCinemaId)
+    );
   });
 
-  const handleBooking = (movie) => {
-    navigate('/booking', { state: { movie } });
-  };
+  // ✅ 2. กรอง Card หนังที่แสดงบนหน้าจอ
+  const filteredMovies = movies.filter(movie => {
+    const matchTab = getMovieCategory(movie) === activeTab;
+    const matchMovie = selectedMovieId ? movie._id === selectedMovieId : true;
+    
+    let matchCinema = true;
+    if (selectedCinemaId) {
+        // เช็คผ่านตาราง Showtimes ว่าหนังเรื่องนี้ฉายที่ Cinema นี้จริงไหม
+        matchCinema = showtimes.some(st => 
+            (st.movie_id?._id === movie._id || st.movie_id === movie._id) && 
+            (st.cinema_id?._id === selectedCinemaId || st.cinema_id === selectedCinemaId)
+        );
+    }
+    return matchTab && matchMovie && matchCinema;
+  });
 
   const handleResetFilter = () => {
       setSelectedCinemaId('');
@@ -84,7 +93,6 @@ function MoviePage() {
   };
 
   if (loading) return <div className="loading-text" style={{textAlign: 'center', padding: '50px', color: 'white'}}>กำลังโหลดข้อมูล...</div>;
-  if (error) return <div className="error-text" style={{textAlign: 'center', padding: '50px', color: '#ff6b6b'}}>{error}</div>;
 
   return (
     <div className="movie-page-container">
@@ -93,11 +101,14 @@ function MoviePage() {
       <div className="filter-section">
         <div className="search-box">
           
-          {/* Dropdown 1: เลือกโรงหนัง */}
+          {/* ✅ Dropdown 1: เลือกสาขา (Cinema) */}
           <select 
             className="dropdown"
             value={selectedCinemaId}
-            onChange={(e) => setSelectedCinemaId(e.target.value)}
+            onChange={(e) => {
+                setSelectedCinemaId(e.target.value);
+                setSelectedMovieId(''); // Reset หนังเมื่อเปลี่ยนสาขา
+            }}
           >
             <option value="">โรงภาพยนตร์ทั้งหมด</option>
             {cinemas.map((cinema) => (
@@ -107,25 +118,21 @@ function MoviePage() {
             ))}
           </select>
 
-          {/* Dropdown 2: เลือกหนัง (Show เฉพาะหนังที่อยู่ในสถานะของ Tab นั้นๆ) */}
+          {/* ✅ Dropdown 2: เลือกหนัง (กรองตามสาขาที่เลือกด้านบน) */}
           <select 
             className="dropdown"
             value={selectedMovieId}
             onChange={(e) => setSelectedMovieId(e.target.value)}
           >
             <option value="">ภาพยนตร์ทั้งหมด</option>
-            {movies
-                .filter(m => getMovieCategory(m) === activeTab)
-                .map(m => (
-                    <option key={m._id} value={m._id}>
-                        {m.title_th || m.title_en}
-                    </option>
+            {moviesInDropdown.map(m => (
+                <option key={m._id} value={m._id}>
+                    {m.title_th || m.title_en}
+                </option>
             ))}
           </select>
 
-          <button className="search-btn" onClick={handleResetFilter}>
-               ล้างตัวกรอง
-          </button>
+          <button className="search-btn" onClick={handleResetFilter}>ล้างตัวกรอง</button>
         </div>
       </div>
 
@@ -135,18 +142,8 @@ function MoviePage() {
         </h1>
         
         <div className="tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'now_showing' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('now_showing'); setSelectedMovieId(''); }}
-          >
-            กำลังฉาย
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'coming_soon' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('coming_soon'); setSelectedMovieId(''); }}
-          >
-            โปรแกรมล่วงหน้า
-          </button>
+          <button className={`tab-btn ${activeTab === 'now_showing' ? 'active' : ''}`} onClick={() => { setActiveTab('now_showing'); handleResetFilter(); }}>กำลังฉาย</button>
+          <button className={`tab-btn ${activeTab === 'coming_soon' ? 'active' : ''}`} onClick={() => { setActiveTab('coming_soon'); handleResetFilter(); }}>โปรแกรมล่วงหน้า</button>
         </div>
 
         <div className="divider"></div>
@@ -156,43 +153,23 @@ function MoviePage() {
             filteredMovies.map((movie) => (
               <div key={movie._id} className="movie-card">
                 <div className="poster-wrapper">
-                    <img 
-                        src={movie.poster_url} 
-                        alt={movie.title_th} 
-                        className="poster-img"
-                    />
+                    <img src={movie.poster_url} alt={movie.title_th} className="poster-img" />
                 </div>
-
                 <div className="movie-info">
                   <h3 className="movie-title">{movie.title_th || movie.title_en}</h3>
-                  
                   <div className="movie-meta">
                       <span>📌 {movie.genre || "ไม่ระบุ"}</span>
                       <span>⏰ {movie.duration_min} นาที</span>
                   </div>
-                  
-                  {/* แสดงวันที่ฉายถ้าเป็น Coming Soon */}
-                  {activeTab === 'coming_soon' && (
-                      <div className="release-date">
-                          📅 เริ่มฉาย: {new Date(movie.start_date).toLocaleDateString('th-TH')}
-                      </div>
-                  )}
-
                   <div className="audio-badge">🔊 {movie.language || "TH/EN"}</div>
-                  
-                  <button 
-                    className="detail-btn"
-                    onClick={() => handleBooking(movie)}
-                  >
+                  <button className="detail-btn" onClick={() => navigate('/booking', { state: { movie } })}>
                     {activeTab === 'coming_soon' ? 'ดูข้อมูลเพิ่มเติม' : 'ซื้อตั๋วภาพยนตร์'}
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="no-movies-text">
-                ไม่พบภาพยนตร์ในหมวดหมู่นี้
-            </div>
+            <div className="no-movies-text">ไม่พบภาพยนตร์ในเงื่อนไขที่เลือก</div>
           )}
         </div>
       </div>

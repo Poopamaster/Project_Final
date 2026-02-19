@@ -1,9 +1,19 @@
 import axiosInstance from './axiosInstance';
 
-// ✅ แก้เป็นแบบนี้ (Path Parameter)
+// ✅ เพิ่มฟังก์ชันนี้เข้าไป! สำหรับดึงรอบฉายทั้งหมดมาใช้ Filter หน้า MoviePage
+export const getAllShowtimes = async () => {
+    try {
+        const response = await axiosInstance.get('/showtimes');
+        return response.data.data || response.data;
+    } catch (error) {
+        console.error("Error fetching all showtimes:", error);
+        return [];
+    }
+};
+
+// --- อันเดิมของคุณที่มีอยู่แล้ว ---
 export const getShowtimesByMovieId = async (movieId) => {
     try {
-        // ต้อง slash (/) แล้วตามด้วย ID เลย
         const response = await axiosInstance.get(`/showtimes/movie/${movieId}`);
         return response.data.data || response.data;
     } catch (error) {
@@ -11,10 +21,10 @@ export const getShowtimesByMovieId = async (movieId) => {
         return [];
     }
 };
+
 export const getReservedSeats = async (showtimeId) => {
     try {
         const response = await axiosInstance.get(`/bookings/showtime/${showtimeId}`);
-        
         return response.data;
     } catch (error) {
         console.error("Error fetching reserved seats:", error);
@@ -25,7 +35,7 @@ export const getReservedSeats = async (showtimeId) => {
 export const getSeatsByShowtimeId = async (showtimeId) => {
     try {
         const response = await axiosInstance.get(`/showtimes/${showtimeId}/seats`);
-        return response.data.data; // API เรา return { success: true, data: [...] }
+        return response.data.data;
     } catch (error) {
         console.error("Error fetching seat layout:", error);
         return [];

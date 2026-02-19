@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const bookingSchema = new mongoose.Schema({
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     showtime_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Showtime', required: true },
+    cinema_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Cinema', required: true }, 
+    movie_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Movie', required: true },
     seats: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Seat', required: true }],
     booking_number: { type: String, required: true, unique: true },
     booking_time: { type: Date, default: Date.now },
