@@ -13,6 +13,7 @@ const auditoriumRoutes = require('./routes/auditoriumRoutes');
 const seatRoutes = require('./routes/seatRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const path = require('path');
 
 const app = express();
 
@@ -22,7 +23,6 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 app.use(express.json());
 app.use(logger);
-
 
 
 // Routes
@@ -38,5 +38,6 @@ app.use('/api/admin', adminRoutes);
 
 app.use("/api/mcp", mcpRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 module.exports = app;

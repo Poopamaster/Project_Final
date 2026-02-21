@@ -80,14 +80,35 @@ exports.addMovieFromTMDB = async (req, res) => {
 };
 
 // 2. เพิ่มหนังใหม่
+
 exports.createMovie = async (req, res) => {
     try {
-        const { title_th, title_en, poster_url, genre, duration_min, start_date, due_date, language } = req.body;
+        const { title_th, title_en, genre, duration_min, start_date, due_date, language } = req.body;
+        
+        let poster_url = "";
+        
+        // ถ้ามีการอัปโหลดไฟล์มา (Multer จะเอาไฟล์ไปไว้ใน req.file)
+        if (req.file) {
+            poster_url = `/uploads/${req.file.filename}`;
+        } else {
+            poster_url = req.body.poster_url || "";
+        }
+
         const newMovie = await Movie.create({
-            title_th, title_en, poster_url, genre, duration_min, start_date, due_date, language
+            title_th, 
+            title_en, 
+            poster_url, 
+            genre, 
+            duration_min: Number(duration_min), 
+            start_date, 
+            due_date, 
+            language
         });
+        
         res.status(201).json({ success: true, message: "เพิ่มหนังเรียบร้อย!", movie: newMovie });
     } catch (error) {
+        // 🚨 เพิ่มบรรทัดนี้ เพื่อให้มันปริ้นท์ Error ออกมาที่หน้าจอดำๆ (Terminal)
+        console.error("🔥🔥🔥 Create Movie Error:", error); 
         res.status(500).json({ message: "บันทึกไม่สำเร็จ", error: error.message });
     }
 };
