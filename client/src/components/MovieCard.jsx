@@ -52,7 +52,6 @@ const MovieCard = ({ movie }) => {
           <div className="info-row">🔊 {safeMovie.language || safeMovie.audio || "TH/EN"}</div>
         </div>
 
-        <button className="btn-more-custom">ดูเพิ่มเติม</button>
       </div>
     </div>
   );

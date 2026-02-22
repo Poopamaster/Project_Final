@@ -2,7 +2,7 @@ const Showtime = require('../models/showtimeModel');
 const Movie = require('../models/movieModel');
 const Seat = require('../models/seatModel');
 const dayjs = require('dayjs');
-const { v4: uuidv4 } = require('uuid'); // <--- เพิ่มบรรทัดนี้
+const crypto = require('crypto'); // <--- เพิ่มตัวนี้แทน
 
 // 1. สร้างรอบฉาย (Admin)
 exports.createShowtime = async (req, res) => {
@@ -42,18 +42,18 @@ exports.createShowtime = async (req, res) => {
 // 1.5 สร้างรอบฉายแบบกลุ่ม (Bulk Create) - 🌟 ฟีเจอร์ใหม่
 exports.createBulkShowtimes = async (req, res) => {
     try {
-        // รับค่าช่วงเวลา และรอบเวลาที่เป็น Array เช่น ["10:30", "14:00", "18:00"]
         const { movie_id, auditorium_id, start_date, end_date, time_slots, base_price, language } = req.body;
 
-        // 1. ตรวจสอบข้อมูลหนังเพื่อเอา Duration
         const movie = await Movie.findById(movie_id);
         if (!movie) return res.status(404).json({ message: "ไม่พบข้อมูลหนัง" });
 
-        const duration = movie.duration_min || 120; // Default 2 ชม.
+        const duration = movie.duration_min || 120;
         const showtimesToInsert = [];
-        const batchId = uuidv4(); // สร้างรหัสกลุ่ม (Batch ID) เพื่อให้รู้ว่าชุดนี้สร้างมาพร้อมกัน
+        
+        // --- แก้ไขบรรทัดนี้ ---
+        const batchId = crypto.randomUUID(); 
+        // ---------------------
 
-        // 2. แปลงวันที่เริ่มต้นและสิ้นสุด
         let currentDate = dayjs(start_date);
         const lastDate = dayjs(end_date);
 
