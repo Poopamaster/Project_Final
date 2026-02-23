@@ -1,16 +1,17 @@
 // src/pages/AdminPage.jsx
-import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom'; // 🌟 เพิ่ม useParams
-import { 
-    LayoutDashboard, Film, Ticket, Users, 
+import React, { useState, useEffect, useContext } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom'; // 🌟 เพิ่ม useParams
+import {
+    LayoutDashboard, Film, Ticket, Users,
     MessageSquare, BarChart3, Settings, ShieldCheck,
     ClipboardList, Monitor, QrCode // 🌟 เพิ่มไอคอน QrCode
 } from 'lucide-react';
+import { AuthContext } from '../App';
 import '../css/AdminDashboardPage.css';
 
 import DashboardPage from '../components/admin/DashboardPage';
 import AddMoviePage from '../components/admin/AddMoviePage';
-import BookingPage from '../components/admin/BookingPageAdmin'; 
+import BookingPage from '../components/admin/BookingPageAdmin';
 import CustomerPageAdmin from '../components/admin/CustomerPageAdmin';
 import AdminManagementPage from '../components/admin/AdminManagementPage';
 import AiChatPageAdmin from '../components/admin/AiChatPageAdmin';
@@ -20,19 +21,47 @@ import SettingsPage from '../components/admin/SettingsPage';
 import ShowtimePageAdmin from '../components/admin/ShowtimePageAdmin';
 import VerifyTicketPage from '../components/admin/VerifyTicketPage'; // 🌟 Import หน้า Verify
 
+const isTokenExpired = (token) => {
+    if (!token) return true;
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const decoded = JSON.parse(jsonPayload);
+        if (!decoded.exp) return true;
+        return (decoded.exp * 1000) < Date.now();
+    } catch (error) {
+        return true;
+    }
+};
+
+
 export default function AdminPage() {
-    // 🌟 เช็คว่ามีเลข Booking แนบมาใน URL หรือเปล่า (กรณีสแกน QR)
     const { bookingNumber } = useParams();
+    const navigate = useNavigate();
     
-    // ถ้ามีเลข Booking ให้เปิดหน้า verify อัตโนมัติ ถ้าไม่มีก็หน้า dashboard
+    // 🌟 ดึงฟังก์ชัน logout มาจาก Context
+    const { logout } = useContext(AuthContext); 
+    
     const [page, setPage] = useState(bookingNumber ? 'verify' : 'dashboard');
 
-    // ถ้า URL เปลี่ยน (สแกนอันใหม่) ให้เด้งไปหน้า verify
     useEffect(() => {
         if (bookingNumber) {
             setPage('verify');
         }
     }, [bookingNumber]);
+
+    // ✅ แก้ไข useEffect ส่วนเช็ค Token
+    useEffect(() => {
+        const token = localStorage.getItem('jwtToken');
+        if (isTokenExpired(token)) {
+            alert("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+            logout(); // ล้างข้อมูลใน localStorage และ state
+            navigate('/login'); // เด้งไปหน้า login
+        }
+    }, [page, logout, navigate]);
 
     const menuItems = [
         { id: 'dashboard', label: 'ภาพรวม', icon: <LayoutDashboard size={20} /> },
@@ -61,9 +90,9 @@ export default function AdminPage() {
                 <div className="menu-section-label">MENU</div>
                 <nav className="nav-menu-figma">
                     {menuItems.map((item) => (
-                        <button 
+                        <button
                             key={item.id}
-                            onClick={() => setPage(item.id)} 
+                            onClick={() => setPage(item.id)}
                             className={`nav-item-figma ${page === item.id ? 'active' : ''}`}
                         >
                             <span className="nav-icon-figma">{item.icon}</span>
@@ -73,18 +102,18 @@ export default function AdminPage() {
                 </nav>
                 <div className="sidebar-footer-figma">MCP CINEMA v2.0</div>
             </aside>
-            
+
             <main className="content-area-figma" style={{ flex: 1, position: 'relative', overflowY: 'auto', padding: '40px' }}>
                 <div style={{ position: 'absolute', top: '30px', right: '40px', zIndex: 999 }}>
-                    <Link to="/" style={{ 
-                        display: 'flex', alignItems: 'center', gap: '10px', 
-                        background: '#1e293b', color: '#f1f5f9', padding: '12px 20px', 
+                    <Link to="/" style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        background: '#1e293b', color: '#f1f5f9', padding: '12px 20px',
                         borderRadius: '14px', fontSize: '0.85rem', textDecoration: 'none',
                         border: '1px solid #334155', fontWeight: '600',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.3)', transition: 'all 0.2s'
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#334155'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#334155'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
                         <Monitor size={18} />
                         <span>กลับสู่หน้าหลัก</span>

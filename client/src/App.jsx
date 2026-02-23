@@ -105,14 +105,20 @@ const AuthGuard = ({ children }) => {
 };
 
 const AdminGuard = ({ children }) => {
-    const { isLoggedIn, user, loading } = useContext(AuthContext);
+    const { isLoggedIn, user, loading, logout } = useContext(AuthContext); // ดึง logout มาด้วย
+    const token = localStorage.getItem('jwtToken');
 
     if (loading) {
         return <div style={{ textAlign: 'center', padding: '50px' }}>กำลังตรวจสอบสิทธิ์...</div>;
     }
 
-    if (!isLoggedIn || user?.role !== 'admin') {
-        return <Navigate to="/" replace />;
+    // เช็คทั้งสถานะ และ เช็คว่า Token หมดอายุหรือยัง
+    if (!isLoggedIn || user?.role !== 'admin' || isTokenExpired(token)) {
+        if (isLoggedIn && isTokenExpired(token)) {
+            alert("เซสชันหมดอายุแล้ว");
+            logout();
+        }
+        return <Navigate to="/login" replace />;
     }
 
     return children;
