@@ -53,5 +53,6 @@ router.get('/list', adminController.getAllAdmins);
 router.post('/add', adminController.addAdmin);
 router.post('/promote', adminController.promoteAdmin);
 router.delete('/delete/:id', adminController.deleteAdmin);
+router.get('/logs', authenticate, isAdmin, adminController.getSystemLogs);
 
 module.exports = router;

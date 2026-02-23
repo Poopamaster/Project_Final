@@ -1,6 +1,7 @@
 const { chatWithAI } = require("../services/aiService");
 const ChatHistory = require("../models/ChatHistory");
 const { getToolsForUser } = require("../config/toolPermissions");
+const systemLog = require('../utils/logger');
 
 exports.getHistory = async (req, res) => {
   try {
@@ -32,6 +33,19 @@ exports.chat = async (req, res) => {
     // A. ส่งให้ AI คิด (โดยส่ง allowedTools ไปกำกับด้วย)
     // *คุณต้องไปแก้ aiService ให้รับ parameter นี้ด้วยนะ ดูข้อ 3*
     const botReply = await chatWithAI(user, message, image, allowedTools);
+
+    await systemLog({
+            level: 'INFO',
+            actor: user,
+            context: { action: 'chat', table: 'chathistories', target_id: user._id },
+            content: {
+                user_message: message,
+                ai_response: botReply,
+                image_url: image || null,
+                tools_used: allowedTools
+            },
+            req: req
+        });
 
     // B. เตรียมข้อความ User และ Bot
     const userMsg = {

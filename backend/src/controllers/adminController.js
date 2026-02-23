@@ -2,6 +2,7 @@ const Movie = require('../models/movieModel');
 const Booking = require('../models/bookingModel');
 const User = require('../models/userModel');
 const Feedback = require('../models/feedbackModel'); // เพิ่มตัวนี้สำหรับหน้า Report
+const Log = require('../models/logSystemModel'); // สำหรับระบบ Log
 const axios = require('axios');
 
 // 1. ค้นหาหนังจาก TMDB
@@ -289,5 +290,29 @@ exports.getReports = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.getSystemLogs = async (req, res) => {
+    try {
+        const { page = 0, limit = 15, search = '' } = req.query;
+        
+        const query = search ? { 
+            $or: [
+                { 'actor.email': { $regex: search, $options: 'i' } },
+                { 'context.table': { $regex: search, $options: 'i' } }
+            ] 
+        } : {};
+
+        const logs = await Log.find(query)
+            .sort({ timestamp: -1 })
+            .skip(page * limit)
+            .limit(parseInt(limit));
+
+        const total = await Log.countDocuments(query);
+
+        res.json({ success: true, data: logs, total });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 };
