@@ -28,7 +28,6 @@ const VerifyTicketPage = () => {
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
                 const userData = JSON.parse(storedUser);
-                console.log("พนักงานที่กำลังตรวจสอบ:", userData.name);
             }
 
             // 2. ตรวจสอบว่ามี Token หรือไม่
@@ -140,6 +139,7 @@ const VerifyTicketPage = () => {
                             <div className="vf-movie-info">
                                 <h2 className="vf-movie-title">{verifyResult.bookingInfo.movieTitle}</h2>
                                 <p className="vf-cinema-name">{verifyResult.bookingInfo.cinema} | {verifyResult.bookingInfo.auditorium}</p>
+                                <p className="vf-showtime">{new Date(verifyResult.bookingInfo.startTime).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                             </div>
 
                             <div className="vf-time-info">
