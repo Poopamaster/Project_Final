@@ -1,27 +1,25 @@
 // src/components/Navbar.jsx
 
-// ... imports เหมือนเดิม
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext } from "../App";
 import { User, Film, LogOut, Menu, Loader2, LayoutDashboard } from 'lucide-react';
 import '../css/navbar.css';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import MobileSidebar from './MobileSidebar';
 
-// ✅ 1. เพิ่ม props "sidebarContent" ตรงนี้
 const Navbar = ({ sidebarContent }) => {
-    // ... code logic เดิมทั้งหมด (navigate, user, logout...)
     const navigate = useNavigate();
     const location = useLocation();
-    const [user, setUser] = useState(null);
-    const { logout } = useContext(AuthContext);
+    
+    // ✅ ดึง user และ logout จาก AuthContext โดยตรง (ไม่ต้องใช้ localStorage/useEffect แล้ว)
+    const { user, logout } = useContext(AuthContext); 
+    
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const openSidebar = () => setIsSidebarOpen(true);
     const closeSidebar = () => setIsSidebarOpen(false);
 
-    // ... (logic handleNavigation, useEffect, handleLogout เหมือนเดิม) ...
     const handleNavigation = (path) => {
         closeSidebar();
         const shouldReload = path === '/chatbot' || location.pathname === path;
@@ -37,21 +35,8 @@ const Navbar = ({ sidebarContent }) => {
         }, 500);
     };
 
-    useEffect(() => {
-        const checkUser = () => {
-            const storedUser = localStorage.getItem("user");
-            if (storedUser) {
-                setUser(JSON.parse(storedUser));
-            } else {
-                setUser(null);
-            }
-        };
-        checkUser();
-    }, [location]);
-
     const handleLogout = () => {
         logout();
-        setUser(null);
         setIsLoading(true);
         setTimeout(() => {
             navigate('/login');
@@ -73,7 +58,6 @@ const Navbar = ({ sidebarContent }) => {
             )}
 
             <nav className="navbar">
-                {/* ... (Code ส่วนแสดงผล Navbar เหมือนเดิมทุกอย่าง) ... */}
                 <div className="navbar-left-group" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <div className="menu-icon" onClick={openSidebar}>
                         <Menu size={28} color="white" />
@@ -95,14 +79,15 @@ const Navbar = ({ sidebarContent }) => {
                     <div className="nav-auth-section">
                         {user ? (
                             <div className="nav-user-profile">
-                                {user.role === 'admin' && (
+                                {/* ✅ แปลง role เป็นพิมพ์เล็กเพื่อป้องกันความผิดพลาดของตัวพิมพ์ใหญ่/เล็ก */}
+                                {user?.role?.toLowerCase() === 'admin' && (
                                     <button className="nav-admin-btn" onClick={() => handleNavigation('/admin')}>
                                         <LayoutDashboard size={18} /><span>Dashboard</span>
                                     </button>
                                 )}
                                 <div className="user-info">
                                     <span className="user-name">{user.name}</span>
-                                    {user.role === 'admin' && <span className="user-badge">Admin</span>}
+                                    {user?.role?.toLowerCase() === 'admin' && <span className="user-badge">Admin</span>}
                                 </div>
                                 <button onClick={handleLogout} className="nav-logout-btn"><LogOut size={18} /></button>
                             </div>
@@ -115,11 +100,10 @@ const Navbar = ({ sidebarContent }) => {
                 </div>
             </nav>
 
-            {/* ✅ 2. ส่ง props "sidebarContent" (children) ไปให้ MobileSidebar */}
             <MobileSidebar
                 isOpen={isSidebarOpen}
                 onClose={closeSidebar}
-                user={user}
+                user={user} 
                 handleLogout={handleLogout}
             >
                 {sidebarContent}

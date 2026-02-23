@@ -26,7 +26,6 @@ const LoginPage = () => {
       ...formData,
       [e.target.id]: e.target.value
     });
-    // 🛑 บรรทัดนี้แค่เคลียร์ข้อความ Alert เมื่อผู้ใช้เริ่มพิมพ์ใหม่
     if (alertConfig.message) setAlertConfig({ type: '', message: '' });
   };
 
@@ -40,6 +39,7 @@ const LoginPage = () => {
 
       setAlertConfig({ type: 'success', message: 'เข้าสู่ระบบสำเร็จ! กำลังพาไปหน้าแรก...' });
 
+      // ✅ ส่งทั้ง token และ user เพื่อให้ Navbar อัปเดตทันที
       login(data.token, data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -50,13 +50,15 @@ const LoginPage = () => {
     } catch (err) {
       const errorMsg = err.response?.data?.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
       setAlertConfig({ type: 'error', message: errorMsg });
-      // 🛑 ไม่มีโค้ด setFormData() ตรงนี้ ข้อมูลจึงไม่ถูกเคลียร์
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ แก้ไข google login: เปลี่ยนเป็น redirect mode และส่งค่า user เข้า login()
   const loginWithGoogle = useGoogleLogin({
+    ux_mode: 'redirect',
+    redirect_uri: window.location.origin + '/login',
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
@@ -64,7 +66,9 @@ const LoginPage = () => {
 
         setAlertConfig({ type: 'success', message: 'Google Login สำเร็จ!' });
 
-        login(data.token);
+        // ✅ จุดสำคัญ: ต้องส่งทั้ง data.token และ data.user 
+        // เพื่อให้ State ใน AuthContext เปลี่ยน และ Navbar แสดงชื่อทันทีโดยไม่ต้อง Refresh
+        login(data.token, data.user); 
         localStorage.setItem("user", JSON.stringify(data.user));
 
         setTimeout(() => {
@@ -72,12 +76,12 @@ const LoginPage = () => {
         }, 1500);
       } catch (err) {
         setAlertConfig({ type: 'error', message: 'Google Login ผิดพลาด' });
-        // 🛑 ไม่มีโค้ด setFormData() ตรงนี้ ข้อมูลจึงไม่ถูกเคลียร์
       } finally {
         setLoading(false);
       }
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Google Login Error:', error);
       setAlertConfig({ type: 'error', message: 'การเชื่อมต่อ Google ล้มเหลว' });
     }
   });
@@ -89,6 +93,7 @@ const LoginPage = () => {
         <Stack
           spacing={2}
           id="fixed-alert-container"
+          style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, width: '90%', maxWidth: '400px' }}
         >
           <Alert variant="filled" severity={alertConfig.type}>
             {alertConfig.message}
@@ -102,7 +107,6 @@ const LoginPage = () => {
           <h2 className="login-title">ยินดีต้อนรับการกลับมา!</h2>
           <p className="login-subtitle">เข้าสู่ระบบเพื่อเริ่มจองตั๋วหนัง</p>
         </div>
-
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
@@ -148,12 +152,13 @@ const LoginPage = () => {
           type="button"
           className="btn-google"
           onClick={() => loginWithGoogle()}
+          disabled={loading}
         >
           <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="google-icon" />
-          Sign in with Google
+          {loading ? "กำลังดำเนินการ..." : "Sign in with Google"}
         </button>
 
-        <div className="login-footer">
+        <div className="login-footer" style={{ marginTop: '20px', textAlign: 'center' }}>
           <Link to="/register" className="register-link">ยังไม่มีบัญชีใช่หรือไม่?</Link>
         </div>
 

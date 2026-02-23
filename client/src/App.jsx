@@ -25,12 +25,12 @@ const isTokenExpired = (token) => {
         // 1. แกะ Payload (ส่วนกลางของ JWT)
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
 
         const decoded = JSON.parse(jsonPayload);
-        
+
         // 2. เช็คเวลา (exp คือวินาที ต้องคูณ 1000 เป็นมิลลิวินาที)
         // ถ้าเวลาหมดอายุ น้อยกว่า เวลาปัจจุบัน แปลว่า "หมดอายุแล้ว"
         if (!decoded.exp) return true;
@@ -42,14 +42,16 @@ const isTokenExpired = (token) => {
 };
 
 const AuthProvider = ({ children }) => {
+    // 🌟 1. สร้าง loading state ให้ค่าเริ่มต้นเป็น true (กำลังโหลด)
+    const [loading, setLoading] = useState(true);
+
     const [user, setUser] = useState(() => {
         const storedUser = localStorage.getItem('user');
         return storedUser ? JSON.parse(storedUser) : null;
     });
 
-    // เช็ค token เริ่มต้น
-    const [isLoggedIn, setIsLoggedIn] = useState(true);
-
+    // ปรับ isLoggedIn เริ่มต้นให้เช็คจากว่ามี user ไหม
+    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('jwtToken'));
 
     const login = (token, userData) => {
         localStorage.setItem('jwtToken', token);
@@ -67,24 +69,28 @@ const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-    const token = localStorage.getItem('jwtToken');
-    const storedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('jwtToken');
+        const storedUser = localStorage.getItem('user');
 
-    if (token && storedUser) {
-        if (isTokenExpired(token)) {
-            alert("เซสชันของคุณหมดอายุ กรุณาเข้าสู่ระบบใหม่");
-            logout();
+        if (token && storedUser) {
+            if (isTokenExpired(token)) {
+                alert("เซสชันของคุณหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+                logout();
+            } else {
+                setIsLoggedIn(true);
+                setUser(JSON.parse(storedUser));
+            }
         } else {
-            setIsLoggedIn(true);
-            setUser(JSON.parse(storedUser));
+            logout();
         }
-    } else {
-        logout();
-    }
-}, []);
+
+        // 🌟 2. เมื่อตรวจสอบทุกอย่างเสร็จแล้ว สั่งให้ loading เป็น false
+        setLoading(false);
+    }, []);
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
+        // 🌟 3. อย่าลืมส่งตัวแปร loading ออกไปใน Provider ด้วย!
+        <AuthContext.Provider value={{ isLoggedIn, user, login, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );
@@ -97,6 +103,20 @@ const AuthGuard = ({ children }) => {
     if (!isLoggedIn) {
         return <Navigate to="/login" replace />;
     }
+    return children;
+};
+
+const AdminGuard = ({ children }) => {
+    const { isLoggedIn, user, loading } = useContext(AuthContext);
+
+    if (loading) {
+        return <div style={{ textAlign: 'center', padding: '50px' }}>กำลังตรวจสอบสิทธิ์...</div>;
+    }
+
+    if (!isLoggedIn || user?.role !== 'admin') {
+        return <Navigate to="/" replace />;
+    }
+
     return children;
 };
 
@@ -149,7 +169,9 @@ const NavbarController = () => {
     if (location.pathname === '/chatbot' ||
         location.pathname === '/movies' ||
         location.pathname === '/payment' || // <--- เพิ่ม payment เข้าไป เพื่อไม่ให้ Navbar ซ้อนกัน
-        location.pathname.startsWith('/booking')
+        location.pathname.startsWith('/booking') ||
+        location.pathname.startsWith('/admin')
+        
     ) {
         return null;
     }
@@ -180,9 +202,10 @@ function App() {
                 <Route path="/booking/:id" element={<BookingPage />} />
                 <Route path="/history" element={<HistoryPage />} />
 
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/admin/logs" element={<AdminPage><LogSystemPage /></AdminPage>} />
-                <Route path="/admin/showtime" element={<ShowtimePageAdmin />} />
+                <Route path="/admin" element={
+                    <AdminGuard>
+                        <AdminPage />
+                    </AdminGuard>} />
                 {/* หน้า Chatbot ยังคงต้อง Login */}
                 <Route
                     path="/chatbot"

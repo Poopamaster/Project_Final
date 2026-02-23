@@ -8,9 +8,17 @@ import 'dayjs/locale/th';
 // Import CSS File
 import '../../css/ShowtimePageAdmin.css';
 
-// Constants moved outside component
+// Constants
 const HOURS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 const MINUTES = ['00', '10', '20', '30', '40', '50'];
+
+// 🌟 สร้าง SweetAlert Custom Instance สำหรับหน้า Admin โดยเฉพาะ
+const adminSwal = Swal.mixin({
+    background: '#1e212f',
+    color: '#fff',
+    heightAuto: false, // 🛑 ป้องกันไม่ให้ Swal ไปแก้ CSS ของ Body จนหน้า Admin พัง
+    scrollbarPadding: false // 🛑 ป้องกันหน้าจอกระตุกตอน Alert เด้ง
+});
 
 export default function ShowtimePageAdmin() {
     // --- State Management ---
@@ -20,7 +28,7 @@ export default function ShowtimePageAdmin() {
     const [loading, setLoading] = useState(true);
 
     const [selectedIds, setSelectedIds] = useState([]);
-    
+
     // Bulk Create State
     const [timeSlots, setTimeSlots] = useState([]);
     const [selectedHour, setSelectedHour] = useState("12");
@@ -40,7 +48,6 @@ export default function ShowtimePageAdmin() {
         base_price: '160'
     });
 
-    // 🌟 State สำหรับ Dropdown สาขาตอนสร้างรอบฉาย
     const [selectedCreateCinema, setSelectedCreateCinema] = useState("");
 
     // --- API & Effects ---
@@ -60,7 +67,11 @@ export default function ShowtimePageAdmin() {
 
         } catch (error) {
             console.error("Fetch error:", error);
-            Swal.fire({ icon: 'error', title: 'Error', text: 'ไม่สามารถโหลดข้อมูลได้' });
+            adminSwal.fire({ 
+                icon: 'error', 
+                title: 'Error', 
+                text: 'ไม่สามารถโหลดข้อมูลได้'
+            });
         } finally {
             setLoading(false);
         }
@@ -73,7 +84,7 @@ export default function ShowtimePageAdmin() {
         return showtimes.filter(st => {
             const matchMovie = filterMovie === 'all' || st.movie_id?._id === filterMovie;
             const matchCinema = filterCinema === 'all' || st.auditorium_id?.cinema_id?._id === filterCinema;
-            
+
             let matchDate = true;
             if (filterDate) {
                 matchDate = dayjs(st.start_time).format('YYYY-MM-DD') === filterDate;
@@ -102,7 +113,6 @@ export default function ShowtimePageAdmin() {
         }, []);
     }, [auditoriums]);
 
-    // 🌟 กรองโรงหนังที่จะแสดงใน Dropdown ตามสาขาที่เลือกตอนสร้างฟอร์ม
     const filteredAuditoriumsForCreate = useMemo(() => {
         if (!selectedCreateCinema) return auditoriums;
         return auditoriums.filter(a => a.cinema_id?._id === selectedCreateCinema);
@@ -139,50 +149,53 @@ export default function ShowtimePageAdmin() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.movie_id || !formData.auditorium_id || !formData.start_date || !formData.end_date) {
-            return Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบทุกช่อง', 'warning');
+            return adminSwal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกข้อมูลให้ครบทุกช่อง' });
         }
         if (timeSlots.length === 0) {
-            return Swal.fire('เวลาไม่ถูกต้อง', 'กรุณาเพิ่มรอบเวลาอย่างน้อย 1 รอบ', 'warning');
+            return adminSwal.fire({ icon: 'warning', title: 'เวลาไม่ถูกต้อง', text: 'กรุณาเพิ่มรอบเวลาอย่างน้อย 1 รอบ' });
         }
 
         try {
             const payload = { ...formData, time_slots: timeSlots, base_price: Number(formData.base_price), language: "TH" };
             const res = await axiosInstance.post('/showtimes/bulk', payload);
+
             if (res.data.success) {
-                Swal.fire({ icon: 'success', title: 'สำเร็จ', text: `สร้างรายการสำเร็จ ${res.data.data.length} รอบ` });
+                await adminSwal.fire({
+                    icon: 'success',
+                    title: 'สำเร็จ',
+                    text: `สร้างรายการสำเร็จ ${res.data.data.length} รอบ`,
+                    confirmButtonColor: '#8b5cf6'
+                });
+
                 fetchData();
                 setTimeSlots([]);
-                // รีเซ็ตฟอร์มหลังจากสร้างเสร็จ
                 setFormData({ ...formData, auditorium_id: '' });
             }
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            adminSwal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.response?.data?.message || error.message });
         }
     };
 
     const handleDeleteSelected = async () => {
         if (selectedIds.length === 0) return;
-        
-        const result = await Swal.fire({
+
+        const result = await adminSwal.fire({
             title: `ลบ ${selectedIds.length} รายการ?`,
             text: "ยืนยันการลบข้อมูลที่เลือกทั้งหมด",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'ลบเลย',
-            confirmButtonColor: '#ef4444',
-            background: '#1e212f', color: '#fff'
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#ef4444'
         });
 
         if (result.isConfirmed) {
             try {
                 const res = await axiosInstance.post('/showtimes/delete-multiple', { ids: selectedIds });
-                Swal.fire({
-                    icon: 'success', title: 'เรียบร้อย!', text: res.data.message,
-                    timer: 1500, showConfirmButton: false, background: '#1e212f', color: '#fff'
-                });
+                adminSwal.fire({ icon: 'success', title: 'เรียบร้อย!', text: res.data.message, timer: 1500, showConfirmButton: false });
                 fetchData();
             } catch (error) {
-                Swal.fire('Error', error.response?.data?.message || 'เกิดข้อผิดพลาด', 'error');
+                adminSwal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.response?.data?.message || error.message });
             }
         }
     };
@@ -190,26 +203,46 @@ export default function ShowtimePageAdmin() {
     const handleDeleteSingle = async (showtime) => {
         const id = showtime._id;
         if (showtime.batch_id) {
-            const result = await Swal.fire({
-                title: 'ลบข้อมูล', text: 'รอบนี้อยู่ในกลุ่ม (Batch)', icon: 'question',
-                showDenyButton: true, showCancelButton: true, confirmButtonText: 'ลบแค่อันนี้', denyButtonText: 'ลบทั้งกลุ่ม',
-                background: '#1e212f', color: '#fff'
+            const result = await adminSwal.fire({
+                title: 'ลบข้อมูล', text: 'รอบนี้อยู่ในกลุ่ม (Batch) คุณต้องการลบแค่รอบนี้หรือทั้งกลุ่ม?', icon: 'question',
+                showDenyButton: true, showCancelButton: true, confirmButtonText: 'ลบแค่อันนี้', denyButtonText: 'ลบทั้งกลุ่ม', cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#ef4444', denyButtonColor: '#b91c1c'
             });
             if (result.isConfirmed) deleteApi(id);
             else if (result.isDenied) deleteBatchApi(showtime.batch_id);
         } else {
-            if (window.confirm(`ลบ ID: ${id}?`)) deleteApi(id);
+            const result = await adminSwal.fire({
+                title: 'ยืนยันการลบ', text: 'คุณต้องการลบรายการนี้ใช่หรือไม่?', icon: 'warning',
+                showCancelButton: true, confirmButtonText: 'ลบเลย', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#ef4444'
+            });
+            if (result.isConfirmed) deleteApi(id);
         }
     };
 
-    const deleteApi = async (id) => { try { await axiosInstance.delete(`/showtimes/${id}`); fetchData(); } catch (e) { alert(e.message); } };
-    const deleteBatchApi = async (batchId) => { try { await axiosInstance.delete(`/showtimes/batch/${batchId}`); fetchData(); } catch (e) { alert(e.message); } };
+    const deleteApi = async (id) => { 
+        try { 
+            await axiosInstance.delete(`/showtimes/${id}`); 
+            adminSwal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1000, showConfirmButton: false });
+            fetchData(); 
+        } catch (e) { 
+            adminSwal.fire({ icon: 'error', title: 'ลบไม่สำเร็จ', text: e.message }); 
+        } 
+    };
+
+    const deleteBatchApi = async (batchId) => { 
+        try { 
+            await axiosInstance.delete(`/showtimes/batch/${batchId}`); 
+            adminSwal.fire({ icon: 'success', title: 'ลบกลุ่มสำเร็จ', timer: 1000, showConfirmButton: false });
+            fetchData(); 
+        } catch (e) { 
+            adminSwal.fire({ icon: 'error', title: 'ลบกลุ่มไม่สำเร็จ', text: e.message }); 
+        } 
+    };
 
     if (loading) return <div className="flex-center" style={{ marginTop: '50px', display: 'flex', justifyContent: 'center' }}><Loader2 className="animate-spin" color="#8b5cf6" /></div>;
 
     return (
         <div className="admin-page">
-            
             {/* --- Header & Create Form --- */}
             <header className="page-header">
                 <div>
@@ -228,8 +261,7 @@ export default function ShowtimePageAdmin() {
 
                         <div className="form-content">
                             <form onSubmit={handleSubmit}>
-                                {/* 🌟 Row 1: Movie, Cinema & Auditorium (อัปเดตใหม่ 3 คอลัมน์) */}
-                                <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}> 
+                                <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                                     <div className="form-group">
                                         <label className="form-label"><Film size={16} /> เลือกหนัง</label>
                                         <select required className="form-select" onChange={e => setFormData({ ...formData, movie_id: e.target.value })}>
@@ -239,12 +271,12 @@ export default function ShowtimePageAdmin() {
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label"><Monitor size={16} /> เลือกสาขา</label>
-                                        <select 
-                                            className="form-select" 
+                                        <select
+                                            className="form-select"
                                             value={selectedCreateCinema}
                                             onChange={e => {
                                                 setSelectedCreateCinema(e.target.value);
-                                                setFormData({ ...formData, auditorium_id: '' }); // เคลียร์ค่าโรงที่เลือกไว้ถ้าเปลี่ยนสาขา
+                                                setFormData({ ...formData, auditorium_id: '' }); 
                                             }}
                                         >
                                             <option value="">-- เลือกสาขา (หรือทั้งหมด) --</option>
@@ -260,7 +292,6 @@ export default function ShowtimePageAdmin() {
                                     </div>
                                 </div>
 
-                                {/* Row 2: Date Range */}
                                 <div className="form-grid">
                                     <div className="form-group">
                                         <label className="form-label"><Calendar size={16} /> วันที่เริ่มฉาย</label>
@@ -272,7 +303,6 @@ export default function ShowtimePageAdmin() {
                                     </div>
                                 </div>
 
-                                {/* Row 3: Time Selection */}
                                 <div className="time-selection-wrapper">
                                     <label className="form-label" style={{ marginBottom: '8px' }}><Clock size={16} /> รอบเวลาฉาย</label>
                                     <div className="time-picker-container">

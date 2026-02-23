@@ -118,6 +118,10 @@
   flex-wrap: wrap;
 }
 
+.swal2-container {
+    z-index: 99999 !important;
+}
+
 .time-picker-box {
   display: flex;
   align-items: center;
@@ -138,6 +142,17 @@
   cursor: pointer;
   text-align: center;
   appearance: none;
+}
+
+.time-dropdown option {
+    background-color: #ffffff; /* พื้นหลังข้างในเป็นสีขาว */
+    color: #000000;            /* ตัวอักษรข้างในเป็นสีดำ (จะได้มองเห็นชัดเจน) */
+}
+
+/* ปรับแต่งเวลาเอาเมาส์ไปวาง (Optional) */
+.time-dropdown:focus {
+    outline: none;
+    border-color: #e50914; /* สีแดงสไตล์ Netflix/Cinema */
 }
 
 .time-separator {
