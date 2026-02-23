@@ -183,8 +183,16 @@ const BookingPage = () => {
         setIsProcessing(true);
 
         try {
+            // ✅ 1. ดึงค่า cinema_id ออกมาจากตัวรอบฉาย (รองรับทั้ง Object และ String)
+            const currentCinemaId = selectedShowtime.auditorium_id?.cinema_id?._id ||
+                selectedShowtime.auditorium_id?.cinema_id ||
+                selectedShowtime.cinema_id;
+
+            // ✅ 2. เพิ่ม movie_id และ cinema_id เข้าไปใน Payload
             const bookingPayload = {
                 showtime_id: selectedShowtime._id,
+                movie_id: movie._id,       // <--- เพิ่มบรรทัดนี้
+                cinema_id: currentCinemaId, // <--- เพิ่มบรรทัดนี้
                 seat_ids: selectedSeats,
                 status: 'pending'
             };

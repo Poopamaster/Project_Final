@@ -3,7 +3,7 @@ const Booking = require('../models/bookingModel');
 const Seat = require('../models/seatModel');
 
 // ✅ Import Email Service ที่เราแยกไว้
-const emailService = require('../services/emailService'); 
+const emailService = require('../services/emailService');
 
 // 1. ฟังก์ชันดึงที่นั่งที่ถูกจองแล้ว
 exports.getBookedSeatsByShowtime = async (req, res) => {
@@ -31,7 +31,8 @@ exports.getBookedSeatsByShowtime = async (req, res) => {
 // 2. ฟังก์ชันจองตั๋ว (ตัวหลัก)
 exports.createBooking = async (req, res) => {
     try {
-        const { showtime_id, seat_ids } = req.body;
+        // ✅ 1. เพิ่มการรับค่า movie_id และ cinema_id มาจาก req.body
+        const { showtime_id, seat_ids, movie_id, cinema_id } = req.body;
         const user_id = req.user._id;
 
         if (!seat_ids || seat_ids.length === 0) {
@@ -42,7 +43,9 @@ exports.createBooking = async (req, res) => {
         const existingBooking = await Booking.findOne({
             showtime_id: showtime_id,
             seats: { $in: seat_ids },
-            status: { $ne: 'cancelled' }
+            status: { $ne: 'cancelled' },
+            movie_id: movie_id,
+            cinema_id: cinema_id
         });
 
         if (existingBooking) {
@@ -73,18 +76,22 @@ exports.createBooking = async (req, res) => {
             seats: seat_ids,
             booking_number: bookingNumber,
             total_price: totalPrice,
-            status: 'confirmed'
+            status: 'confirmed',
+            movie_id: movie_id,   // ✅ 2. เพิ่มบันทึก movie_id
+            cinema_id: cinema_id  // ✅ 3. เพิ่มบันทึก cinema_id
         });
 
-        // --- STEP 4: Populate Data (สำคัญมาก! เพื่อเอาข้อมูลไปส่งเมล) ---
-        // เราต้องดึงข้อมูลให้ครบ ทั้งชื่อหนัง, โรง, ประเภทที่นั่ง
+        // --- STEP 4: Populate Data (เจาะทะลุไปถึง Cinema เพื่อเอาไปโชว์และส่งเมล) ---
         const fullBooking = await Booking.findById(newBooking._id)
             .populate('user_id')
             .populate({
                 path: 'showtime_id',
                 populate: [
                     { path: 'movie_id' },
-                    { path: 'auditorium_id' }
+                    {
+                        path: 'auditorium_id',
+                        populate: { path: 'cinema_id' } // 🌟 เจาะเอาสาขาออกมา
+                    }
                 ]
             })
             .populate({
@@ -94,8 +101,7 @@ exports.createBooking = async (req, res) => {
 
         // --- STEP 5: ส่งอีเมล (เรียกใช้ Service) ---
         if (fullBooking.user_id && fullBooking.user_id.email) {
-
-            emailService.sendBookingConfirmation(fullBooking.user_id.email, fullBooking); 
+            emailService.sendBookingConfirmation(fullBooking.user_id.email, fullBooking);
         }
 
         // --- STEP 6: ตอบกลับ Client ---
@@ -115,11 +121,22 @@ exports.createBooking = async (req, res) => {
 exports.getUserBookings = async (req, res) => {
     try {
         const bookings = await Booking.find({ user_id: req.user._id })
+            .populate('cinema_id') // 🌟 เพิ่มบรรทัดนี้: เพื่อให้มันดึงข้อมูลของสาขามาด้วย!
+            .populate('movie_id')  // 🌟 เพิ่มบรรทัดนี้เผื่อไว้ด้วย (ถ้าหน้าเว็บเรียกใช้ตรงๆ)
             .populate({
                 path: 'showtime_id',
-                populate: { path: 'movie_id' }
+                populate: [
+                    { path: 'movie_id' },
+                    { 
+                        path: 'auditorium_id',
+                        populate: { path: 'cinema_id' } 
+                    }
+                ]
             })
-            .populate('seats')
+            .populate({ 
+                path: 'seats',
+                populate: { path: 'seat_type_id' } 
+            })
             .sort({ createdAt: -1 });
 
         res.status(200).json(bookings);
@@ -137,7 +154,10 @@ exports.getBookingById = async (req, res) => {
                 path: 'showtime_id',
                 populate: [
                     { path: 'movie_id' },
-                    { path: 'auditorium_id' }
+                    {
+                        path: 'auditorium_id',
+                        populate: { path: 'cinema_id' } // 🌟 เจาะเอาสาขาออกมาให้หน้าตั๋ว
+                    }
                 ]
             })
             .populate({

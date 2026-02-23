@@ -40,6 +40,9 @@ export default function ShowtimePageAdmin() {
         base_price: '160'
     });
 
+    // 🌟 State สำหรับ Dropdown สาขาตอนสร้างรอบฉาย
+    const [selectedCreateCinema, setSelectedCreateCinema] = useState("");
+
     // --- API & Effects ---
     const fetchData = async () => {
         try {
@@ -99,6 +102,12 @@ export default function ShowtimePageAdmin() {
         }, []);
     }, [auditoriums]);
 
+    // 🌟 กรองโรงหนังที่จะแสดงใน Dropdown ตามสาขาที่เลือกตอนสร้างฟอร์ม
+    const filteredAuditoriumsForCreate = useMemo(() => {
+        if (!selectedCreateCinema) return auditoriums;
+        return auditoriums.filter(a => a.cinema_id?._id === selectedCreateCinema);
+    }, [auditoriums, selectedCreateCinema]);
+
     // --- Handlers ---
     const handleResetFilter = () => {
         setFilterCinema('all');
@@ -143,6 +152,8 @@ export default function ShowtimePageAdmin() {
                 Swal.fire({ icon: 'success', title: 'สำเร็จ', text: `สร้างรายการสำเร็จ ${res.data.data.length} รอบ` });
                 fetchData();
                 setTimeSlots([]);
+                // รีเซ็ตฟอร์มหลังจากสร้างเสร็จ
+                setFormData({ ...formData, auditorium_id: '' });
             }
         } catch (error) {
             Swal.fire('Error', error.message, 'error');
@@ -217,8 +228,8 @@ export default function ShowtimePageAdmin() {
 
                         <div className="form-content">
                             <form onSubmit={handleSubmit}>
-                                {/* Row 1: Movie & Cinema */}
-                                <div className="form-grid">
+                                {/* 🌟 Row 1: Movie, Cinema & Auditorium (อัปเดตใหม่ 3 คอลัมน์) */}
+                                <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}> 
                                     <div className="form-group">
                                         <label className="form-label"><Film size={16} /> เลือกหนัง</label>
                                         <select required className="form-select" onChange={e => setFormData({ ...formData, movie_id: e.target.value })}>
@@ -227,10 +238,24 @@ export default function ShowtimePageAdmin() {
                                         </select>
                                     </div>
                                     <div className="form-group">
+                                        <label className="form-label"><Monitor size={16} /> เลือกสาขา</label>
+                                        <select 
+                                            className="form-select" 
+                                            value={selectedCreateCinema}
+                                            onChange={e => {
+                                                setSelectedCreateCinema(e.target.value);
+                                                setFormData({ ...formData, auditorium_id: '' }); // เคลียร์ค่าโรงที่เลือกไว้ถ้าเปลี่ยนสาขา
+                                            }}
+                                        >
+                                            <option value="">-- เลือกสาขา (หรือทั้งหมด) --</option>
+                                            {uniqueCinemas.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
                                         <label className="form-label"><Monitor size={16} /> เลือกโรงภาพยนตร์</label>
-                                        <select required className="form-select" onChange={e => setFormData({ ...formData, auditorium_id: e.target.value })}>
+                                        <select required className="form-select" value={formData.auditorium_id} onChange={e => setFormData({ ...formData, auditorium_id: e.target.value })}>
                                             <option value="">-- กรุณาเลือกโรง --</option>
-                                            {auditoriums.map(a => <option key={a._id} value={a._id}>{a.name} ({a.cinema_id?.name})</option>)}
+                                            {filteredAuditoriumsForCreate.map(a => <option key={a._id} value={a._id}>{a.name} {(!selectedCreateCinema && a.cinema_id) ? `(${a.cinema_id.name})` : ''}</option>)}
                                         </select>
                                     </div>
                                 </div>

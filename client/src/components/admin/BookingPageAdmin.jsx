@@ -31,24 +31,37 @@ export default function BookingPageAdmin() {
         const user = item.user_id || item.userId;
         const searchLower = searchTerm.toLowerCase();
 
-        // รหัสจอง (เอาแค่ 6 ตัวท้าย)
-        const bookingId = item._id?.substring(18, 24).toLowerCase() || '';
+        // รหัสจอง (แก้ป้องกัน Error หาก _id ไม่มี)
+        const bookingId = (item._id?.substring(18, 24) || '').toLowerCase();
 
         // ข้อมูลลูกค้า
-        const customerName = user?.name?.toLowerCase() || '';
-        const customerEmail = user?.email?.toLowerCase() || '';
+        const customerName = (user?.name || '').toLowerCase();
+        const customerEmail = (user?.email || '').toLowerCase();
 
         // ข้อมูลหนัง (เจาะเข้าไปหา title_th หรือ title_en)
         const movieObj = item.showtime_id?.movie_id || item.movieId;
         const movieNameTH = (movieObj?.title_th || '').toLowerCase();
         const movieNameEN = (movieObj?.title_en || '').toLowerCase();
 
-        // ข้อมูลโรงและสาขา (รองรับทั้งแบบอยู่ชั้นนอก และอยู่ใน auditorium_id)
-        const theaterObj = item.showtime_id?.auditorium_id || item.showtime_id;
+        // ข้อมูลโรงและสาขา
+        const theaterObj = item.showtime_id?.auditorium_id || item.showtime_id || {};
         const theaterName = (theaterObj?.name || theaterObj?.theater_name || '').toLowerCase();
-        const branchName = (theaterObj?.branch || '').toLowerCase();
 
-        const status = item.status === 'paid' ? 'ชำระแล้ว' : 'รอชำระ';
+        // 💡 ดักจับข้อมูลสาขาคลุมไว้ทุกรูปแบบ
+        const rawBranch =
+            theaterObj?.branch?.name ||
+            theaterObj?.branch ||
+            theaterObj?.theater_id?.name ||
+            item.showtime_id?.theater_id?.name ||
+            item.showtime_id?.branch?.name ||
+            item.showtime_id?.branch ||
+            '';
+        const branchName = String(rawBranch).toLowerCase();
+
+        // ✅ ปรับโลจิกสถานะให้ตรงกับ UI ด้านล่าง (รวม confirmed เข้าไป)
+        const isPaid = item.status === 'paid' || item.status === 'confirmed';
+        const statusText = isPaid ? 'ชำระแล้ว' : 'รอชำระ';
+
         const price = (item.totalPrice || item.total_price || 0).toString();
 
         return bookingId.includes(searchLower) ||
@@ -58,7 +71,7 @@ export default function BookingPageAdmin() {
             movieNameEN.includes(searchLower) ||
             theaterName.includes(searchLower) ||
             branchName.includes(searchLower) ||
-            status.includes(searchLower) ||
+            statusText.includes(searchLower) ||
             price.includes(searchLower);
     });
 
@@ -124,15 +137,20 @@ export default function BookingPageAdmin() {
                                         // รองรับการดึงชื่อโรงจาก deep populate
                                         const theaterInfo = item.showtime_id?.auditorium_id || item.showtime_id || {};
 
-                                        const priceValue = item.totalPrice || item.total_price || 0;
+                                        // 💡 ดึงชื่อสาขามาแสดงผล
+                                        const branchDisplay =
+                                            item.cinema_id?.name ||
+                                            item.showtime_id?.auditorium_id?.cinema_id?.name ||
+                                            '-';
 
+                                        const priceValue = item.totalPrice || item.total_price || 0;
                                         const isPaid = item.status === 'paid' || item.status === 'confirmed';
 
                                         return (
                                             <tr key={item._id}>
                                                 {/* รหัสจอง */}
                                                 <td style={{ fontWeight: 'bold', color: '#8b5cf6', fontFamily: 'monospace', fontSize: '1.1em' }}>
-                                                    #{item._id?.substring(18, 24).toUpperCase()}
+                                                    {item.booking_number || 'ไม่มีรหัส'}
                                                 </td>
 
                                                 {/* วันที่ทำรายการ */}
@@ -176,7 +194,7 @@ export default function BookingPageAdmin() {
                                                         </div>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#94a3b8' }}>
                                                             <MapPin size={12} />
-                                                            {theaterInfo.branch || '-'}
+                                                            {branchDisplay}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -185,7 +203,6 @@ export default function BookingPageAdmin() {
                                                 <td>
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                                         {item.seats?.map((seat, idx) => {
-                                                            // ตรวจสอบโครงสร้างข้อมูลที่นั่ง
                                                             const seatLabel = typeof seat === 'object'
                                                                 ? `${seat.row_label}${seat.seat_number}`
                                                                 : seat;
