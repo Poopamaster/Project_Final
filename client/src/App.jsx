@@ -14,8 +14,6 @@ import SeatSelectionPage from "./pages/SeatSelectionPage";
 import AdminPage from './pages/AdminPage';
 import './style.css';
 import HistoryPage from './pages/HistoryPage';
-import LogSystemPage from './components/admin/LogSystemPage';
-import ShowtimePageAdmin from './components/admin/ShowtimePageAdmin';
 
 export const AuthContext = createContext(null);
 
@@ -171,7 +169,7 @@ const NavbarController = () => {
         location.pathname === '/payment' || // <--- เพิ่ม payment เข้าไป เพื่อไม่ให้ Navbar ซ้อนกัน
         location.pathname.startsWith('/booking') ||
         location.pathname.startsWith('/admin')
-        
+
     ) {
         return null;
     }
@@ -202,10 +200,6 @@ function App() {
                 <Route path="/booking/:id" element={<BookingPage />} />
                 <Route path="/history" element={<HistoryPage />} />
 
-                <Route path="/admin" element={
-                    <AdminGuard>
-                        <AdminPage />
-                    </AdminGuard>} />
                 {/* หน้า Chatbot ยังคงต้อง Login */}
                 <Route
                     path="/chatbot"
@@ -215,6 +209,19 @@ function App() {
                         </AuthGuard>
                     }
                 />
+
+                {/* หน้า Admin */}
+                <Route path="/admin" element={
+                    <AdminGuard>
+                        <AdminPage />
+                    </AdminGuard>
+                } />
+
+                <Route path="/admin/verify/:bookingNumber" element={
+                    <AdminGuard>
+                        <AdminPage />
+                    </AdminGuard>
+                } />
 
             </Routes>
         </AuthProvider>

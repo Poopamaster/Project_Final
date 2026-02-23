@@ -1,7 +1,6 @@
 // services/emailService.js
 const nodemailer = require('nodemailer');
 
-// 1. ตั้งค่า Transporter (ใช้ Gmail ตามที่คุณตั้งค่าไว้)
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -10,14 +9,12 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// 2. ฟังก์ชันส่งอีเมล Confirmation
 const sendBookingConfirmation = async (userEmail, bookingData) => {
     try {
-        // --- ส่วนเตรียมข้อมูล (Data Preparation) ---
         const movieObj = bookingData.showtime_id.movie_id;
         const movieTitle = movieObj.title_th;
         const posterUrl = movieObj.poster_url || "https://via.placeholder.com/150x225?text=No+Poster";
-        const duration = movieObj.duration_min || "-";
+        const duration = movieObj.duration_min || 120; // สมมติ 120 นาทีถ้าไม่มีข้อมูล
         
         const cinemaName = bookingData.showtime_id.auditorium_id?.name || 'MCP Cinema';
         
@@ -25,17 +22,20 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
         const showDate = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
         const showTime = dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
         
-        // จัดการชื่อที่นั่ง
         const seatsArr = bookingData.seats.map(s => s.row_label ? `${s.row_label}${s.seat_number}` : s);
         const seatsString = seatsArr.join(', ');
         
         const totalPrice = bookingData.total_price.toLocaleString();
         const bookingRef = bookingData.booking_number;
 
-        // QR Code API
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${bookingRef}`;
+        // 🌟 จุดที่แก้ไข 🌟
+        // สร้าง URL สำหรับให้พนักงานสแกน (อย่าลืมตั้งค่า FRONTEND_URL ใน .env)
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const verificationLink = `${frontendUrl}/verify-ticket/${bookingRef}`;
+        
+        // แปลง URL ให้ปลอดภัยสำหรับการใส่ในพารามิเตอร์ด้วย encodeURIComponent
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verificationLink)}`;
 
-        // --- ส่วน HTML Template (Inline CSS สำหรับ Email) ---
         const htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -107,7 +107,7 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
 
                     <div style="text-align: center; padding: 10px 20px 30px 20px;">
                         <img src="${qrCodeUrl}" alt="QR Code" style="width: 140px; height: 140px;">
-                        <p style="color: #95a5a6; font-size: 11px; margin-top: 10px;">สแกน QR Code นี้ที่หน้าทางเข้าโรงภาพยนตร์เพื่อรับตั๋วหรือเข้าชม</p>
+                        <p style="color: #95a5a6; font-size: 11px; margin-top: 10px;">ให้พนักงานสแกน QR Code นี้ที่หน้าทางเข้าโรงภาพยนตร์</p>
                     </div>
 
                     <div style="background-color: #fcfcfc; padding: 20px; border-top: 1px solid #eee;">
@@ -134,7 +134,6 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
             </html>
         `;
 
-        // 3. สั่งส่งเมล
         const info = await transporter.sendMail({
             from: '"MCP Cinema Support" <' + process.env.EMAIL_USER + '>',
             to: userEmail,

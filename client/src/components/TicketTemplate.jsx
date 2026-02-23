@@ -7,7 +7,7 @@ const TicketTemplate = forwardRef(({ ticketData }, ref) => {
         if (!dateString) return "-";
         return new Date(dateString).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
     };
-    
+
     const formatTime = (dateString) => {
         if (!dateString) return "-";
         return new Date(dateString).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
@@ -26,7 +26,7 @@ const TicketTemplate = forwardRef(({ ticketData }, ref) => {
 
     return (
         <div ref={ref} style={{ width: '550px', backgroundColor: '#ffffff', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", paddingBottom: '0px' }}>
-            
+
             {/* Header */}
             <div style={{ backgroundColor: '#1a1f2c', padding: '25px 0', textAlign: 'center', borderBottom: '3px solid #f1c40f' }}>
                 <h1 style={{ color: '#f1c40f', margin: 0, fontSize: '24px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>MCP CINEMA</h1>
@@ -35,15 +35,15 @@ const TicketTemplate = forwardRef(({ ticketData }, ref) => {
 
             {/* Checkmark & Booking ID (แก้ Style ให้เหมือน Backend เป๊ะๆ) */}
             <div style={{ padding: '30px 20px', textAlign: 'center', backgroundColor: '#ffffff' }}>
-                <div style={{ 
-                    width: '60px', 
-                    height: '60px', 
-                    backgroundColor: '#27ae60', 
-                    borderRadius: '50%', 
+                <div style={{
+                    width: '60px',
+                    height: '60px',
+                    backgroundColor: '#27ae60',
+                    borderRadius: '50%',
                     display: 'inline-block', // ใช้ inline-block เหมือน email
                     lineHeight: '50px',      // จัดกึ่งกลางแนวตั้งด้วย line-height
-                    color: 'white', 
-                    fontSize: '30px', 
+                    color: 'white',
+                    fontSize: '30px',
                     marginBottom: '10px',
                     textAlign: 'center',
                     verticalAlign: 'middle'
@@ -61,17 +61,17 @@ const TicketTemplate = forwardRef(({ ticketData }, ref) => {
             <div style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                     <div style={{ marginRight: '20px', flexShrink: 0 }}>
-                        <img 
-                            src={posterSrc} 
-                            alt="Movie Poster" 
-                            crossOrigin="anonymous" 
+                        <img
+                            src={posterSrc}
+                            alt="Movie Poster"
+                            crossOrigin="anonymous"
                             onError={(e) => { e.target.onerror = null; e.target.src = placeholderImage; }}
-                            style={{ width: '100px', borderRadius: '5px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)', display: 'block' }} 
+                            style={{ width: '100px', borderRadius: '5px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)', display: 'block' }}
                         />
                     </div>
                     <div style={{ flexGrow: 1 }}>
                         <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '18px', fontWeight: 'bold' }}>{ticketData.movieTitle}</h3>
-                        
+
                         <div style={{ marginBottom: '15px' }}>
                             <span style={{ backgroundColor: '#ecf0f1', color: '#7f8c8d', padding: '3px 8px', borderRadius: '4px', fontSize: '10px', marginRight: '5px' }}>Digital</span>
                             <span style={{ backgroundColor: '#ecf0f1', color: '#7f8c8d', padding: '3px 8px', borderRadius: '4px', fontSize: '10px' }}>{ticketData.duration} นาที</span>
@@ -117,21 +117,23 @@ const TicketTemplate = forwardRef(({ ticketData }, ref) => {
 
             {/* QR Code */}
             <div style={{ textAlign: 'center', padding: '10px 20px 30px 20px' }}>
-                <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${ticketData.id}`} 
-                    alt="QR Code" 
+                <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                        `${window.location.origin}/admin/verify/${ticketData.id}`
+                    )}`}
+                    alt="QR Code"
                     crossOrigin="anonymous"
-                    style={{ width: '140px', height: '140px', display: 'inline-block' }} 
+                    style={{ width: '140px', height: '140px', display: 'inline-block' }}
                 />
                 <p style={{ color: '#95a5a6', fontSize: '11px', marginTop: '10px', textAlign: 'center' }}>
-                    สแกน QR Code นี้ที่หน้าทางเข้าโรงภาพยนตร์เพื่อรับตั๋วหรือเข้าชม
+                    พนักงานสแกน QR Code นี้เพื่อตรวจสอบสถานะตั๋ว
                 </p>
             </div>
 
             {/* Payment Details */}
             <div style={{ backgroundColor: '#fcfcfc', padding: '20px', borderTop: '1px solid #eee' }}>
                 <h4 style={{ margin: '0 0 15px 0', color: '#2c3e50', borderBottom: '2px solid #f1c40f', display: 'inline-block', paddingBottom: '5px', fontSize: '16px' }}>รายละเอียดการชำระเงิน</h4>
-                
+
                 <table style={{ width: '100%', fontSize: '13px' }}>
                     <tbody>
                         <tr>

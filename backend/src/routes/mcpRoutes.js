@@ -2,24 +2,19 @@ const express = require("express");
 const router = express.Router();
 const mcpController = require("../controllers/mcpController");
 
-// --- User Routes ---
-// GET /api/mcp/search?keyword=Avatar
+// Import Middleware ของคุณ
+const { authenticate, isAdmin } = require("../middleware/authMiddleware");
+
+// --- 🌐 User Routes (Public Access) ---
+// เปิดให้ทุกคน (หรือ Chatbot) เข้ามาค้นหาข้อมูลได้
 router.get("/search", mcpController.searchMovies);
-
-// GET /api/mcp/genre?genre=Action
 router.get("/genre", mcpController.findMoviesByGenre);
-
-// GET /api/mcp/latest?limit=5
 router.get("/latest", mcpController.findLatestMovies);
-
-// GET /api/mcp/count
 router.get("/count", mcpController.countTotalMovies);
 
-// --- Admin Routes --- (ควรใส่ Middleware เช็ค Admin ตรงนี้ในอนาคต)
-// POST /api/mcp/movie
-router.post("/movie", mcpController.addMovie);
-
-// DELETE /api/mcp/movie/65abc12345...
-router.delete("/movie/:id", mcpController.deleteMovie);
+// --- 🔐 Admin Routes (Protected) ---
+// เฉพาะ Admin เท่านั้นที่สามารถเพิ่มหรือลบหนังผ่าน MCP ได้
+router.post("/movie", authenticate, isAdmin, mcpController.addMovie);
+router.delete("/movie/:id", authenticate, isAdmin, mcpController.deleteMovie);
 
 module.exports = router;

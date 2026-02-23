@@ -1,10 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const { createMovie, getAllMovies, getNowShowingMovies, getMovieById } = require('../controllers/movieController');
+const { 
+    createMovie, 
+    getAllMovies, 
+    getNowShowingMovies, 
+    getMovieById 
+} = require('../controllers/movieController');
 
-router.post('/', createMovie);          // สร้างหนัง
-router.get('/', getAllMovies);          // ดูหนังทั้งหมด
-router.get('/now-showing', getNowShowingMovies); // ดูหนังที่ฉายอยู่ (สำคัญ!)
-router.get('/:id', getMovieById);       // ดูรายละเอียดหนัง
+const { authenticate, isAdmin } = require('../middleware/authMiddleware');
+
+// 1. เพิ่มหนังใหม่ (Admin Only)
+router.post('/', authenticate, isAdmin, createMovie);
+
+// 2. ดึงหนังทั้งหมด (ใช้ในหน้าจัดการหนัง)
+// ใส่แค่ authenticate เพื่อให้ Staff/Admin เข้าดูได้
+router.get('/', authenticate, getAllMovies);
+
+// 3. ดูหนังที่ฉายอยู่ (Public - หน้าแรกของเว็บ)
+router.get('/now-showing', getNowShowingMovies);
+
+// 4. ดูรายละเอียดหนังรายเรื่อง (Public - หน้า Detail)
+router.get('/:id', getMovieById);
 
 module.exports = router;

@@ -1,10 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { createSeatType, getAllSeatTypes, autoGenerateSeats, getSeatsByAuditorium } = require('../controllers/seatController');
+const { 
+    createSeatType, 
+    getAllSeatTypes, 
+    autoGenerateSeats, 
+    getSeatsByAuditorium 
+} = require('../controllers/seatController');
 
-router.post('/type', createSeatType);        // สร้างประเภทเก้าอี้
-router.get('/type', getAllSeatTypes);        // ดูประเภททั้งหมด
-router.post('/generate', autoGenerateSeats); // สร้างเก้าอี้รวดเดียว
-router.get('/auditorium/:auditoriumId', getSeatsByAuditorium); // ดึงเก้าอี้ในโรง
+// Import Middleware
+const { authenticate, isAdmin } = require('../middleware/authMiddleware');
+
+// --- 🔐 Admin Only (จัดการโครงสร้าง) ---
+router.post('/type', authenticate, isAdmin, createSeatType);
+router.post('/generate', authenticate, isAdmin, autoGenerateSeats);
+
+// --- 🌐 Authenticated/Public (ดึงข้อมูลไปแสดงผล) ---
+router.get('/type', getAllSeatTypes); // ดึงราคาไปแสดง
+router.get('/auditorium/:auditoriumId', getSeatsByAuditorium); // ดึงผังที่นั่งไปวาดหน้าเว็บ
 
 module.exports = router;

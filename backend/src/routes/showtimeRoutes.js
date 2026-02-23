@@ -1,19 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const { createShowtime, getShowtimesByMovie, getShowtimeById, getAllShowtimes, getShowtimeSeats, deleteShowtime, createBulkShowtimes
-    , deleteMultipleShowtimes
- } = require('../controllers/showtimeController');
+const { 
+    createShowtime, getShowtimesByMovie, getShowtimeById, 
+    getAllShowtimes, getShowtimeSeats, deleteShowtime, 
+    createBulkShowtimes, deleteMultipleShowtimes 
+} = require('../controllers/showtimeController');
 
-// --- ส่วนของ Admin ---
-router.post('/', createShowtime);          // สร้างรอบฉาย
-router.post('/bulk', createBulkShowtimes);
-router.get('/', getAllShowtimes);        // ดูรอบฉายทั้งหมด (ใช้ในตาราง Admin)
-router.delete('/:id', deleteShowtime);   // 2. เพิ่ม Route สำหรับลบรอบฉาย (รองรับปุ่ม Trash ใน UI)
-router.post('/delete-multiple', deleteMultipleShowtimes);
+// Import Middleware
+const { authenticate, isAdmin } = require('../middleware/authMiddleware');
 
-// --- ส่วนของ User ---
-router.get('/movie/:movieId', getShowtimesByMovie); // ดูรอบฉายของหนังเรื่องนั้นๆ
-router.get('/:id', getShowtimeById);             // ดูรายละเอียดรอบฉายเดี่ยวๆ
-router.get('/:id/seats', getShowtimeSeats);     // ดึงผังที่นั่งของรอบนั้น
+// --- 🔐 ส่วนของ Admin (Protected) ---
+router.post('/', authenticate, isAdmin, createShowtime); 
+router.post('/bulk', authenticate, isAdmin, createBulkShowtimes);
+router.get('/', authenticate, isAdmin, getAllShowtimes); 
+router.delete('/:id', authenticate, isAdmin, deleteShowtime);
+router.post('/delete-multiple', authenticate, isAdmin, deleteMultipleShowtimes);
+
+// --- 🌐 ส่วนของ User (Public/Authenticated) ---
+router.get('/movie/:movieId', getShowtimesByMovie); 
+router.get('/:id', getShowtimeById); 
+router.get('/:id/seats', getShowtimeSeats); 
 
 module.exports = router;

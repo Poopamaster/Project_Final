@@ -38,3 +38,12 @@ exports.authenticate = async (req, res, next) => {
     res.status(401).json({ error: "Not authorized, no token" });
   }
 };
+
+exports.isAdmin = (req, res, next) => {
+    // เช็คว่ามี req.user (จาก authenticate) และมี role เป็น admin หรือไม่
+    if (req.user && req.user.role === 'admin') {
+        next(); // เป็น Admin จริง ให้ไปต่อ
+    } else {
+        res.status(403).json({ error: "Access denied: Admin only!" }); // ไม่ใช่ Admin ส่ง 403 (Forbidden)
+    }
+};

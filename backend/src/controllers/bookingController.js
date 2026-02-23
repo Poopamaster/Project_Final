@@ -127,15 +127,15 @@ exports.getUserBookings = async (req, res) => {
                 path: 'showtime_id',
                 populate: [
                     { path: 'movie_id' },
-                    { 
+                    {
                         path: 'auditorium_id',
-                        populate: { path: 'cinema_id' } 
+                        populate: { path: 'cinema_id' }
                     }
                 ]
             })
-            .populate({ 
+            .populate({
                 path: 'seats',
-                populate: { path: 'seat_type_id' } 
+                populate: { path: 'seat_type_id' }
             })
             .sort({ createdAt: -1 });
 
@@ -175,5 +175,100 @@ exports.getBookingById = async (req, res) => {
         res.status(200).json(booking);
     } catch (error) {
         res.status(500).json({ message: "Server Error" });
+    }
+};
+
+exports.verifyTicket = async (req, res) => {
+    try {
+        const { bookingNumber } = req.params;
+
+        // 1. หาข้อมูล Booking ตามเลขที่ระบุ
+        const booking = await Booking.findOne({ booking_number: bookingNumber })
+            .populate('user_id')
+            .populate({
+                path: 'showtime_id',
+                populate: [
+                    { path: 'movie_id' },
+                    {
+                        path: 'auditorium_id',
+                        populate: { path: 'cinema_id' }
+                    }
+                ]
+            })
+            .populate('seats');
+
+        // 2. ตรวจสอบว่ามีตั๋วใบนี้ในระบบหรือไม่
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                status: 'NOT_FOUND',
+                message: "ไม่พบข้อมูลตั๋วใบนี้ในระบบ"
+            });
+        }
+
+        // 3. ตรวจสอบสถานะว่าถูกยกเลิกไปหรือยัง
+        if (booking.status === 'cancelled') {
+            return res.status(400).json({
+                success: false,
+                status: 'CANCELLED',
+                message: "ตั๋วใบนี้ถูกยกเลิกไปแล้ว"
+            });
+        }
+
+        // 4. เช็คเวลา (หมดอายุหรือยัง?)
+        const showtime = booking.showtime_id;
+        const movie = showtime.movie_id;
+
+        const startTime = new Date(showtime.start_time);
+        const durationMin = movie.duration_min || 120; // ถ้าไม่มีความยาวหนัง ให้เผื่อไว้ 120 นาที
+
+        // คำนวณเวลาสิ้นสุด (เวลาเริ่ม + ความยาวหนัง)
+        const endTime = new Date(startTime.getTime() + durationMin * 60000);
+        const currentTime = new Date(); // เวลาปัจจุบัน
+
+        // ถ้าเวลาปัจจุบัน เลยเวลาหนังเลิกไปแล้ว
+        if (currentTime > endTime) {
+            return res.status(200).json({
+                success: true,
+                status: 'EXPIRED',
+                message: "ตั๋วหมดอายุ (รอบฉายสิ้นสุดแล้ว)",
+                bookingInfo: {
+                    bookingNumber: booking.booking_number,
+                    movieTitle: movie.title_th,
+                    cinema: showtime.auditorium_id?.cinema_id?.name,
+                    auditorium: showtime.auditorium_id?.name,
+                    startTime: startTime,
+                    endTime: endTime
+                }
+            });
+        }
+
+        // 5. ถ้าผ่านทุกเงื่อนไข = ตั๋วใช้งานได้
+        const seatsArr = booking.seats.map(s => s.row_label ? `${s.row_label}${s.seat_number}` : 'N/A');
+
+        return res.status(200).json({
+            success: true,
+            status: 'VALID',
+            message: "ตั๋วสามารถใช้งานได้",
+            bookingInfo: {
+                bookingNumber: booking.booking_number,
+                user: booking.user_id?.username || booking.user_id?.name || booking.user_id?.first_name || 'Unknown',
+                movieTitle: movie.title_th,
+                posterUrl: movie.poster_url,
+                cinema: showtime.auditorium_id?.cinema_id?.name,
+                auditorium: showtime.auditorium_id?.name,
+                startTime: startTime,
+                endTime: endTime,
+                seats: seatsArr.join(', '),
+                totalSeats: seatsArr.length
+            }
+        });
+
+    } catch (error) {
+        console.error("Verify Ticket Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "เกิดข้อผิดพลาดในการตรวจสอบตั๋ว"
+        });
     }
 };
