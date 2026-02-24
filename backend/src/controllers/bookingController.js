@@ -182,7 +182,7 @@ exports.verifyTicket = async (req, res) => {
     try {
         const { bookingNumber } = req.params;
 
-        // 1. หาข้อมูล Booking ตามเลขที่ระบุ
+        // 1. หาข้อมูล Booking
         const booking = await Booking.findOne({ booking_number: bookingNumber })
             .populate('user_id')
             .populate({
@@ -197,75 +197,63 @@ exports.verifyTicket = async (req, res) => {
             })
             .populate('seats');
 
-        // 2. ตรวจสอบว่ามีตั๋วใบนี้ในระบบหรือไม่
         if (!booking) {
-            return res.status(404).json({
-                success: false,
-                status: 'NOT_FOUND',
-                message: "ไม่พบข้อมูลตั๋วใบนี้ในระบบ"
-            });
+            return res.status(404).json({ success: false, status: 'NOT_FOUND', message: "ไม่พบข้อมูลตั๋วใบนี้ในระบบ" });
         }
 
-        // 3. ตรวจสอบสถานะว่าถูกยกเลิกไปหรือยัง
         if (booking.status === 'cancelled') {
-            return res.status(400).json({
-                success: false,
-                status: 'CANCELLED',
-                message: "ตั๋วใบนี้ถูกยกเลิกไปแล้ว"
-            });
+            return res.status(400).json({ success: false, status: 'CANCELLED', message: "ตั๋วใบนี้ถูกยกเลิกไปแล้ว" });
         }
 
-        // 4. เช็คเวลา (หมดอายุหรือยัง?)
+        // 2. จัดการข้อมูลที่นั่งอย่างปลอดภัย
+        const seatsArr = (booking.seats || []).map(s => s.row_label ? `${s.row_label}${s.seat_number}` : 'N/A');
+
+        // 3. ดึงตัวแปร showtime และ movie ออกมา
         const showtime = booking.showtime_id;
-        const movie = showtime.movie_id;
+        const movie = showtime?.movie_id; // 👈 ใช้ ?. ป้องกันกรณีหา showtime ไม่เจอ
 
-        const startTime = new Date(showtime.start_time);
-        const durationMin = movie.duration_min || 120; // ถ้าไม่มีความยาวหนัง ให้เผื่อไว้ 120 นาที
-
-        // คำนวณเวลาสิ้นสุด (เวลาเริ่ม + ความยาวหนัง)
+        // 4. เริ่มคำนวณเวลา (ใช้ ?. ป้องกัน Error พังทลาย)
+        const startTimeStr = showtime?.start_time || new Date(); 
+        const startTime = new Date(startTimeStr);
+        // 🌟 แก้ Error ที่บรรทัดนี้: ใส่ ?. หลัง movie
+        const durationMin = movie?.duration_min || 120; 
         const endTime = new Date(startTime.getTime() + durationMin * 60000);
-        const currentTime = new Date(); // เวลาปัจจุบัน
+        const currentTime = new Date();
 
-        // ถ้าเวลาปัจจุบัน เลยเวลาหนังเลิกไปแล้ว
+        // 5. เตรียม Object ข้อมูลที่จะส่งกลับ (เขียนครั้งเดียว ใช้ได้ทั้งตั๋ว VALID และ EXPIRED)
+        const bookingInfoResponse = {
+            bookingNumber: booking.booking_number,
+            user: booking.user_id?.username || booking.user_id?.name || booking.user_id?.first_name || 'ไม่ระบุชื่อผู้จอง',
+            movieTitle: movie?.title_th || 'ไม่ระบุชื่อหนัง', // 👈 ใส่ ?. เพื่อดัก Error
+            posterUrl: movie?.poster_url || '',
+            cinema: showtime?.auditorium_id?.cinema_id?.name || 'ไม่ระบุสาขา', // 👈 ใส่ ?. เพื่อดัก Error
+            auditorium: showtime?.auditorium_id?.name || 'ไม่ระบุโรง',
+            startTime: startTime,
+            endTime: endTime,
+            seats: seatsArr.length > 0 ? seatsArr.join(', ') : '-',
+            totalSeats: seatsArr.length || 0
+        };
+
+        // 6. กรณีหมดอายุ (เลยเวลาหนังเลิก)
         if (currentTime > endTime) {
             return res.status(200).json({
                 success: true,
                 status: 'EXPIRED',
                 message: "ตั๋วหมดอายุ (รอบฉายสิ้นสุดแล้ว)",
-                bookingInfo: {
-                    bookingNumber: booking.booking_number,
-                    movieTitle: movie.title_th,
-                    cinema: showtime.auditorium_id?.cinema_id?.name,
-                    auditorium: showtime.auditorium_id?.name,
-                    startTime: startTime,
-                    endTime: endTime
-                }
+                bookingInfo: bookingInfoResponse // โยน object ที่เตรียมไว้เข้ามได้เลย
             });
         }
 
-        // 5. ถ้าผ่านทุกเงื่อนไข = ตั๋วใช้งานได้
-        const seatsArr = booking.seats.map(s => s.row_label ? `${s.row_label}${s.seat_number}` : 'N/A');
-
+        // 7. กรณีใช้งานได้
         return res.status(200).json({
             success: true,
             status: 'VALID',
             message: "ตั๋วสามารถใช้งานได้",
-            bookingInfo: {
-                bookingNumber: booking.booking_number,
-                user: booking.user_id?.username || booking.user_id?.name || booking.user_id?.first_name || 'Unknown',
-                movieTitle: movie.title_th,
-                posterUrl: movie.poster_url,
-                cinema: showtime.auditorium_id?.cinema_id?.name,
-                auditorium: showtime.auditorium_id?.name,
-                startTime: startTime,
-                endTime: endTime,
-                seats: seatsArr.join(', '),
-                totalSeats: seatsArr.length
-            }
+            bookingInfo: bookingInfoResponse
         });
 
     } catch (error) {
-        console.error("Verify Ticket Error:", error);
+        console.error("Verify Ticket Error:", error); 
         res.status(500).json({
             success: false,
             message: "เกิดข้อผิดพลาดในการตรวจสอบตั๋ว"

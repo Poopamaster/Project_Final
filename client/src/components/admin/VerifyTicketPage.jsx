@@ -19,7 +19,7 @@ const VerifyTicketPage = () => {
         setVerifyResult(null);
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5173';
 
             // ✅ 1. ดึง Token จาก localStorage โดยใช้ Key 'jwtToken' ตามรูปภาพ
             const token = localStorage.getItem('jwtToken');
