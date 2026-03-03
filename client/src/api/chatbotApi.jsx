@@ -2,32 +2,32 @@
 import axios from 'axios';
 
 // ตรวจสอบ URL ให้ตรงกับ Backend ของคุณ
-const API_URL = 'http://localhost:5000/api'; 
+const API_URL = 'http://localhost:5000/api';
 
 // Helper สำหรับดึง Token
 const getAuthHeaders = () => {
     const token = localStorage.getItem('jwtToken');
     if (!token) throw new Error("No token found");
-    return { 
-        headers: { 
+    return {
+        headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
-        } 
+        }
     };
 };
 
 // 1. ส่งข้อความ (คุยกับ Bot)
 export const sendMessageToBot = async (message, imageBase64 = null) => {
-  try {
-    const response = await axios.post(
-      `${API_URL}/chatbot/chat`,
-      { message, image: imageBase64 },
-      getAuthHeaders()
-    );
-    return response.data; 
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
+    try {
+        const response = await axios.post(
+            `${API_URL}/chatbot/chat`,
+            { message, image: imageBase64 },
+            getAuthHeaders()
+        );
+        return response.data;
+    } catch (error) {
+        throw error.response ? error.response.data : error;
+    }
 };
 
 // 2. ✅ ดึงประวัติการสนทนา (GET)
@@ -49,5 +49,28 @@ export const clearChatHistory = async () => {
     } catch (error) {
         console.error("Error clearing history:", error);
         return false;
+    }
+};
+
+export const importExcelMovies = async (file) => {
+    try {
+        const token = localStorage.getItem('jwtToken');
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await axios.post(
+            `${API_URL}/admin/import-excel`, // ใช้ API_URL เดียวกัน (พอร์ต 5000)
+            formData,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data' // ต้องระบุเป็น multipart สำหรับไฟล์
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error importing excel:", error);
+        throw error.response ? error.response.data : error;
     }
 };

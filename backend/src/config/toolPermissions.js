@@ -13,6 +13,7 @@ const ALL_TOOLS_CONFIG = {
 
     // Tools สำหรับ Admin
     add_movie: { name: "add_movie", description: "เพิ่มหนังใหม่" },
+    bulk_add_movies: { name: "bulk_add_movies", description: "นำเข้าหนังหลายเรื่องพร้อมกัน" }, // ✅ เพิ่มตัวนี้
     delete_movie: { name: "delete_movie", description: "ลบหนัง" },
     count_total_movies: { name: "count_total_movies", description: "นับจำนวนหนัง" }
 };
@@ -36,6 +37,7 @@ const ROLE_PERMISSIONS = {
         'select_seat', 
         'confirm_booking', 
         'add_movie', 
+        'bulk_add_movies',
         'delete_movie', 
         'count_total_movies'
     ] 

@@ -1,23 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer'); // ✅ เพิ่ม Multer
-const path = require('path');     // ✅ เพิ่ม Path
-const fs = require('fs'); // 🌟 1. เพิ่ม fs (File System) เข้ามา
+const multer = require('multer'); 
+const path = require('path');     
+const fs = require('fs'); 
 const adminController = require('../controllers/adminController');
 const { authenticate, isAdmin } = require('../middleware/authMiddleware');
 
 // ==========================================
-// 🛠️ ตั้งค่าการอัปโหลดไฟล์ด้วย Multer
+// 🖼️ 1. สำหรับอัปโหลดรูปภาพ (บันทึกลง Disk)
 // ==========================================
-const storage = multer.diskStorage({
+const imageStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         const uploadPath = 'uploads/';
-        
-        // 🌟 2. เช็คว่ามีโฟลเดอร์ uploads หรือยัง ถ้าไม่มีให้สร้างใหม่อัตโนมัติ
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
         }
-        
         cb(null, uploadPath); 
     },
     filename: function (req, file, cb) {
@@ -25,34 +22,45 @@ const storage = multer.diskStorage({
         cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
-
-const upload = multer({ storage: storage });
+const uploadImage = multer({ storage: imageStorage });
 
 // ==========================================
-// 🚀 Routes
+// 📊 2. สำหรับ Excel (เก็บใน RAM ชั่วคราว - ปลอดภัยกว่า)
+// ==========================================
+const excelUpload = multer({ storage: multer.memoryStorage() });
+
+// ==========================================
+// 🚀 Routes (Global Middleware)
 // ==========================================
 
-router.use(authenticate);
-router.use(isAdmin);
+router.use(authenticate); // ทุก Route ด้านล่างต้อง Login
+router.use(isAdmin);      // ทุก Route ด้านล่างต้องเป็น Admin
 
+// --- จัดการภาพยนตร์ ---
 router.get('/search-tmdb', adminController.searchTMDB);
 router.post('/movies/add-tmdb', adminController.addMovieFromTMDB);
-router.post('/movies', upload.single('poster'), adminController.createMovie);
+router.post('/movies', uploadImage.single('poster'), adminController.createMovie);
 router.get('/movies', adminController.getAllMovies);
 router.delete('/movies/:id', adminController.deleteMovie);
-router.put('/movies/:id', upload.single('poster'), adminController.updateMovie);
+router.put('/movies/:id', uploadImage.single('poster'), adminController.updateMovie);
 
 // --- ส่วนสถิติและรายงาน ---
 router.get('/stats', adminController.getDashboardStats);
 router.get('/bookings', adminController.getAllBookings);
+router.get('/reports', adminController.getReports);
+router.get('/logs', adminController.getSystemLogs);
 
 // --- ส่วนจัดการผู้ใช้และ Admin ---
 router.get('/users', adminController.getAllUsers);
-router.get('/reports', adminController.getReports);
 router.get('/list', adminController.getAllAdmins);
 router.post('/add', adminController.addAdmin);
 router.post('/promote', adminController.promoteAdmin);
 router.delete('/delete/:id', adminController.deleteAdmin);
-router.get('/logs', authenticate, isAdmin, adminController.getSystemLogs);
+
+// --- 🌟 ใหม่: นำเข้า Excel 🌟 ---
+router.post('/import-excel', 
+    excelUpload.single('file'), 
+    adminController.importMoviesFromExcel
+);
 
 module.exports = router;

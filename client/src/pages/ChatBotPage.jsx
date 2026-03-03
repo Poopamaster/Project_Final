@@ -2,14 +2,13 @@
 import React, { useContext, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { Mic, Send, Bot, Trash2, Paperclip, Loader2 } from 'lucide-react';
+import { Mic, Send, Bot, Trash2, Paperclip, Loader2, X } from 'lucide-react'; // เพิ่ม X สำหรับลบ Preview
 import { AuthContext } from '../App';
 import HeroSection from '../components/HeroSection';
 import { useChatHistory, useChatInput, useInitialMessageProcessor } from '../hooks/useChatBotLogic';
 import { sendMessageToBot } from '../api/chatbotApi';
 import '../css/ChatBotPage.css';
 
-// ✅ Import Registry (ตัวรวม Component เช่น MovieCarousel, SeatSelector)
 import { COMPONENT_REGISTRY } from '../components/ChatVisuals';
 
 const ChatBotPage = ({ isEmbedded = false }) => {
@@ -17,8 +16,14 @@ const ChatBotPage = ({ isEmbedded = false }) => {
   const location = useLocation();
   const { user } = useContext(AuthContext);
 
+  // ✅ Hook 1: ดึง State พื้นฐาน
   const { messages, setMessages, isLoading, setIsLoading, messagesEndRef, clearChat } = useChatHistory(user);
-  const { inputText, setInputText, selectedImage, imagePreview, isListening, handleFileSelect, clearImage, toggleListening, fileInputRef } = useChatInput();
+  
+  // ✅ Hook 2: ส่ง Setter เข้าไปเพื่อให้ Hook จัดการอัปโหลด Excel เองได้ภายในตัว
+  const { 
+    inputText, setInputText, selectedImage, imagePreview, isListening, 
+    handleFileSelect, clearImage, toggleListening, fileInputRef 
+  } = useChatInput(setMessages, setIsLoading);
 
   const convertToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -33,32 +38,37 @@ const ChatBotPage = ({ isEmbedded = false }) => {
     const textToSend = typeof textOverride === 'string' ? textOverride : inputText;
     if (!textToSend?.trim() && !selectedImage) return;
 
-    // เพิ่มข้อความฝั่ง User
+    // เพิ่มข้อความฝั่ง User (รวมรูปภาพถ้ามี)
     const userMsg = { id: Date.now(), sender: 'user', text: textToSend, image: imagePreview };
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
-    clearImage();
+    clearImage(); // ล้าง Preview รูปหลังส่ง
     setIsLoading(true);
 
     try {
       let base64Image = selectedImage ? await convertToBase64(selectedImage) : null;
-      // ส่งไปหา API
       const data = await sendMessageToBot(textToSend, base64Image);
-      // เพิ่มข้อความตอบกลับจาก Bot
-      setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: data.reply }]);
+      
+      setMessages(prev => [...prev, { 
+        id: Date.now() + 1, 
+        sender: 'bot', 
+        text: data.reply 
+      }]);
     } catch (error) {
       console.error("Chat Error:", error);
-      setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: '⚠️ ระบบเกิดข้อผิดพลาด' }]);
+      setMessages(prev => [...prev, { 
+        id: Date.now() + 1, 
+        sender: 'bot', 
+        text: '⚠️ ระบบเกิดข้อผิดพลาดในการส่งข้อความ' 
+      }]);
     } finally {
       setIsLoading(false);
     }
-  }, [inputText, selectedImage, imagePreview, user, setMessages, setInputText, setIsLoading, clearImage]);
+  }, [inputText, selectedImage, imagePreview, setMessages, setInputText, setIsLoading, clearImage]);
 
   const isReloading = useInitialMessageProcessor(location, user, handleSendMessage);
 
-  // --- 🔥 CORE: ฟังก์ชันแปลงข้อความธรรมดาเป็น Visual UI ---
   const renderMessageContent = (msg) => {
-    // 1. ตรวจจับ Tag ::VISUAL:: เฉพาะข้อความจาก Bot
     if (msg.sender === 'bot' && msg.text && msg.text.includes('::VISUAL::')) {
       try {
         const [textPart, jsonPart] = msg.text.split('::VISUAL::');
@@ -66,15 +76,12 @@ const ChatBotPage = ({ isEmbedded = false }) => {
         const VisualComponent = COMPONENT_REGISTRY[visualData.type];
 
         return (
-          <div className="message-content-visual" style={{ width: '100%', maxWidth: '100%' }}>
-            {/* แสดงข้อความนำเรื่อง (ถ้ามี) */}
+          <div className="message-content-visual" style={{ width: '100%' }}>
             {textPart && <div className="message-bubble">{textPart}</div>}
-
-            {/* แสดง Component Visual */}
             {VisualComponent ? (
               <VisualComponent
                 data={visualData.data || visualData}
-                onAction={handleSendMessage} // ส่งฟังก์ชันตอบกลับให้ component กดปุ่มแล้วส่งข้อความได้เลย
+                onAction={handleSendMessage}
               />
             ) : (
               <div className="message-bubble text-red-400">⚠️ ไม่รองรับรูปแบบ {visualData.type}</div>
@@ -82,45 +89,32 @@ const ChatBotPage = ({ isEmbedded = false }) => {
           </div>
         );
       } catch (e) {
-        console.error("Visual Parse Error", e);
-        // กรณี Parse พัง ให้แสดง text ธรรมดา
         return <div className="message-bubble">{msg.text}</div>;
       }
     }
 
-    // 2. ข้อความปกติ
     return (
-      <div className={`message-bubble ${msg.text.startsWith('🛠️') ? 'admin-msg' : ''}`}>
-        {msg.text.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
+      <div className={`message-bubble ${msg.text?.startsWith('🛠️') ? 'admin-msg' : ''}`}>
+        {msg.text?.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
       </div>
     );
   };
-
-  const customSidebarItem = (
-    <div className="nav-item" onClick={clearChat} style={{ cursor: 'pointer', color: '#ef4444' }}>
-      <Trash2 size={20} /> <span>ล้างประวัติ</span>
-    </div>
-  );
 
   if (isReloading) return <div className="chatbot-container full-loader"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className={`chatbot-main-wrapper ${isEmbedded ? 'is-embedded' : ''}`}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: isEmbedded ? '100%' : '100vh',
-        width: '100%',
-        overflow: 'hidden',
-        background: isEmbedded ? 'transparent' : '#0f172a'
+        display: 'flex', flexDirection: 'column',
+        height: isEmbedded ? '100%' : '100vh', width: '100%',
+        overflow: 'hidden', background: isEmbedded ? 'transparent' : '#0f172a'
       }}>
 
-      {!isEmbedded && <Navbar sidebarContent={customSidebarItem} />}
+      {!isEmbedded && <Navbar sidebarContent={<div className="nav-item" onClick={clearChat} style={{ cursor: 'pointer', color: '#ef4444' }}><Trash2 size={20} /> <span>ล้างประวัติ</span></div>} />}
 
-      <div className="chatbot-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div className="chatbot-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <main className="chat-window" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-
-          {/* แสดง Header เฉพาะหน้า User ปกติ */}
+          
           {!isEmbedded && (
             <header className="chat-header">
               <div className="header-left">
@@ -131,34 +125,26 @@ const ChatBotPage = ({ isEmbedded = false }) => {
           )}
 
           <div className="messages-area" style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-            {/* 🛠️ แก้ไขตรงนี้: ถ้าเป็นหน้า Admin (isEmbedded) ไม่ต้องโชว์ HeroSection ขนาดใหญ่ */}
             {messages.length <= 0 && !isEmbedded ? (
-              <div className="hero-wrapper">
-                <HeroSection
-                  handleSendMessage={handleSendMessage}
-                  inputText={inputText}
-                  setInputText={setInputText}
-                  toggleListening={toggleListening}
-                  isListening={isListening}
-                  isLoading={isLoading}
-                />
-              </div>
+              <HeroSection 
+                handleSendMessage={handleSendMessage} 
+                inputText={inputText} setInputText={setInputText} 
+                toggleListening={toggleListening} isListening={isListening} isLoading={isLoading}
+              />
             ) : (
               <>
                 {messages.length === 0 && isEmbedded && (
                   <div className="empty-chat-hint" style={{ textAlign: 'center', marginTop: '100px', color: '#64748b' }}>
                     <Bot size={48} style={{ marginBottom: '10px', opacity: 0.5 }} />
-                    <p>สวัสดีครับ Admin มีอะไรให้ CineBot ช่วยจัดการระบบไหมครับ?</p>
+                    <p>สวัสดีครับ Admin พร้อมจัดการไฟล์ Excel หรือยังครับ?</p>
                   </div>
                 )}
-
                 {messages.length > 0 && <div className="date-divider"><span>การสนทนาในวันนี้</span></div>}
-
                 {messages.map((msg) => (
                   <div key={msg.id} className={`message-row ${msg.sender}`}>
                     {msg.sender === 'bot' && <div className="bot-icon-chat"><Bot size={20} /></div>}
                     <div className="message-content-wrapper">
-                      {msg.image && <img src={msg.image} alt="uploaded" className="chat-image-bubble" />}
+                      {msg.image && <img src={msg.image} alt="uploaded" className="chat-image-bubble" style={{ maxWidth: '200px', borderRadius: '10px', marginBottom: '5px' }} />}
                       {renderMessageContent(msg)}
                     </div>
                   </div>
@@ -174,36 +160,43 @@ const ChatBotPage = ({ isEmbedded = false }) => {
             )}
           </div>
 
-          {/* ส่วนท้าย: ช่องกรอกข้อความ */}
+          {/* Input Area */}
           <div className="chat-footer" style={{ padding: '20px', background: isEmbedded ? 'rgba(30, 41, 59, 0.5)' : 'transparent' }}>
+            {/* Image Preview ก่อนส่ง */}
+            {imagePreview && (
+              <div className="image-preview-container" style={{ position: 'relative', width: 'fit-content', marginBottom: '10px' }}>
+                <img src={imagePreview} alt="preview" style={{ height: '60px', borderRadius: '8px', border: '2px solid #3b82f6' }} />
+                <button onClick={clearImage} style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#ef4444', borderRadius: '50%', padding: '2px', color: 'white' }}><X size={14} /></button>
+              </div>
+            )}
+
             <div className="shortcut-container">
               {user?.role === 'admin' && (
-                <button className="shortcut-chip admin-chip" onClick={() => setInputText('/addmovie ')}>
-                  ⚡ คำสั่ง Admin
-                </button>
+                <button className="shortcut-chip admin-chip" onClick={() => setInputText('/addmovie ')}>⚡ คำสั่ง Admin</button>
               )}
               {["📽️ หนังเข้าใหม่", "📍 โรงหนังใกล้ฉัน"].map((text, idx) => (
                 <button key={idx} className="shortcut-chip" onClick={() => handleSendMessage(text)} disabled={isLoading}>{text}</button>
               ))}
             </div>
 
-            <div className="input-container" style={{ background: '#1e293b', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileSelect} />
+            <div className="input-container" style={{ background: '#1e293b', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', padding: '5px 15px' }}>
+              {/* ✅ แก้ไข: เพิ่ม .xlsx ใน accept */}
+              <input type="file" ref={fileInputRef} hidden accept="image/*,.xlsx" onChange={handleFileSelect} />
               <button className="attach-btn" onClick={() => fileInputRef.current.click()}><Paperclip size={20} /></button>
 
               <input
                 type="text"
-                placeholder="พิมพ์คำสั่งหรือข้อความ..."
+                placeholder={user?.role === 'admin' ? "พิมพ์ข้อความหรือแนบไฟล์ Excel..." : "พิมพ์ข้อความ..."}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
                 disabled={isLoading}
-                className={isListening ? "listening-mode" : ""}
+                style={{ flex: 1, background: 'transparent', border: 'none', color: 'white', padding: '10px', outline: 'none' }}
               />
 
-              <div className="input-actions">
-                <button className={`action-icon mic ${isListening ? 'active' : ''}`} onClick={toggleListening}><Mic size={20} /></button>
-                <button className="send-btn" onClick={() => handleSendMessage()} disabled={isLoading || (!inputText.trim() && !selectedImage)}>
+              <div className="input-actions" style={{ display: 'flex', gap: '10px' }}>
+                <button className={`action-icon mic ${isListening ? 'active' : ''}`} onClick={toggleListening} style={{ color: isListening ? '#ef4444' : '#94a3b8' }}><Mic size={20} /></button>
+                <button className="send-btn" onClick={() => handleSendMessage()} disabled={isLoading || (!inputText.trim() && !selectedImage)} style={{ color: '#3b82f6' }}>
                   <Send size={18} />
                 </button>
               </div>

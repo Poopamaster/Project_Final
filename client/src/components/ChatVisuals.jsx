@@ -222,11 +222,114 @@ export const DigitalTicket = ({ data }) => (
   </div>
 );
 
-// Map ชื่อ Component ให้ตรงกับ Backend
+// 6. Bulk Import Preview Grid (สำหรับ Admin ตรวจสอบไฟล์ Excel)
+export const BulkImportGrid = ({ data, onAction }) => {
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // ข้อมูลหนังที่ส่งมาจาก Backend (Parsed from Excel)
+  const movies = Array.isArray(data) ? data : (data?.movies || []);
+  const total = movies.length;
+  // ตรวจสอบเบื้องต้นว่ามี Row ไหนข้อมูลไม่ครบไหม
+  const errors = movies.filter(m => !m.title_th || !m.genre).length;
+
+  const handleConfirm = () => {
+    setIsSubmitted(true);
+    // ส่ง Action กลับไปหา AI เพื่อบันทึกลง Database
+    onAction(`ยืนยันบันทึกข้อมูลหนัง ${total} เรื่องจากไฟล์ Excel ลงระบบ`);
+  };
+
+  return (
+    <div style={{
+      background: '#1E293B',
+      borderRadius: '16px',
+      border: '1px solid #334155',
+      width: '100%',
+      maxWidth: '600px',
+      marginTop: '10px',
+      overflow: 'hidden',
+      boxShadow: '0 4px 25px rgba(0,0,0,0.4)'
+    }}>
+      {/* Header */}
+      <div style={{ padding: '15px 20px', background: '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Film size={18} color="#3b82f6" />
+          <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>พรีวิวรายการนำเข้า ({total})</span>
+        </div>
+        {errors > 0 && (
+          <span style={{ fontSize: '0.7rem', color: '#f87171', background: 'rgba(248, 113, 113, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+            พบข้อผิดพลาด {errors} จุด
+          </span>
+        )}
+      </div>
+
+      {/* Table Area */}
+      <div style={{ maxHeight: '250px', overflowY: 'auto', background: '#0f172a' }} className="no-scrollbar">
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+          <thead style={{ position: 'sticky', top: 0, background: '#1e293b', color: '#94a3b8' }}>
+            <tr>
+              <th style={{ padding: '12px' }}>ชื่อภาษาไทย</th>
+              <th style={{ padding: '12px' }}>หมวดหมู่</th>
+              <th style={{ padding: '12px' }}>ราคา</th>
+              <th style={{ padding: '12px' }}>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {movies.map((movie, idx) => (
+              <tr key={idx} style={{ borderBottom: '1px solid #1e293b', color: '#e2e8f0' }}>
+                <td style={{ padding: '12px' }}>{movie.title_th || <span style={{ color: '#f87171' }}>ข้อมูลหาย!</span>}</td>
+                <td style={{ padding: '12px', color: '#94a3b8' }}>{movie.genre || 'N/A'}</td>
+                <td style={{ padding: '12px', color: '#3b82f6' }}>{movie.price || 220}</td>
+                <td style={{ padding: '12px' }}>
+                  {!movie.title_th ? '❌' : '✅'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer / Action */}
+      <div style={{ padding: '20px', background: '#1E293B', borderTop: '1px solid #334155' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            disabled={isSubmitted || errors > 0}
+            onClick={handleConfirm}
+            style={{
+              flex: 2,
+              background: errors > 0 ? '#475569' : 'linear-gradient(90deg, #3b82f6, #2563eb)',
+              color: 'white',
+              border: 'none',
+              padding: '12px',
+              borderRadius: '10px',
+              fontWeight: 600,
+              cursor: errors > 0 ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              transition: 'all 0.2s'
+            }}
+          >
+            {isSubmitted ? 'กำลังบันทึก...' : 'ยืนยันนำเข้าข้อมูล'}
+          </button>
+          <button
+            onClick={() => onAction("ยกเลิกการนำเข้า")}
+            style={{ flex: 1, background: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '12px', borderRadius: '10px', cursor: 'pointer' }}
+          >
+            ยกเลิก
+          </button>
+        </div>
+        <p style={{ margin: '12px 0 0 0', fontSize: '0.65rem', color: '#64748b', textAlign: 'center' }}>
+          * ข้อมูลจะถูกบันทึกเข้าคอลเลกชัน Movies ของระบบทันที
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// 🛠️ อัปเดต REGISTRY เป็นชุดสุดท้าย
 export const COMPONENT_REGISTRY = {
   'MOVIE_CAROUSEL': MovieCarousel,
   'SHOWTIME_SELECTOR': ShowtimeSelector,
-  'SEAT_SELECTOR': SeatMap,  // เปลี่ยนชื่อให้ตรงกับ Design ใหม่
+  'SEAT_SELECTOR': SeatMap,
   'PAYMENT_SLIP': PaymentCard,
-  'TICKET_SLIP': DigitalTicket
+  'TICKET_SLIP': DigitalTicket,
+  'BULK_IMPORT_GRID': BulkImportGrid // ✅ เพิ่มตัวนี้สำหรับการจัดการ Excel
 };

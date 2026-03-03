@@ -3,6 +3,8 @@ const Booking = require('../models/bookingModel');
 const User = require('../models/userModel');
 const Feedback = require('../models/feedbackModel'); // เพิ่มตัวนี้สำหรับหน้า Report
 const Log = require('../models/logSystemModel'); // สำหรับระบบ Log
+const ExcelJS = require('exceljs');
+const { chatWithAI } = require('../services/aiService');
 const axios = require('axios');
 
 // 1. ค้นหาหนังจาก TMDB
@@ -314,5 +316,65 @@ exports.getSystemLogs = async (req, res) => {
         res.json({ success: true, data: logs, total });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+exports.importMoviesFromExcel = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "กรุณาแนบไฟล์ Excel (.xlsx)" });
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(req.file.buffer);
+        const worksheet = workbook.getWorksheet(1); // อ่าน Sheet แรก
+
+        const movies = [];
+        
+        // วนลูปอ่านข้อมูลจากแถว (เริ่มแถวที่ 2 ข้าม Header)
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber > 1) {
+                const movieData = {
+                    title_th: row.getCell(1).text?.trim(),
+                    title_en: row.getCell(2).text?.trim(),
+                    genre: row.getCell(3).text?.trim(),
+                    duration_min: parseInt(row.getCell(4).value) || 120,
+                    language: row.getCell(5).text?.trim() || 'EN/TH',
+                    description: row.getCell(6).text?.trim() || ''
+                };
+
+                // เก็บเฉพาะแถวที่มีชื่อหนังภาษาไทย (ป้องกันแถวว่าง)
+                if (movieData.title_th) {
+                    movies.push(movieData);
+                }
+            }
+        });
+
+        if (movies.length === 0) {
+            return res.status(400).json({ success: false, message: "ไม่พบข้อมูลหนังในไฟล์" });
+        }
+
+        // 🧠 ส่งข้อมูล JSON ที่ได้ให้ Gemini สรุปและสร้าง Visual Preview
+        // จำลองว่า Admin เป็นคนส่งข้อความ "นำเข้าไฟล์ Excel" พร้อมแนบข้อมูล
+        const adminUser = { id: req.user?._id || 'admin_id', role: 'admin' };
+        const aiMessage = `นำเข้าข้อมูลหนังจาก Excel จำนวน ${movies.length} เรื่อง ดังนี้: ${JSON.stringify(movies)}`;
+        
+        // เรียกใช้ aiService (ตัวเดียวกับที่แชทปกติ)
+        const aiResponse = await chatWithAI(
+            adminUser, 
+            aiMessage, 
+            null, 
+            ['bulk_add_movies'] // อนุญาตให้ใช้ Tool บันทึกหนัง
+        );
+
+        res.status(200).json({ 
+            success: true, 
+            message: "อ่านไฟล์สำเร็จและส่งให้ AI ตรวจสอบแล้ว",
+            aiResponse: aiResponse // ส่ง Visual Tag กลับไปให้ Frontend Render ตาราง
+        });
+
+    } catch (error) {
+        console.error("❌ Excel Import Error:", error);
+        res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการประมวลผลไฟล์" });
     }
 };
