@@ -8,6 +8,7 @@ import { Search, Download } from 'lucide-react'; // 👈 เพิ่ม Downloa
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 
 // ==========================================
 // 1. STYLES & THEME (ปรับให้ดู Soft ลง)
@@ -164,9 +165,8 @@ export default function DarkLogTable() {
     try {
       const token = localStorage.getItem('jwtToken');
       // ใช้ Template Literal (Backticks `) ในการต่อ String
-      const response = await axios.get(`${API_URL}/api/admin/logs`, {
+      const response = await axiosInstance.get('/admin/logs', {
         params: { page: page, limit: rowsPerPage, search: searchTerm },
-        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {

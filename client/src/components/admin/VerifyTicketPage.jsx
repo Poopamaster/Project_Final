@@ -1,8 +1,8 @@
 // src/components/admin/VerifyTicketPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
 import '../../css/VerifyTicketPage.css';
+import axiosInstance from '../../api/axiosInstance';
 
 const VerifyTicketPage = () => {
     const { bookingNumber: urlBookingNumber } = useParams();
@@ -38,11 +38,7 @@ const VerifyTicketPage = () => {
             }
 
             // 3. ส่ง Request ไปยัง API พร้อมกับ Authorization Header
-            const response = await axios.get(`${apiUrl}/api/bookings/verify/${bookingRef}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await axiosInstance.get(`/bookings/verify/${bookingRef}`);
 
             setVerifyResult(response.data);
             setLoading(false);
