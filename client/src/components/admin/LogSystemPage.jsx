@@ -158,10 +158,13 @@ export default function DarkLogTable() {
     fetchLogs();
   }, [page, rowsPerPage]);
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const fetchLogs = async () => {
     try {
       const token = localStorage.getItem('jwtToken');
-      const response = await axios.get(`http://localhost:5000/api/admin/logs`, {
+      // ใช้ Template Literal (Backticks `) ในการต่อ String
+      const response = await axios.get(`${API_URL}/api/admin/logs`, {
         params: { page: page, limit: rowsPerPage, search: searchTerm },
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -183,17 +186,17 @@ export default function DarkLogTable() {
     if (logs.length === 0) return alert("ไม่มีข้อมูลสำหรับ Export");
 
     const headers = ["Level", "Timestamp", "Actor", "Table", "Action", "Detail/Note"];
-    
+
     const csvData = logs.map(row => {
       const level = row.level || 'INFO';
       const time = dayjs(row.timestamp).format('YYYY-MM-DD HH:mm:ss');
       const actor = row.actor?.email || 'System';
       const table = row.context?.table || '-';
       const action = row.context?.action || '-';
-      
+
       let detail = row.note || '';
       if (action === 'chat') detail = `User: ${row.content?.user_message || ''}`;
-      
+
       // ป้องกัน Error คอมม่าในข้อความ ด้วยการครอบ " "
       return `"${level}","${time}","${actor}","${table}","${action}","${detail.replace(/"/g, '""')}"`;
     });
@@ -202,7 +205,7 @@ export default function DarkLogTable() {
     // ใส่ \uFEFF (Byte Order Mark) เพื่อให้ Excel อ่านภาษาไทยได้ถูกต้อง
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     link.download = `System_Logs_${dayjs().format('YYYYMMDD_HHmm')}.csv`;
@@ -213,7 +216,7 @@ export default function DarkLogTable() {
 
   // ฟังก์ชันแยกสี Level
   const getLevelColor = (level) => {
-    switch(level) {
+    switch (level) {
       case 'ERROR': return { bg: '#4a1919', text: '#ff5252' };
       case 'WARN': return { bg: '#4a3f19', text: '#ffb74d' };
       default: return { bg: '#193c4a', text: '#4dd0e1' };
@@ -241,11 +244,11 @@ export default function DarkLogTable() {
           size="small"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyDown={(e) => { 
+          onKeyDown={(e) => {
             if (e.key === 'Enter') {
               setPage(0); // กลับไปหน้า 1
               fetchLogs(); // ค้นหา
-            } 
+            }
           }}
           sx={{
             width: '300px',
@@ -254,17 +257,17 @@ export default function DarkLogTable() {
           }}
           InputProps={{ startAdornment: <InputAdornment position="start"><Search size={16} /></InputAdornment> }}
         />
-        
+
         <Box sx={{ flexGrow: 1 }} />
-        
+
         <Typography variant="body2" sx={{ color: theme.textDim, mr: 2 }}>
           พบข้อมูลทั้งหมด <strong>{totalLogs}</strong> รายการ
         </Typography>
 
         {/* 📥 ปุ่ม Export */}
-        <Button 
-          variant="contained" 
-          startIcon={<Download size={16} />} 
+        <Button
+          variant="contained"
+          startIcon={<Download size={16} />}
           onClick={handleExportCSV}
           sx={{ bgcolor: theme.accent, '&:hover': { bgcolor: '#006bb3' }, textTransform: 'none', fontSize: '13px', height: '36px', boxShadow: 'none' }}
         >
@@ -290,10 +293,10 @@ export default function DarkLogTable() {
               return (
                 <TableRow key={row._id} hover sx={{ '&:hover': { bgcolor: `${theme.hover} !important` } }}>
                   <TableCell sx={cellStyle}>
-                    <Chip 
-                      label={row.level || 'INFO'} 
-                      size="small" 
-                      sx={{ bgcolor: levelStyle.bg, color: levelStyle.text, fontWeight: 'bold', fontSize: '10px', height: 22, borderRadius: 1 }} 
+                    <Chip
+                      label={row.level || 'INFO'}
+                      size="small"
+                      sx={{ bgcolor: levelStyle.bg, color: levelStyle.text, fontWeight: 'bold', fontSize: '10px', height: 22, borderRadius: 1 }}
                     />
                   </TableCell>
                   <TableCell sx={cellStyle}>
@@ -378,10 +381,10 @@ export default function DarkLogTable() {
               <Box>
                 <Typography sx={{ color: '#007fd4', fontWeight: 'bold', mb: 1, fontSize: '13px' }}>🛠️ Tools ที่ใช้ทำงาน:</Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {selectedLogData.tools_used?.length > 0 ? 
+                  {selectedLogData.tools_used?.length > 0 ?
                     selectedLogData.tools_used.map(tool => (
                       <Chip key={tool} label={tool} size="small" sx={{ bgcolor: 'rgba(0, 127, 212, 0.1)', color: '#4fc1ff', border: '1px solid #007fd4' }} />
-                    )) 
+                    ))
                     : <Typography sx={{ color: theme.textDim, fontSize: '13px' }}>ไม่มีการใช้ Tools</Typography>
                   }
                 </Box>

@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // ตรวจสอบ URL ให้ตรงกับ Backend ของคุณ
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Helper สำหรับดึง Token
 const getAuthHeaders = () => {
