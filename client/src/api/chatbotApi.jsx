@@ -1,8 +1,8 @@
 // src/api/chatbotApi.js
-import axios from 'axios';
+import axiosInstance from './axiosInstance';
 
 // ตรวจสอบ URL ให้ตรงกับ Backend ของคุณ
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Helper สำหรับดึง Token
 const getAuthHeaders = () => {
@@ -19,10 +19,9 @@ const getAuthHeaders = () => {
 // 1. ส่งข้อความ (คุยกับ Bot)
 export const sendMessageToBot = async (message, imageBase64 = null) => {
     try {
-        const response = await axios.post(
-            `${API_URL}/chatbot/chat`,
-            { message, image: imageBase64 },
-            getAuthHeaders()
+        const response = await axiosInstance.post(
+            `/chatbot/chat`, // ❌ ไม่ต้องใส่ ${API_URL} แล้ว เพราะ axiosInstance จัดการให้
+            { message, image: imageBase64 }
         );
         return response.data;
     } catch (error) {
@@ -33,8 +32,8 @@ export const sendMessageToBot = async (message, imageBase64 = null) => {
 // 2. ✅ ดึงประวัติการสนทนา (GET)
 export const getChatHistory = async () => {
     try {
-        const response = await axios.get(`${API_URL}/chatbot/chathistory`, getAuthHeaders());
-        return response.data; // ส่งกลับเป็น Array ของ messages
+        const response = await axiosInstance.get(`/chatbot/chathistory`); 
+        return response.data;
     } catch (error) {
         console.error("Error fetching history:", error);
         return [];
@@ -44,7 +43,7 @@ export const getChatHistory = async () => {
 // 3. ✅ ล้างประวัติ (DELETE)
 export const clearChatHistory = async () => {
     try {
-        await axios.delete(`${API_URL}/chatbot/chathistory`, getAuthHeaders());
+        await axiosInstance.delete(`/chatbot/chathistory`);
         return true;
     } catch (error) {
         console.error("Error clearing history:", error);
@@ -54,17 +53,17 @@ export const clearChatHistory = async () => {
 
 export const importExcelMovies = async (file) => {
     try {
-        const token = localStorage.getItem('jwtToken');
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await axios.post(
-            `${API_URL}/admin/import-excel`, // ใช้ API_URL เดียวกัน (พอร์ต 5000)
+        // ✅ ใช้ axiosInstance แทน axios เพียวๆ
+        const response = await axiosInstance.post(
+            '/admin/import-excel', 
             formData,
             {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data' // ต้องระบุเป็น multipart สำหรับไฟล์
+                    // ✅ ไม่ต้องใส่ Authorization เองแล้ว เพราะ axiosInstance ใส่ให้จาก localStorage แล้ว
+                    'Content-Type': 'multipart/form-data' 
                 }
             }
         );

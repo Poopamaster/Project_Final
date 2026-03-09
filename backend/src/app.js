@@ -20,7 +20,7 @@ const app = express();
 
 // 1. ✅ CORS ต้องอยู่บนสุด เพื่ออนุญาตให้ Frontend คุยกับ Backend
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173', // ระบุ URL ของ Frontend ให้ชัดเจน
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173' || 'http://localhost:8000', // ระบุ URL ของ Frontend ให้ชัดเจน
     credentials: true
 }));
 
