@@ -8,10 +8,11 @@ export default defineConfig(({ mode }) => {
     plugins: [react()], 
     server: {
       headers: {
-        // ✅ ป้องกัน Error COOP ในเครื่อง Local
         'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       },
       host: true,
+      // ✅ เพิ่มบรรทัดนี้เพื่อแก้ Blocked request ในโหมด dev (ถ้ามี)
+      allowedHosts: true, 
       proxy: {
         '/api': {
           target: env.VITE_API_URL || 'http://localhost:5000',
@@ -19,6 +20,10 @@ export default defineConfig(({ mode }) => {
           secure: false,
         },
       }
+    },
+    // ✅ เพิ่มส่วนนี้เข้าไป (สำคัญมากสำหรับ Railway)
+    preview: {
+      allowedHosts: true // หรือใส่ ['profound-enchantment-production-90c0.up.railway.app']
     }
   }
 })
