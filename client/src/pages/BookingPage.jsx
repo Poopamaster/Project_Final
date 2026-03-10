@@ -67,7 +67,6 @@ const BookingPage = () => {
 
     // 2. Filter รอบฉายตามวันที่
     useEffect(() => {
-        console.log("🛠️ All Showtimes Raw:", allShowtimes); // เช็คว่าข้อมูลมาถึงมั้ย
 
         // Reset ค่า
         setSelectedShowtime(null);
@@ -97,8 +96,6 @@ const BookingPage = () => {
 
                 return true;
             });
-
-            console.log("✅ Filtered Showtimes:", filtered); // ดูว่าเหลือรอดกี่รอบ
 
             // เรียงเวลา
             filtered.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
