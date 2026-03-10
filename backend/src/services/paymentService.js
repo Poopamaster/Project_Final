@@ -8,39 +8,47 @@ const omise = require('omise')({
 
 exports.createPromptPayQR = async (amount, bookingId) => {
     // 1. Validation Logic
-    const amountFloat = parseFloat(amount);
-    if (isNaN(amountFloat) || amountFloat < 20) {
-        throw new Error("จำนวนเงินต้องไม่ต่ำกว่า 20 บาท");
+    try {
+        const amountFloat = parseFloat(amount);
+        if (isNaN(amountFloat) || amountFloat < 20) {
+            throw new Error("จำนวนเงินต้องไม่ต่ำกว่า 20 บาท");
+        }
+        if (!bookingId) {
+            throw new Error("ระบุ Booking ID ด้วยครับ");
+        }
+
+        const amountInSatang = Math.round(amountFloat * 100);
+
+        // 2. Omise API Logic
+        const charge = await omise.charges.create({
+            amount: amountInSatang,
+            currency: 'THB',
+            source: { type: 'promptpay' },
+            // ตรวจสอบให้แน่ใจว่าค่านี้เป็น HTTPS เมื่ออยู่บน Production
+            return_uri: process.env.FRONTEND_URL
+                ? `${process.env.FRONTEND_URL}/payment/success`
+                : 'http://localhost:5173/payment/success'
+        });
+
+        // 3. Database Logic
+        const newPayment = await Payment.create({
+            booking_id: bookingId,
+            charge_id: charge.id,
+            amount: amountFloat,
+            method: 'PromptPay',
+            status: 'pending'
+        });
+
+        // Return ข้อมูลที่จำเป็นกลับไป
+        return {
+            qrCodeUrl: charge.source.scannable_code.image.download_uri,
+            chargeId: charge.id,
+            paymentData: newPayment
+        };
+    } catch (err) {
+        console.error("Omise Create Charge Error:", err);
+        throw err; // ส่งต่อ error ไปให้ controller จัดการต่อ
     }
-    if (!bookingId) {
-        throw new Error("ระบุ Booking ID ด้วยครับ");
-    }
-
-    const amountInSatang = Math.round(amountFloat * 100);
-
-    // 2. Omise API Logic
-    const charge = await omise.charges.create({
-        amount: amountInSatang,
-        currency: 'THB',
-        source: { type: 'promptpay' },
-        return_uri: process.env.FRONTEND_URL || 'http://localhost:5173/payment/success' // แนะนำให้ใส่เป็น Env
-    });
-
-    // 3. Database Logic
-    const newPayment = await Payment.create({
-        booking_id: bookingId,
-        charge_id: charge.id,
-        amount: amountFloat,
-        method: 'PromptPay',
-        status: 'pending'
-    });
-
-    // Return ข้อมูลที่จำเป็นกลับไป
-    return {
-        qrCodeUrl: charge.source.scannable_code.image.download_uri,
-        chargeId: charge.id,
-        paymentData: newPayment
-    };
 };
 
 exports.checkChargeStatus = async (chargeId) => {

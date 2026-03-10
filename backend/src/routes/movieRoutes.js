@@ -13,8 +13,7 @@ const { authenticate, isAdmin } = require('../middleware/authMiddleware');
 router.post('/', authenticate, isAdmin, createMovie);
 
 // 2. ดึงหนังทั้งหมด (ใช้ในหน้าจัดการหนัง)
-// ใส่แค่ authenticate เพื่อให้ Staff/Admin เข้าดูได้
-router.get('/', authenticate, getAllMovies);
+router.get('/', getAllMovies);
 
 // 3. ดูหนังที่ฉายอยู่ (Public - หน้าแรกของเว็บ)
 router.get('/now-showing', getNowShowingMovies);
