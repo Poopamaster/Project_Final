@@ -10,10 +10,11 @@ const ALL_TOOLS_CONFIG = {
     get_showtimes: { name: "get_showtimes", description: "ดึงรอบฉาย" },
     select_seat: { name: "select_seat", description: "เลือกที่นั่ง" },
     confirm_booking: { name: "confirm_booking", description: "ยืนยันการจองและชำระเงิน" },
+    issue_ticket: { name: "issue_ticket", description: "ออกตั๋วภาพยนตร์" }, // ✅ เพิ่มตัวนี้!
 
     // Tools สำหรับ Admin
     add_movie: { name: "add_movie", description: "เพิ่มหนังใหม่" },
-    bulk_add_movies: { name: "bulk_add_movies", description: "นำเข้าหนังหลายเรื่องพร้อมกัน" }, // ✅ เพิ่มตัวนี้
+    bulk_add_movies: { name: "bulk_add_movies", description: "นำเข้าหนังหลายเรื่องพร้อมกัน" }, 
     delete_movie: { name: "delete_movie", description: "ลบหนัง" },
     count_total_movies: { name: "count_total_movies", description: "นับจำนวนหนัง" }
 };
@@ -26,7 +27,8 @@ const ROLE_PERMISSIONS = {
         'get_branches', 
         'get_showtimes', 
         'select_seat', 
-        'confirm_booking'
+        'confirm_booking',
+        'issue_ticket' // ✅ เพิ่มตัวนี้!
     ], 
     // Admin ก็ควรจะจองได้เช่นกัน
     admin: [
@@ -36,6 +38,7 @@ const ROLE_PERMISSIONS = {
         'get_showtimes', 
         'select_seat', 
         'confirm_booking', 
+        'issue_ticket', // ✅ เพิ่มตัวนี้!
         'add_movie', 
         'bulk_add_movies',
         'delete_movie', 

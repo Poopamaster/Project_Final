@@ -69,11 +69,27 @@ const ChatBotPage = ({ isEmbedded = false }) => {
   const isReloading = useInitialMessageProcessor(location, user, handleSendMessage);
 
   const renderMessageContent = (msg) => {
-    if (msg.sender === 'bot' && msg.text && msg.text.includes('::VISUAL::')) {
-      try {
-        const [textPart, rawJsonPart] = msg.text.split('::VISUAL::');
+    let actualText = msg.text || '';
 
-        // 🛡️ ค้นหาปีกกาเปิด { และปิด } เพื่อดึงเฉพาะ JSON ออกมา (ตัดข้อความแถมท้ายทิ้ง)
+    // 🛡️ 1. ดักจับกรณี Backend ส่งมาเป็นก้อน JSON ของ MCP Tool
+    // แกะเอาเฉพาะข้อความข้างในออกมาใช้งาน
+    if (typeof actualText === 'string' && actualText.startsWith('{"content"')) {
+      try {
+        const parsedMcp = JSON.parse(actualText);
+        if (parsedMcp.content && parsedMcp.content[0] && parsedMcp.content[0].text) {
+          actualText = parsedMcp.content[0].text;
+        }
+      } catch (e) {
+        console.warn("MCP Unwrapping failed", e);
+      }
+    }
+
+    // 2. เริ่มหั่น ::VISUAL:: ตามปกติ
+    if (msg.sender === 'bot' && actualText.includes('::VISUAL::')) {
+      try {
+        const [textPart, rawJsonPart] = actualText.split('::VISUAL::');
+
+        // ค้นหาปีกกาเปิด { และปิด } เพื่อดึงเฉพาะ JSON ออกมา
         const jsonStartIndex = rawJsonPart.indexOf('{');
         const jsonEndIndex = rawJsonPart.lastIndexOf('}');
 
@@ -82,9 +98,9 @@ const ChatBotPage = ({ isEmbedded = false }) => {
         }
 
         const cleanJson = rawJsonPart.substring(jsonStartIndex, jsonEndIndex + 1);
-        const trailingText = rawJsonPart.substring(jsonEndIndex + 1).trim(); // ข้อความที่ AI อาจจะพิมพ์แถมท้าย
+        const trailingText = rawJsonPart.substring(jsonEndIndex + 1).trim();
 
-        const visualData = JSON.parse(cleanJson);
+        const visualData = JSON.parse(cleanJson); // คราวนี้ Parse ผ่านแน่นอน 100%
         const VisualComponent = COMPONENT_REGISTRY[visualData.type];
 
         return (
@@ -100,20 +116,20 @@ const ChatBotPage = ({ isEmbedded = false }) => {
               <div className="message-bubble text-red-400">⚠️ ไม่รองรับรูปแบบ {visualData.type}</div>
             )}
 
-            {/* ถ้า AI มีพิมพ์อะไรต่อท้าย JSON ให้เอามาโชว์ด้วย */}
             {trailingText && <div className="message-bubble" style={{ marginTop: '10px' }}>{trailingText}</div>}
           </div>
         );
       } catch (e) {
-        console.error("🚨 Visual Parse Error:", e, "Raw Text:", msg.text);
-        // ถ้าพังจริงๆ ให้พ่นตัวดิบออกมา (อย่างน้อยเราจะได้เห็นใน Console ว่าพังเพราะอะไร)
-        return <div className="message-bubble">{msg.text}</div>;
+        // 🔥 ถ้าพัง ให้เข้าไปดูใน Console (F12) ได้เลยว่าพังเพราะตัวอักษรไหน
+        console.error("🚨 Visual Parse Error:", e, "\nRaw Text:", actualText);
+        return <div className="message-bubble">{actualText}</div>;
       }
     }
 
+    // 3. ถ้าเป็นข้อความธรรมดา
     return (
-      <div className={`message-bubble ${msg.text?.startsWith('🛠️') ? 'admin-msg' : ''}`}>
-        {msg.text?.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
+      <div className={`message-bubble ${actualText?.startsWith('🛠️') ? 'admin-msg' : ''}`}>
+        {actualText?.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
       </div>
     );
   };

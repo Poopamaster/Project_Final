@@ -98,7 +98,7 @@ export const SeatMap = ({ data, onAction }) => {
     return {
       ...seat,
       // จับคู่ฟิลด์ให้ตรงกับที่ Mongoose ส่งมา
-      id: seat._id || seat.id, 
+      id: seat._id || seat.id,
       row: row,
       col: col,
       // ดึงราคาจากที่ populate มา หรือถ้าไม่มีให้ใช้ basePrice ของรอบฉาย
@@ -143,7 +143,7 @@ export const SeatMap = ({ data, onAction }) => {
               <span style={{ color: '#94a3b8', fontSize: '0.8rem', width: '15px' }}>{rowLabel}</span>
               {rows[rowLabel]
                 // sort ตัวเลขแบบ localeCompare ทำให้เลข 1, 2, 10 เรียงถูกต้อง (ไม่เอา 1, 10, 2)
-                .sort((a, b) => a.col.localeCompare(b.col, undefined, { numeric: true }))
+                .sort((a, b) => String(a.col).localeCompare(String(b.col), undefined, { numeric: true }))
                 .map((seat) => {
                   const isSelected = selectedSeats.find(s => s.id === seat.id);
                   const seatColor = seat.type !== 'Normal' ? '#fbbf24' : '#334155';
@@ -160,7 +160,7 @@ export const SeatMap = ({ data, onAction }) => {
                         cursor: seat.isBooked ? 'not-allowed' : 'pointer',
                         opacity: seat.isBooked ? 0.5 : 1,
                         boxShadow: isSelected ? '0 0 10px rgba(59, 130, 246, 0.6)' : 'none',
-                        color: seat.type !== 'Normal' && !isSelected && !seat.isBooked ? '#000' : 'white', 
+                        color: seat.type !== 'Normal' && !isSelected && !seat.isBooked ? '#000' : 'white',
                         fontSize: '10px', transition: 'all 0.2s'
                       }}
                       title={`ประเภท: ${seat.type} | ราคา: ${seat.price} ฿`}
@@ -168,7 +168,7 @@ export const SeatMap = ({ data, onAction }) => {
                       {seat.col}
                     </button>
                   );
-              })}
+                })}
             </div>
           ))}
         </div>
@@ -407,6 +407,81 @@ export const BranchList = ({ data, onAction }) => {
   );
 };
 
+// 7. Checkout Summary (สำหรับแสดง QR Code จาก Omise)
+export const CheckoutSummary = ({ data, onAction }) => (
+  <div style={{
+    width: '100%', 
+    maxWidth: '350px', // พอดีจอมือถือ และไม่ใหญ่เกินไปบน PC
+    margin: '10px auto',
+    background: '#1e293b', 
+    borderRadius: '16px', 
+    boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+    border: '1px solid #334155',
+    overflow: 'hidden',
+    color: '#e2e8f0',
+    fontFamily: 'sans-serif'
+  }}>
+    {/* Header */}
+    <div style={{ background: '#3b82f6', padding: '15px', textAlign: 'center' }}>
+      <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+        <CreditCard size={20} /> สรุปการจองและชำระเงิน
+      </h3>
+    </div>
+
+    <div style={{ padding: '20px' }}>
+      {/* รายละเอียด */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', fontSize: '0.9rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #475569', paddingBottom: '8px' }}>
+          <span style={{ color: '#94a3b8' }}>ภาพยนตร์:</span> 
+          <span style={{ fontWeight: '600', textAlign: 'right' }}>{data.movieTitle}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #475569', paddingBottom: '8px' }}>
+          <span style={{ color: '#94a3b8' }}>ที่นั่ง:</span> 
+          <span style={{ fontWeight: '600' }}>{data.seats}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #475569', paddingBottom: '8px' }}>
+          <span style={{ color: '#94a3b8' }}>รหัสการจอง:</span> 
+          <span style={{ fontWeight: '600', color: '#fbbf24' }}>{data.bookingId}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
+          <span style={{ color: '#94a3b8' }}>ยอดชำระ:</span> 
+          <span style={{ fontSize: '1.4rem', color: '#10b981', fontWeight: 'bold' }}>฿{data.totalPrice}</span>
+        </div>
+      </div>
+
+      {/* QR Code ของจริง */}
+      {data.qrCodeUrl ? (
+        <div style={{ background: '#fff', padding: '15px', borderRadius: '12px', textAlign: 'center', marginBottom: '20px' }}>
+          <img 
+            src={data.qrCodeUrl} 
+            alt="PromptPay QR Code" 
+            style={{ width: '100%', maxWidth: '200px', height: 'auto', display: 'block', margin: '0 auto' }} 
+          />
+          <p style={{ color: '#334155', margin: '10px 0 0 0', fontSize: '0.85rem', fontWeight: '500' }}>สแกนเพื่อชำระเงินผ่านแอปธนาคาร</p>
+        </div>
+      ) : (
+        <div style={{ background: '#334155', padding: '30px 15px', borderRadius: '12px', textAlign: 'center', marginBottom: '20px' }}>
+          <QrCode size={40} color="#94a3b8" style={{ marginBottom: '10px' }} />
+          <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>กำลังโหลด QR Code...</p>
+        </div>
+      )}
+
+      <button
+        onClick={() => onAction(`ชำระเงินเรียบร้อยแล้ว ยืนยันการออกตั๋วสำหรับรหัสการจอง ${data.bookingId} ให้หน่อย`)}
+        style={{
+          width: '100%', padding: '14px', background: '#10b981', color: 'white',
+          border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '1rem',
+          cursor: 'pointer', transition: 'background 0.2s', display: 'flex', justifyContent: 'center', gap: '8px'
+        }}
+        onMouseOver={(e) => e.target.style.background = '#059669'}
+        onMouseOut={(e) => e.target.style.background = '#10b981'}
+      >
+        แจ้งโอนเงินเรียบร้อย
+      </button>
+    </div>
+  </div>
+);
+
 // 🛠️ อัปเดต REGISTRY เป็นชุดสุดท้าย
 export const COMPONENT_REGISTRY = {
   'MOVIE_CAROUSEL': MovieCarousel,
@@ -416,4 +491,5 @@ export const COMPONENT_REGISTRY = {
   'TICKET_SLIP': DigitalTicket,
   'BULK_IMPORT_GRID': BulkImportGrid, // ✅ เพิ่มตัวนี้สำหรับการจัดการ Excel
   'BRANCH_LIST': BranchList,
+  'CHECKOUT_SUMMARY': CheckoutSummary
 };
