@@ -91,38 +91,52 @@ export const SeatMap = ({ data, onAction }) => {
   const seatsData = data.seatsData || [];
   const [selectedSeats, setSelectedSeats] = useState([]);
 
-  // ✅ 1. Normalization: แปลงข้อมูลจาก MongoDB (Mongoose) ให้เป็น Format ที่ Component เข้าใจ
-  const normalizedSeats = seatsData.map(seat => {
+  const normalizedSeats = seatsData.map((seat) => {
     const row = seat.row_label || seat.row;
     const col = seat.seat_number || seat.col;
+
     return {
       ...seat,
-      // จับคู่ฟิลด์ให้ตรงกับที่ Mongoose ส่งมา
       id: seat._id || seat.id,
-      row: row,
-      col: col,
-      // ดึงราคาจากที่ populate มา หรือถ้าไม่มีให้ใช้ basePrice ของรอบฉาย
-      price: seat.price || (seat.seat_type_id && seat.seat_type_id.price) || data.basePrice || 220,
-      type: seat.type || (seat.seat_type_id && seat.seat_type_id.name) || 'Normal',
-      // เช็คสถานะการจอง (รองรับทั้ง isBooked, is_blocked หรืออาร์เรย์ bookedSeats)
-      isBooked: seat.isBooked || seat.is_blocked || (data.bookedSeats && data.bookedSeats.includes(`${row}${col}`)) || false
+      row,
+      col,
+      price:
+        seat.price ||
+        (seat.seat_type_id && seat.seat_type_id.price) ||
+        data.basePrice ||
+        220,
+      type:
+        seat.type ||
+        (seat.seat_type_id && seat.seat_type_id.name) ||
+        'Normal',
+      isBooked:
+        seat.isBooked ||
+        seat.is_blocked ||
+        (data.bookedSeats &&
+          data.bookedSeats.includes(`${row}${col}`)) ||
+        false
     };
   });
 
-  // ✅ 2. จัดกลุ่มที่นั่งตามแถว (Row)
   const rows = normalizedSeats.reduce((acc, seat) => {
     if (!acc[seat.row]) acc[seat.row] = [];
     acc[seat.row].push(seat);
     return acc;
   }, {});
 
+  const sortedRowLabels = Object.keys(rows).sort();
+  const maxSeatsInRow = Math.max(
+    ...sortedRowLabels.map((rowLabel) => rows[rowLabel].length),
+    0
+  );
+
   const toggleSeat = (seat) => {
     if (seat.isBooked) return;
-    if (selectedSeats.find((s) => s.id === seat.id)) {
-      setSelectedSeats(selectedSeats.filter((s) => s.id !== seat.id));
-    } else {
-      setSelectedSeats([...selectedSeats, seat]);
-    }
+
+    setSelectedSeats((prev) => {
+      const exists = prev.find((s) => s.id === seat.id);
+      return exists ? prev.filter((s) => s.id !== seat.id) : [...prev, seat];
+    });
   };
 
   const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
@@ -130,62 +144,250 @@ export const SeatMap = ({ data, onAction }) => {
   const seatIds = selectedSeats.map((s) => s.id).join(',');
 
   return (
-    <div style={{ background: '#1E293B', padding: '20px', borderRadius: '16px', border: '1px solid #334155', width: '100%', maxWidth: '400px', marginTop: '10px' }}>
-      <div style={{ width: '100%', height: '4px', background: 'linear-gradient(90deg, transparent, #3b82f6, transparent)', marginBottom: '5px', opacity: 0.7 }}></div>
-      <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#64748b', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '2px' }}>SCREEN</p>
+    <div
+      style={{
+        background: '#1E293B',
+        padding: '16px',
+        borderRadius: '16px',
+        border: '1px solid #334155',
+        width: '100%',
+        maxWidth: '100%',
+        marginTop: '10px',
+        boxSizing: 'border-box',
+        overflow: 'hidden'
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          height: '4px',
+          background: 'linear-gradient(90deg, transparent, #3b82f6, transparent)',
+          marginBottom: '6px',
+          opacity: 0.7
+        }}
+      />
+      <p
+        style={{
+          textAlign: 'center',
+          fontSize: '0.7rem',
+          color: '#64748b',
+          marginBottom: '16px',
+          textTransform: 'uppercase',
+          letterSpacing: '2px'
+        }}
+      >
+        SCREEN
+      </p>
 
       {normalizedSeats.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#f87171', fontSize: '0.8rem' }}>ไม่พบข้อมูลที่นั่งในระบบ</p>
+        <p style={{ textAlign: 'center', color: '#f87171', fontSize: '0.8rem' }}>
+          ไม่พบข้อมูลที่นั่งในระบบ
+        </p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginBottom: '20px' }}>
-          {Object.keys(rows).sort().map((rowLabel) => (
-            <div key={rowLabel} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ color: '#94a3b8', fontSize: '0.8rem', width: '15px' }}>{rowLabel}</span>
-              {rows[rowLabel]
-                // sort ตัวเลขแบบ localeCompare ทำให้เลข 1, 2, 10 เรียงถูกต้อง (ไม่เอา 1, 10, 2)
-                .sort((a, b) => String(a.col).localeCompare(String(b.col), undefined, { numeric: true }))
-                .map((seat) => {
-                  const isSelected = selectedSeats.find(s => s.id === seat.id);
-                  const seatColor = seat.type !== 'Normal' ? '#fbbf24' : '#334155';
-
-                  return (
-                    <button
-                      key={seat.id}
-                      disabled={seat.isBooked}
-                      onClick={() => toggleSeat(seat)}
+        <>
+          <div
+            className="no-scrollbar"
+            style={{
+              width: '100%',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              paddingBottom: '8px',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            <div
+              style={{
+                minWidth:
+                  maxSeatsInRow > 0
+                    ? `${Math.max(280, maxSeatsInRow * 34 + 34)}px`
+                    : '280px',
+                width: 'fit-content',
+                margin: '0 auto'
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  marginBottom: '18px'
+                }}
+              >
+                {sortedRowLabels.map((rowLabel) => (
+                  <div
+                    key={rowLabel}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: `20px repeat(${rows[rowLabel].length}, minmax(28px, 32px))`,
+                      gap: '6px',
+                      alignItems: 'center',
+                      justifyContent: 'start'
+                    }}
+                  >
+                    <span
                       style={{
-                        width: '32px', height: '32px',
-                        borderRadius: '8px 8px 4px 4px', border: 'none',
-                        background: seat.isBooked ? '#475569' : isSelected ? '#3b82f6' : seatColor,
-                        cursor: seat.isBooked ? 'not-allowed' : 'pointer',
-                        opacity: seat.isBooked ? 0.5 : 1,
-                        boxShadow: isSelected ? '0 0 10px rgba(59, 130, 246, 0.6)' : 'none',
-                        color: seat.type !== 'Normal' && !isSelected && !seat.isBooked ? '#000' : 'white',
-                        fontSize: '10px', transition: 'all 0.2s'
+                        color: '#94a3b8',
+                        fontSize: '0.78rem',
+                        textAlign: 'center'
                       }}
-                      title={`ประเภท: ${seat.type} | ราคา: ${seat.price} ฿`}
                     >
-                      {seat.col}
-                    </button>
-                  );
-                })}
-            </div>
-          ))}
-        </div>
-      )}
+                      {rowLabel}
+                    </span>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #334155', paddingTop: '15px', fontSize: '0.8rem', color: '#94a3b8' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#334155', borderRadius: '2px' }}></div> ปกติ</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#fbbf24', borderRadius: '2px' }}></div> พิเศษ</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#3b82f6', borderRadius: '2px' }}></div> เลือก</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#475569', borderRadius: '2px', opacity: 0.5 }}></div> จองแล้ว</div>
-      </div>
+                    {rows[rowLabel]
+                      .sort((a, b) =>
+                        String(a.col).localeCompare(String(b.col), undefined, {
+                          numeric: true
+                        })
+                      )
+                      .map((seat) => {
+                        const isSelected = selectedSeats.find((s) => s.id === seat.id);
+                        const seatColor =
+                          seat.type !== 'Normal' ? '#fbbf24' : '#334155';
+
+                        return (
+                          <button
+                            key={seat.id}
+                            disabled={seat.isBooked}
+                            onClick={() => toggleSeat(seat)}
+                            style={{
+                              width: '100%',
+                              aspectRatio: '1 / 1',
+                              minWidth: '28px',
+                              minHeight: '28px',
+                              maxWidth: '32px',
+                              maxHeight: '32px',
+                              borderRadius: '8px 8px 4px 4px',
+                              border: 'none',
+                              background: seat.isBooked
+                                ? '#475569'
+                                : isSelected
+                                ? '#3b82f6'
+                                : seatColor,
+                              cursor: seat.isBooked ? 'not-allowed' : 'pointer',
+                              opacity: seat.isBooked ? 0.5 : 1,
+                              boxShadow: isSelected
+                                ? '0 0 10px rgba(59, 130, 246, 0.6)'
+                                : 'none',
+                              color:
+                                seat.type !== 'Normal' &&
+                                !isSelected &&
+                                !seat.isBooked
+                                  ? '#000'
+                                  : 'white',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 0
+                            }}
+                            title={`ประเภท: ${seat.type} | ราคา: ${seat.price} ฿`}
+                          >
+                            {seat.col}
+                          </button>
+                        );
+                      })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: '10px 14px',
+              borderTop: '1px solid #334155',
+              paddingTop: '14px',
+              fontSize: '0.78rem',
+              color: '#94a3b8'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  background: '#334155',
+                  borderRadius: '2px',
+                  flexShrink: 0
+                }}
+              />
+              ปกติ
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  background: '#fbbf24',
+                  borderRadius: '2px',
+                  flexShrink: 0
+                }}
+              />
+              พิเศษ
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  background: '#3b82f6',
+                  borderRadius: '2px',
+                  flexShrink: 0
+                }}
+              />
+              เลือก
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  background: '#475569',
+                  borderRadius: '2px',
+                  opacity: 0.5,
+                  flexShrink: 0
+                }}
+              />
+              จองแล้ว
+            </div>
+          </div>
+        </>
+      )}
 
       {selectedSeats.length > 0 && (
         <button
-          // ✅ ตอนนี้ IDs และ totalPrice จะไม่ว่างเปล่าและไม่เป็น 0 อีกต่อไป
-          onClick={() => onAction(`จองที่นั่ง ${seatLabels} (IDs: ${seatIds}) ราคารวม ${totalPrice} บาท สำหรับรอบ ${data.time} (ShowtimeID: ${data.showtimeId}) เรื่อง ${data.movieName}`)}
-          style={{ width: '100%', marginTop: '20px', background: '#3b82f6', color: 'white', border: 'none', padding: '12px', borderRadius: '50px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          onClick={() =>
+            onAction(
+              `จองที่นั่ง ${seatLabels} (IDs: ${seatIds}) ราคารวม ${totalPrice} บาท สำหรับรอบ ${data.time} (ShowtimeID: ${data.showtimeId}) เรื่อง ${data.movieName}`
+            )
+          }
+          style={{
+            width: '100%',
+            marginTop: '18px',
+            background: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            padding: '13px 14px',
+            borderRadius: '999px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontSize: '0.95rem',
+            textAlign: 'center',
+            lineHeight: 1.3,
+            flexWrap: 'wrap'
+          }}
         >
           ยืนยัน {selectedSeats.length} ที่นั่ง ({totalPrice} ฿)
         </button>

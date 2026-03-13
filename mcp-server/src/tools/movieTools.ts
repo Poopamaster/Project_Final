@@ -185,23 +185,22 @@ export const movieTools = [
                 await connectDB();
 
                 const showtime = await ShowtimeModel.findById(showtimeId);
-                if (!showtime) return { content: [{ type: "text", text: "ไม่พบข้อมูลรอบฉายครับ" }] };
+                if (!showtime) {
+                    return { content: [{ type: "text", text: "ไม่พบข้อมูลรอบฉายครับ" }] };
+                }
 
-                // ✅ 1. ดึง ID ออกมาให้เป็น String ธรรมดาเพื่อตัดปัญหา Object ซ้อน Object
-                const audId = showtime.auditorium_id._id
-                    ? showtime.auditorium_id._id.toString()
+                const audId = (showtime as any)?.auditorium_id?._id
+                    ? (showtime as any).auditorium_id._id.toString()
                     : showtime.auditorium_id.toString();
 
                 console.error(`1. เลือกรอบฉาย ID: ${showtimeId}`);
                 console.error(`2. โรงหนังที่ฉาย ID: ${audId}`);
 
-                // ✅ 2. ค้นหาแบบแรก (ส่งเข้า Mongoose ตรงๆ)
                 let seats = await SeatModel.find({ auditorium_id: audId as any }).populate({
                     path: 'seat_type_id',
                     model: SeatTypeModel
                 });
 
-                // ✅ 3. ถ้าไม่เจอ ลองบังคับแปลงเป็น ObjectId ค้นหาอีกรอบ (ดักปัญหา Type mismatch)
                 if (seats.length === 0) {
                     console.error(`⚠️ ไม่พบที่นั่งด้วย String ID... ลองค้นหาด้วย ObjectId ล้วนๆ`);
                     const objectId = new mongoose.Types.ObjectId(audId);
@@ -214,7 +213,6 @@ export const movieTools = [
                 console.error(`3. สรุปเจอที่นั่งทั้งหมด: ${seats.length} ตัว`);
                 console.error(`--------------------------------\n`);
 
-                // 🚨 ถ้า 2 ท่าด้านบนยังไม่เจออีก ส่งแจ้งเตือนออกไปที่หน้าจอแชทเลย!
                 if (seats.length === 0) {
                     return {
                         content: [{
@@ -228,24 +226,54 @@ export const movieTools = [
                     showtime_id: showtimeId,
                     status: { $ne: 'cancelled' }
                 });
-                const bookedSeatIds = bookings.flatMap(b => b.seats.map(s => s.toString()));
 
-                const formattedSeats = seats.map((s: any) => ({
-                    id: s._id.toString(),
-                    label: `${s.row_label}${s.seat_number}`,
-                    row: s.row_label,
-                    col: s.seat_number,
-                    type: s.seat_type_id?.name || 'Normal',
-                    price: showtime.base_price + (s.seat_type_id?.price || 0),
-                    isBooked: bookedSeatIds.includes(s._id.toString()) || s.is_blocked
-                }));
+                const bookedSeatIds = bookings.flatMap((b: any) => (b.seats || []).map((s: any) => s.toString()));
+
+                const formattedSeats = seats.map((s: any) => {
+                    const seatTypeName = s.seat_type_id?.name || 'Normal';
+                    const seatTypePrice = Number(s.seat_type_id?.price || 0);
+
+                    return {
+                        id: s._id.toString(),
+                        label: `${s.row_label}${s.seat_number}`,
+                        row: s.row_label,
+                        col: s.seat_number,
+                        type: seatTypeName,
+                        // ใช้ราคา seat type ตรงๆ ไม่บวก base_price
+                        price: seatTypePrice,
+                        isBooked: bookedSeatIds.includes(s._id.toString()) || s.is_blocked === true
+                    };
+                });
+
+                const groupedRows = formattedSeats.reduce((acc: any, seat: any) => {
+                    if (!acc[seat.row]) acc[seat.row] = [];
+                    acc[seat.row].push(seat);
+                    return acc;
+                }, {});
+
+                const rowLabels = Object.keys(groupedRows).sort();
+                const seatTypesSummary = Array.from(
+                    new Map(
+                        formattedSeats.map((seat: any) => [seat.type, { name: seat.type, price: seat.price }])
+                    ).values()
+                ).sort((a: any, b: any) => a.price - b.price);
 
                 return sendVisual(
                     `เชิญเลือกที่นั่งสำหรับเรื่อง ${movieName} รอบ ${time} ได้เลยครับ`,
                     "SEAT_PICKER",
-                    { showtimeId, movieName, time, date, seatsData: formattedSeats }
+                    {
+                        showtimeId,
+                        movieName,
+                        time,
+                        date,
+                        seatsData: formattedSeats,
+                        layout: {
+                            rowLabels,
+                            totalColumns: Math.max(...rowLabels.map((row) => groupedRows[row].length), 0)
+                        },
+                        pricing: seatTypesSummary
+                    }
                 );
-
             } catch (error: any) {
                 console.error("❌ Error in select_seat:", error);
                 return { content: [{ type: "text", text: `เกิดข้อผิดพลาดในการโหลดที่นั่ง: ${error.message}` }] };
