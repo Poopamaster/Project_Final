@@ -18,11 +18,11 @@ const ChatBotPage = ({ isEmbedded = false }) => {
 
   // ✅ Hook 1: ดึง State พื้นฐาน
   const { messages, setMessages, isLoading, setIsLoading, messagesEndRef, clearChat } = useChatHistory(user);
-  
+
   // ✅ Hook 2: ส่ง Setter เข้าไปเพื่อให้ Hook จัดการอัปโหลด Excel เองได้ภายในตัว
-  const { 
-    inputText, setInputText, selectedImage, imagePreview, isListening, 
-    handleFileSelect, clearImage, toggleListening, fileInputRef 
+  const {
+    inputText, setInputText, selectedImage, imagePreview, isListening,
+    handleFileSelect, clearImage, toggleListening, fileInputRef
   } = useChatInput(setMessages, setIsLoading);
 
   const convertToBase64 = (file) => {
@@ -48,18 +48,18 @@ const ChatBotPage = ({ isEmbedded = false }) => {
     try {
       let base64Image = selectedImage ? await convertToBase64(selectedImage) : null;
       const data = await sendMessageToBot(textToSend, base64Image);
-      
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 1, 
-        sender: 'bot', 
-        text: data.reply 
+
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        sender: 'bot',
+        text: data.reply
       }]);
     } catch (error) {
       console.error("Chat Error:", error);
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 1, 
-        sender: 'bot', 
-        text: '⚠️ ระบบเกิดข้อผิดพลาดในการส่งข้อความ' 
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        sender: 'bot',
+        text: '⚠️ ระบบเกิดข้อผิดพลาดในการส่งข้อความ'
       }]);
     } finally {
       setIsLoading(false);
@@ -71,13 +71,26 @@ const ChatBotPage = ({ isEmbedded = false }) => {
   const renderMessageContent = (msg) => {
     if (msg.sender === 'bot' && msg.text && msg.text.includes('::VISUAL::')) {
       try {
-        const [textPart, jsonPart] = msg.text.split('::VISUAL::');
-        const visualData = JSON.parse(jsonPart);
+        const [textPart, rawJsonPart] = msg.text.split('::VISUAL::');
+
+        // 🛡️ ค้นหาปีกกาเปิด { และปิด } เพื่อดึงเฉพาะ JSON ออกมา (ตัดข้อความแถมท้ายทิ้ง)
+        const jsonStartIndex = rawJsonPart.indexOf('{');
+        const jsonEndIndex = rawJsonPart.lastIndexOf('}');
+
+        if (jsonStartIndex === -1 || jsonEndIndex === -1) {
+          throw new Error("หาโครงสร้าง JSON ไม่เจอ");
+        }
+
+        const cleanJson = rawJsonPart.substring(jsonStartIndex, jsonEndIndex + 1);
+        const trailingText = rawJsonPart.substring(jsonEndIndex + 1).trim(); // ข้อความที่ AI อาจจะพิมพ์แถมท้าย
+
+        const visualData = JSON.parse(cleanJson);
         const VisualComponent = COMPONENT_REGISTRY[visualData.type];
 
         return (
           <div className="message-content-visual" style={{ width: '100%' }}>
             {textPart && <div className="message-bubble">{textPart}</div>}
+
             {VisualComponent ? (
               <VisualComponent
                 data={visualData.data || visualData}
@@ -86,9 +99,14 @@ const ChatBotPage = ({ isEmbedded = false }) => {
             ) : (
               <div className="message-bubble text-red-400">⚠️ ไม่รองรับรูปแบบ {visualData.type}</div>
             )}
+
+            {/* ถ้า AI มีพิมพ์อะไรต่อท้าย JSON ให้เอามาโชว์ด้วย */}
+            {trailingText && <div className="message-bubble" style={{ marginTop: '10px' }}>{trailingText}</div>}
           </div>
         );
       } catch (e) {
+        console.error("🚨 Visual Parse Error:", e, "Raw Text:", msg.text);
+        // ถ้าพังจริงๆ ให้พ่นตัวดิบออกมา (อย่างน้อยเราจะได้เห็นใน Console ว่าพังเพราะอะไร)
         return <div className="message-bubble">{msg.text}</div>;
       }
     }
@@ -114,7 +132,7 @@ const ChatBotPage = ({ isEmbedded = false }) => {
 
       <div className="chatbot-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <main className="chat-window" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-          
+
           {!isEmbedded && (
             <header className="chat-header">
               <div className="header-left">
@@ -126,9 +144,9 @@ const ChatBotPage = ({ isEmbedded = false }) => {
 
           <div className="messages-area" style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
             {messages.length <= 0 && !isEmbedded ? (
-              <HeroSection 
-                handleSendMessage={handleSendMessage} 
-                inputText={inputText} setInputText={setInputText} 
+              <HeroSection
+                handleSendMessage={handleSendMessage}
+                inputText={inputText} setInputText={setInputText}
                 toggleListening={toggleListening} isListening={isListening} isLoading={isLoading}
               />
             ) : (

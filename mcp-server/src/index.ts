@@ -7,6 +7,7 @@ import { adminTools } from "./tools/adminTools.js";
 // เพิ่ม interface สำหรับ Tool
 interface Tool {
   name: string;
+  description: string;
   args: any;
   handler: (...args: any[]) => any;
 }
@@ -21,7 +22,12 @@ const allTools: Tool[] = [...movieTools, ...adminTools];
 
 // วนลูป Register Tools อัตโนมัติ
 allTools.forEach((tool) => {
-  server.tool(tool.name, tool.args, tool.handler);
+  server.tool(
+      tool.name,
+      tool.description, // ✨ ส่ง description ให้ SDK ด้วย
+      tool.args,
+      tool.handler
+  );
 });
 
 async function main() {

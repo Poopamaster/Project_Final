@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Film, Clock, Star, Calendar, CreditCard, QrCode } from 'lucide-react';
+import { Film, Clock, Star, Calendar, CreditCard, QrCode, MapPin, ChevronRight } from 'lucide-react';
 
 // 1. Movie Carousel (Design ตามต้นฉบับเป๊ะๆ)
 export const MovieCarousel = ({ data, onAction }) => (
@@ -14,7 +14,7 @@ export const MovieCarousel = ({ data, onAction }) => (
     {data.map((movie) => (
       <div
         key={movie._id || movie.id}
-        onClick={() => onAction(`สนใจดูเรื่อง ${movie.title_th || movie.title} ครับ`)} // ✅ ส่งข้อความหา AI
+        onClick={() => onAction(`สนใจดูเรื่อง ${movie.title_th || movie.title} (ID: ${movie._id || movie.id}) ครับ`)}
         style={{
           minWidth: '160px',
           backgroundColor: '#1E293B',
@@ -51,100 +51,143 @@ export const MovieCarousel = ({ data, onAction }) => (
 );
 
 // 2. Showtime Selector
-export const ShowtimeSelector = ({ data, onAction }) => (
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '10px', width: '100%', maxWidth: '350px' }}>
-    {data.times.map((time) => (
-      <button
-        key={time}
-        onClick={() => onAction(`เลือกรอบ ${time} เรื่อง ${data.movieName}`)} // ✅ ส่งข้อความหา AI
-        style={{
-          padding: '10px',
-          background: '#1E293B',
-          border: '1px solid #334155',
-          color: '#e2e8f0',
-          borderRadius: '8px',
-          fontSize: '0.9rem',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px'
-        }}
-        onMouseOver={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
-        onMouseOut={(e) => e.currentTarget.style.borderColor = '#334155'}
-      >
-        <Clock size={14} /> {time}
-      </button>
-    ))}
-  </div>
-);
+// 2. Showtime Selector
+export const ShowtimeSelector = ({ data, onAction }) => {
+  const showtimes = Array.isArray(data) ? data : (data?.showtimes || []);
 
-// 3. Seat Map (Design เดิม แต่เพิ่ม Logic ส่งหา AI)
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '10px', width: '100%', maxWidth: '350px' }}>
+      {showtimes.length === 0 ? (
+        <div style={{ gridColumn: 'span 2', textAlign: 'center', padding: '15px', background: '#1E293B', borderRadius: '8px', border: '1px solid #334155' }}>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#f87171' }}>ขออภัยครับ ไม่พบรอบฉายของสาขาและวันที่คุณเลือก 😥</p>
+        </div>
+      ) : (
+        showtimes.map((st) => (
+          <button
+            key={st.showtimeId || st._id}
+            // ✅ เปลี่ยนคำสั่ง onAction ให้ชัดเจนขึ้น เพื่อบังคับ AI ดึงผังที่นั่ง!
+            onClick={() => onAction(`กรุณาเรียกใช้คำสั่ง select_seat เพื่อดึงผังที่นั่งของรอบฉายเวลา ${st.time} (ShowtimeID: ${st.showtimeId || st._id}) เรื่อง ${data.movieName || 'ที่เลือก'}`)}
+            style={{
+              padding: '10px', background: '#1E293B', border: '1px solid #334155', color: '#e2e8f0',
+              borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+            onMouseOut={(e) => e.currentTarget.style.borderColor = '#334155'}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+              <Clock size={14} color="#3b82f6" /> {st.time}
+            </div>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{st.auditorium || 'โรงปกติ'} • {st.price || 220} ฿</span>
+          </button>
+        ))
+      )}
+    </div>
+  );
+};
+
+// 3. Seat Map (Dynamic ดึงจาก Database จริง - แมปข้อมูล Mongoose อัตโนมัติ)
 export const SeatMap = ({ data, onAction }) => {
-  const rows = 5;
-  const cols = 6;
-  const [selected, setSelected] = useState([]);
-  const price = 220; // สมมติราคา
+  const seatsData = data.seatsData || [];
+  const [selectedSeats, setSelectedSeats] = useState([]);
 
-  const toggleSeat = (r, c) => {
-    const id = `${String.fromCharCode(65 + r)}${c + 1}`; // แปลงเป็น A1, A2
-    if (selected.includes(id)) {
-      setSelected(selected.filter((s) => s !== id));
+  // ✅ 1. Normalization: แปลงข้อมูลจาก MongoDB (Mongoose) ให้เป็น Format ที่ Component เข้าใจ
+  const normalizedSeats = seatsData.map(seat => {
+    const row = seat.row_label || seat.row;
+    const col = seat.seat_number || seat.col;
+    return {
+      ...seat,
+      // จับคู่ฟิลด์ให้ตรงกับที่ Mongoose ส่งมา
+      id: seat._id || seat.id, 
+      row: row,
+      col: col,
+      // ดึงราคาจากที่ populate มา หรือถ้าไม่มีให้ใช้ basePrice ของรอบฉาย
+      price: seat.price || (seat.seat_type_id && seat.seat_type_id.price) || data.basePrice || 220,
+      type: seat.type || (seat.seat_type_id && seat.seat_type_id.name) || 'Normal',
+      // เช็คสถานะการจอง (รองรับทั้ง isBooked, is_blocked หรืออาร์เรย์ bookedSeats)
+      isBooked: seat.isBooked || seat.is_blocked || (data.bookedSeats && data.bookedSeats.includes(`${row}${col}`)) || false
+    };
+  });
+
+  // ✅ 2. จัดกลุ่มที่นั่งตามแถว (Row)
+  const rows = normalizedSeats.reduce((acc, seat) => {
+    if (!acc[seat.row]) acc[seat.row] = [];
+    acc[seat.row].push(seat);
+    return acc;
+  }, {});
+
+  const toggleSeat = (seat) => {
+    if (seat.isBooked) return;
+    if (selectedSeats.find((s) => s.id === seat.id)) {
+      setSelectedSeats(selectedSeats.filter((s) => s.id !== seat.id));
     } else {
-      setSelected([...selected, id]);
+      setSelectedSeats([...selectedSeats, seat]);
     }
   };
 
+  const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+  const seatLabels = selectedSeats.map((s) => `${s.row}${s.col}`).join(', ');
+  const seatIds = selectedSeats.map((s) => s.id).join(',');
+
   return (
-    <div style={{ background: '#1E293B', padding: '20px', borderRadius: '16px', border: '1px solid #334155', width: '100%', maxWidth: '350px', marginTop: '10px' }}>
+    <div style={{ background: '#1E293B', padding: '20px', borderRadius: '16px', border: '1px solid #334155', width: '100%', maxWidth: '400px', marginTop: '10px' }}>
       <div style={{ width: '100%', height: '4px', background: 'linear-gradient(90deg, transparent, #3b82f6, transparent)', marginBottom: '5px', opacity: 0.7 }}></div>
       <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#64748b', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '2px' }}>SCREEN</p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginBottom: '20px' }}>
-        {Array.from({ length: rows }).map((_, r) => (
-          <div key={r} style={{ display: 'flex', gap: '8px' }}>
-            {Array.from({ length: cols }).map((_, c) => {
-              const id = `${String.fromCharCode(65 + r)}${c + 1}`;
-              const isSelected = selected.includes(id);
-              const isOccupied = (data.bookedSeats || []).includes(id);
+      {normalizedSeats.length === 0 ? (
+        <p style={{ textAlign: 'center', color: '#f87171', fontSize: '0.8rem' }}>ไม่พบข้อมูลที่นั่งในระบบ</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginBottom: '20px' }}>
+          {Object.keys(rows).sort().map((rowLabel) => (
+            <div key={rowLabel} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ color: '#94a3b8', fontSize: '0.8rem', width: '15px' }}>{rowLabel}</span>
+              {rows[rowLabel]
+                // sort ตัวเลขแบบ localeCompare ทำให้เลข 1, 2, 10 เรียงถูกต้อง (ไม่เอา 1, 10, 2)
+                .sort((a, b) => a.col.localeCompare(b.col, undefined, { numeric: true }))
+                .map((seat) => {
+                  const isSelected = selectedSeats.find(s => s.id === seat.id);
+                  const seatColor = seat.type !== 'Normal' ? '#fbbf24' : '#334155';
 
-              return (
-                <button
-                  key={c}
-                  disabled={isOccupied}
-                  onClick={() => toggleSeat(r, c)}
-                  style={{
-                    width: '32px', height: '32px',
-                    borderRadius: '8px 8px 4px 4px',
-                    border: 'none',
-                    background: isOccupied ? '#475569' : isSelected ? '#3b82f6' : '#334155',
-                    cursor: isOccupied ? 'not-allowed' : 'pointer',
-                    opacity: isOccupied ? 0.5 : 1,
-                    boxShadow: isSelected ? '0 0 10px rgba(59, 130, 246, 0.6)' : 'none',
-                    transition: 'all 0.2s',
-                    color: 'white', fontSize: '10px'
-                  }}
-                >
-                  {id}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+                  return (
+                    <button
+                      key={seat.id}
+                      disabled={seat.isBooked}
+                      onClick={() => toggleSeat(seat)}
+                      style={{
+                        width: '32px', height: '32px',
+                        borderRadius: '8px 8px 4px 4px', border: 'none',
+                        background: seat.isBooked ? '#475569' : isSelected ? '#3b82f6' : seatColor,
+                        cursor: seat.isBooked ? 'not-allowed' : 'pointer',
+                        opacity: seat.isBooked ? 0.5 : 1,
+                        boxShadow: isSelected ? '0 0 10px rgba(59, 130, 246, 0.6)' : 'none',
+                        color: seat.type !== 'Normal' && !isSelected && !seat.isBooked ? '#000' : 'white', 
+                        fontSize: '10px', transition: 'all 0.2s'
+                      }}
+                      title={`ประเภท: ${seat.type} | ราคา: ${seat.price} ฿`}
+                    >
+                      {seat.col}
+                    </button>
+                  );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #334155', paddingTop: '15px', fontSize: '0.8rem', color: '#94a3b8' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#334155', borderRadius: '2px' }}></div> ว่าง</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#334155', borderRadius: '2px' }}></div> ปกติ</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#fbbf24', borderRadius: '2px' }}></div> พิเศษ</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#3b82f6', borderRadius: '2px' }}></div> เลือก</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#475569', borderRadius: '2px', opacity: 0.5 }}></div> จองแล้ว</div>
       </div>
 
-      {selected.length > 0 && (
+      {selectedSeats.length > 0 && (
         <button
-          onClick={() => onAction(`จองที่นั่ง ${selected.join(', ')} รอบ ${data.time} เรื่อง ${data.movieName}`)} // ✅ ส่งข้อความหา AI
+          // ✅ ตอนนี้ IDs และ totalPrice จะไม่ว่างเปล่าและไม่เป็น 0 อีกต่อไป
+          onClick={() => onAction(`จองที่นั่ง ${seatLabels} (IDs: ${seatIds}) ราคารวม ${totalPrice} บาท สำหรับรอบ ${data.time} (ShowtimeID: ${data.showtimeId}) เรื่อง ${data.movieName}`)}
           style={{ width: '100%', marginTop: '20px', background: '#3b82f6', color: 'white', border: 'none', padding: '12px', borderRadius: '50px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
         >
-          ยืนยัน {selected.length} ที่นั่ง ({selected.length * price} ฿)
+          ยืนยัน {selectedSeats.length} ที่นั่ง ({totalPrice} ฿)
         </button>
       )}
     </div>
@@ -175,7 +218,7 @@ export const PaymentCard = ({ data, onAction }) => (
     </div>
 
     <button
-      onClick={() => onAction(`ชำระเงินเรียบร้อยแล้ว BookingID: ${data.bookingId}`)} // ✅ ส่งข้อความหา AI
+      onClick={() => onAction(`ชำระเงินเรียบร้อย! BookingID: ${data.bookingId}, หนัง: ${data.movieName}, รอบ: ${data.time}, ที่นั่ง: ${data.seats}`)}
       style={{ width: '100%', background: 'linear-gradient(90deg, #3b82f6, #6366f1)', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)' }}
     >
       <CreditCard size={18} /> ชำระเงินทันที
@@ -324,12 +367,53 @@ export const BulkImportGrid = ({ data, onAction }) => {
   );
 };
 
+export const BranchList = ({ data, onAction }) => {
+  // ✅ 1. รองรับกรณี Backend ส่งมาเป็น Array โดยตรง หรือครอบมาใน data.branches
+  const branches = Array.isArray(data) ? data : (data?.branches || []);
+
+  return (
+    <div style={{ background: '#1E293B', padding: '15px', borderRadius: '16px', border: '1px solid #334155', width: '100%', maxWidth: '350px', marginTop: '10px' }}>
+      <h3 style={{ margin: '0 0 15px 0', fontSize: '1rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <MapPin size={18} color="#ef4444" /> เลือกสาขาที่ต้องการ
+      </h3>
+
+      {branches.length === 0 ? (
+        <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#94a3b8' }}>ไม่พบข้อมูลสาขา</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {branches.map((branch, index) => (
+            <button key={branch._id || branch.id || index}
+              // ✅ 2. แนบ BranchID ไปด้วยเลย AI จะได้ไม่ต้องเดา และค้นหาใน DB เจอ 100%
+              onClick={() => onAction(`เลือกสาขา ${branch.name} (BranchID: ${branch._id || branch.id})`)}
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                background: '#0f172a', border: '1px solid #334155', padding: '12px 15px',
+                borderRadius: '10px', color: '#e2e8f0', cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = '#1e293b'; }}
+              onMouseOut={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = '#0f172a'; }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{branch.name}</span>
+                {/* ✅ 3. โชว์ province แทน distance ให้ตรงกับ Schema ใน Database */}
+                {branch.province && <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>จังหวัด {branch.province}</span>}
+              </div>
+              <ChevronRight size={16} color="#64748b" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // 🛠️ อัปเดต REGISTRY เป็นชุดสุดท้าย
 export const COMPONENT_REGISTRY = {
   'MOVIE_CAROUSEL': MovieCarousel,
   'SHOWTIME_SELECTOR': ShowtimeSelector,
-  'SEAT_SELECTOR': SeatMap,
+  'SEAT_PICKER': SeatMap,
   'PAYMENT_SLIP': PaymentCard,
   'TICKET_SLIP': DigitalTicket,
-  'BULK_IMPORT_GRID': BulkImportGrid // ✅ เพิ่มตัวนี้สำหรับการจัดการ Excel
+  'BULK_IMPORT_GRID': BulkImportGrid, // ✅ เพิ่มตัวนี้สำหรับการจัดการ Excel
+  'BRANCH_LIST': BranchList,
 };

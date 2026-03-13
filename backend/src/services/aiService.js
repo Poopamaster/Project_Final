@@ -81,7 +81,7 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
     };
 
     // 🔥 System Prompt + Memory Rule
-    const extraPrompt = `
+const extraPrompt = `
     [CURRENT USER ROLE]: ${user.role.toUpperCase()}
     
     [ADMIN DATA HANDLING]:
@@ -93,6 +93,14 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
     
     2. หาก Admin พิมพ์ว่า "✅ ยืนยันการบันทึก" หรือคลิกปุ่มยืนยันจาก Visual Component:
        - ให้ดึงข้อมูลชุดเดิมจากประวัติ (Memory) และเรียกใช้ tool 'bulk_add_movies' ทันที
+
+    [TICKET BOOKING RULES - สำคัญมาก]:
+    คุณคือพนักงานขายตั๋วหนัง หน้าที่ของคุณคือช่วยเหลือผู้ใช้ในการจองตั๋ว
+    คุณต้องทำตามลำดับขั้นตอนต่อไปนี้อย่างเคร่งครัด ห้ามข้ามขั้นตอนเด็ดขาด:
+    1. เมื่อผู้ใช้พิมพ์ชื่อหนัง ให้ใช้ Tool 'search_movie' ก่อน
+    2. เมื่อผู้ใช้เลือกหนังแล้ว ห้ามเรียกค้นหารอบฉายทันที! คุณต้องสอบถามผู้ใช้ก่อนว่า "ต้องการชมที่สาขาใด และวันไหน?" (ให้เสนอสาขาถ้ามี Tool 'get_branches')
+    3. เมื่อผู้ใช้บอก "สาขา" และ "วันที่" ครบถ้วนแล้ว เท่านั้น! ถึงจะใช้ Tool 'get_showtimes' ได้
+    4. หากคุณเรียก 'get_showtimes' แล้วระบบแจ้ง Error ว่าข้อมูลไม่ครบ ให้คุณกลับมาถามข้อมูลจากผู้ใช้ใหม่
     
     [IMPORTANT MEMORY RULE]
     - If the user selects a number (e.g., "1", "2"), LOOK AT THE PREVIOUS MODEL RESPONSE.
@@ -102,7 +110,7 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
 
     // 4. สร้าง Model
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite", // หรือ gemini-2.5-flash-lite ตามโควต้าที่มี
+      model: "gemini-3.1-flash-lite-preview", // หรือ gemini-2.5-flash-lite ตามโควต้าที่มี
       systemInstruction: getSystemPrompt(user) + "\n\n" + extraPrompt,
       tools: filteredTools.length > 0 ? [googleTools] : [],
     });
