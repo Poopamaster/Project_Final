@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PaymentSection from './PaymentSection'; // 👈 สำคัญมาก! เช็ค path ให้ถูกด้วยนะครับ
 import { Film, Clock, Star, Calendar, CreditCard, QrCode, MapPin, ChevronRight } from 'lucide-react';
 
 // 1. Movie Carousel (Design ตามต้นฉบับเป๊ะๆ)
@@ -262,8 +263,8 @@ export const SeatMap = ({ data, onAction }) => {
                               background: seat.isBooked
                                 ? '#475569'
                                 : isSelected
-                                ? '#3b82f6'
-                                : seatColor,
+                                  ? '#3b82f6'
+                                  : seatColor,
                               cursor: seat.isBooked ? 'not-allowed' : 'pointer',
                               opacity: seat.isBooked ? 0.5 : 1,
                               boxShadow: isSelected
@@ -271,8 +272,8 @@ export const SeatMap = ({ data, onAction }) => {
                                 : 'none',
                               color:
                                 seat.type !== 'Normal' &&
-                                !isSelected &&
-                                !seat.isBooked
+                                  !isSelected &&
+                                  !seat.isBooked
                                   ? '#000'
                                   : 'white',
                               fontSize: '10px',
@@ -397,36 +398,86 @@ export const SeatMap = ({ data, onAction }) => {
 };
 
 // 4. Payment Card
-export const PaymentCard = ({ data, onAction }) => (
-  <div style={{ background: '#1E293B', padding: '20px', borderRadius: '16px', border: '1px solid #334155', width: '100%', maxWidth: '350px', marginTop: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}>
-    <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
-      <div style={{ width: '60px', height: '80px', background: '#334155', borderRadius: '8px', flexShrink: 0, overflow: 'hidden' }}>
-        {/* ถ้ามีรูปโปสเตอร์ให้ใส่ตรงนี้ */}
-      </div>
-      <div>
-        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>{data.movieName}</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#94a3b8', marginTop: '5px' }}>
-          <Calendar size={12} /> วันนี้ <span style={{ opacity: 0.5 }}>|</span> <Clock size={12} /> {data.time}
-        </div>
-        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '5px' }}>
-          ที่นั่ง: <span style={{ color: '#3b82f6' }}>{data.seats}</span>
-        </div>
-      </div>
-    </div>
+// 1. รับค่า isLatest เข้ามา (ถ้าไม่ส่งมา ให้ค่าเริ่มต้นเป็น false)
+export const PaymentCard = ({ data, onAction, isLatest = false, movie }) => {
 
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
-      <span style={{ color: '#cbd5e1' }}>ยอดรวมสุทธิ</span>
-      <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{data.price} ฿</span>
-    </div>
+  // 2. เอา isLatest ไปใส่ใน useState 
+  // (ถ้าเป็นข้อความล่าสุด มันจะกางออก (true) แต่ถ้าเป็นประวัติเก่ามันจะพับไว้ (false))
+  const [showPayment, setShowPayment] = useState(isLatest);
 
-    <button
-      onClick={() => onAction(`ชำระเงินเรียบร้อย! BookingID: ${data.bookingId}, หนัง: ${data.movieName}, รอบ: ${data.time}, ที่นั่ง: ${data.seats}`)}
-      style={{ width: '100%', background: 'linear-gradient(90deg, #3b82f6, #6366f1)', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)' }}
-    >
-      <CreditCard size={18} /> ชำระเงินทันที
-    </button>
-  </div>
-);
+  return (
+    <div style={{ background: '#1E293B', padding: '20px', borderRadius: '16px', border: '1px solid #334155', width: '100%', maxWidth: '500px', marginTop: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}>
+      {/* ... โค้ดส่วนบน (รูปหนัง/ชื่อหนัง) เหมือนเดิมเป๊ะ ... */}
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
+        <div style={{ width: '60px', height: '80px', background: '#334155', borderRadius: '8px', flexShrink: 0, overflow: 'hidden' }}>
+          {(() => {
+            let imgUrl = data.poster_url || data.movieImage;
+
+            if (imgUrl) {
+              // 🔥 หักดิบ Cache: เติม ?t=สุ่มเลข เข้าไปท้าย URL เพื่อให้เบราว์เซอร์เลิกจำอันเดิม
+              const cleanUrl = imgUrl.includes('?') ? `${imgUrl}&t=${Date.now()}` : `${imgUrl}?t=${Date.now()}`;
+
+              return (
+                <img
+                  src={cleanUrl}
+                  alt="Movie Poster"
+                  // ⚠️ สำคัญมาก: ต้องไม่มี attribute crossOrigin เด็ดขาด!
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    console.error("Image failed to load:", cleanUrl);
+                    e.target.src = "https://via.placeholder.com/60x80?text=No+Pic";
+                  }}
+                />
+              );
+            }
+
+            return (
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '10px' }}>
+                ไม่มีรูป
+              </div>
+            );
+          })()}
+        </div>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'white' }}>{data.movieName}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#94a3b8', marginTop: '5px' }}>
+            วันนี้ <span style={{ opacity: 0.5 }}>|</span> {data.time}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '5px' }}>
+            ที่นั่ง: <span style={{ color: '#3b82f6' }}>{data.seats}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+        <span style={{ color: '#cbd5e1' }}>ยอดรวมสุทธิ</span>
+        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{data.price || data.totalPrice} ฿</span>
+      </div>
+
+      {/* เงื่อนไขแสดงปุ่ม หรือ แสดง Omise */}
+      {!showPayment ? (
+        <button
+          onClick={() => setShowPayment(true)}
+          style={{ width: '100%', padding: '14px', background: 'linear-gradient(90deg, #3b82f6, #6366f1)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}
+        >
+          ดำเนินการต่อ
+        </button>
+      ) : (
+        <div style={{ background: 'white', borderRadius: '12px', padding: '10px', animation: 'fadeIn 0.3s ease-in-out' }}>
+          <PaymentSection
+            amount={data.price || data.totalPrice}
+            bookingId={data.bookingId}
+            onComplete={() => {
+              setShowPayment(false);
+              onAction(`ชำระเงินเรียบร้อย! BookingID: ${data.bookingId}, หนัง: ${data.movieName}, รอบ: ${data.time}, ที่นั่ง: ${data.seats}`);
+            }}
+            onCancel={() => setShowPayment(false)}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
 
 // 5. Digital Ticket
 export const DigitalTicket = ({ data }) => (
@@ -609,81 +660,6 @@ export const BranchList = ({ data, onAction }) => {
   );
 };
 
-// 7. Checkout Summary (สำหรับแสดง QR Code จาก Omise)
-export const CheckoutSummary = ({ data, onAction }) => (
-  <div style={{
-    width: '100%', 
-    maxWidth: '350px', // พอดีจอมือถือ และไม่ใหญ่เกินไปบน PC
-    margin: '10px auto',
-    background: '#1e293b', 
-    borderRadius: '16px', 
-    boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-    border: '1px solid #334155',
-    overflow: 'hidden',
-    color: '#e2e8f0',
-    fontFamily: 'sans-serif'
-  }}>
-    {/* Header */}
-    <div style={{ background: '#3b82f6', padding: '15px', textAlign: 'center' }}>
-      <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-        <CreditCard size={20} /> สรุปการจองและชำระเงิน
-      </h3>
-    </div>
-
-    <div style={{ padding: '20px' }}>
-      {/* รายละเอียด */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', fontSize: '0.9rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #475569', paddingBottom: '8px' }}>
-          <span style={{ color: '#94a3b8' }}>ภาพยนตร์:</span> 
-          <span style={{ fontWeight: '600', textAlign: 'right' }}>{data.movieTitle}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #475569', paddingBottom: '8px' }}>
-          <span style={{ color: '#94a3b8' }}>ที่นั่ง:</span> 
-          <span style={{ fontWeight: '600' }}>{data.seats}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #475569', paddingBottom: '8px' }}>
-          <span style={{ color: '#94a3b8' }}>รหัสการจอง:</span> 
-          <span style={{ fontWeight: '600', color: '#fbbf24' }}>{data.bookingId}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
-          <span style={{ color: '#94a3b8' }}>ยอดชำระ:</span> 
-          <span style={{ fontSize: '1.4rem', color: '#10b981', fontWeight: 'bold' }}>฿{data.totalPrice}</span>
-        </div>
-      </div>
-
-      {/* QR Code ของจริง */}
-      {data.qrCodeUrl ? (
-        <div style={{ background: '#fff', padding: '15px', borderRadius: '12px', textAlign: 'center', marginBottom: '20px' }}>
-          <img 
-            src={data.qrCodeUrl} 
-            alt="PromptPay QR Code" 
-            style={{ width: '100%', maxWidth: '200px', height: 'auto', display: 'block', margin: '0 auto' }} 
-          />
-          <p style={{ color: '#334155', margin: '10px 0 0 0', fontSize: '0.85rem', fontWeight: '500' }}>สแกนเพื่อชำระเงินผ่านแอปธนาคาร</p>
-        </div>
-      ) : (
-        <div style={{ background: '#334155', padding: '30px 15px', borderRadius: '12px', textAlign: 'center', marginBottom: '20px' }}>
-          <QrCode size={40} color="#94a3b8" style={{ marginBottom: '10px' }} />
-          <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>กำลังโหลด QR Code...</p>
-        </div>
-      )}
-
-      <button
-        onClick={() => onAction(`ชำระเงินเรียบร้อยแล้ว ยืนยันการออกตั๋วสำหรับรหัสการจอง ${data.bookingId} ให้หน่อย`)}
-        style={{
-          width: '100%', padding: '14px', background: '#10b981', color: 'white',
-          border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '1rem',
-          cursor: 'pointer', transition: 'background 0.2s', display: 'flex', justifyContent: 'center', gap: '8px'
-        }}
-        onMouseOver={(e) => e.target.style.background = '#059669'}
-        onMouseOut={(e) => e.target.style.background = '#10b981'}
-      >
-        แจ้งโอนเงินเรียบร้อย
-      </button>
-    </div>
-  </div>
-);
-
 // 🛠️ อัปเดต REGISTRY เป็นชุดสุดท้าย
 export const COMPONENT_REGISTRY = {
   'MOVIE_CAROUSEL': MovieCarousel,
@@ -691,7 +667,9 @@ export const COMPONENT_REGISTRY = {
   'SEAT_PICKER': SeatMap,
   'PAYMENT_SLIP': PaymentCard,
   'TICKET_SLIP': DigitalTicket,
-  'BULK_IMPORT_GRID': BulkImportGrid, // ✅ เพิ่มตัวนี้สำหรับการจัดการ Excel
+  'BULK_IMPORT_GRID': BulkImportGrid,
   'BRANCH_LIST': BranchList,
-  'CHECKOUT_SUMMARY': CheckoutSummary
+
+  // 🔥 แก้บรรทัดนี้! เปลี่ยนจาก CheckoutSummary เป็น PaymentCard
+  'CHECKOUT_SUMMARY': PaymentCard
 };

@@ -18,25 +18,33 @@ const PaymentSection = ({ amount, bookingId, onComplete, onCancel }) => {
             return;
         }
 
+        // 🚨 ดักจับตรงนี้! ป้องกัน Infinite Loop ถ้ารหัสที่ส่งมาเป็น BK- (ไม่ใช่ ObjectId ของจริง)
+        if (bookingId.startsWith('BK-')) {
+            console.error("❌ หยุดการทำงาน: bookingId ผิดรูปแบบ (ห้ามเป็น BK- ต้องเป็น ObjectId เท่านั้น) ค่าที่ได้คือ:", bookingId);
+            setLoadingQR(false);
+            return;
+        }
+
         const generateQR = async () => {
             try {
                 setLoadingQR(true);
-                
+
                 // ✅ ส่ง bookingId ของจริงไปที่ API
                 const data = await createPromptPayQR(amount, bookingId);
-                
+
                 setQrCode(data.qrCodeUrl);
                 setChargeId(data.chargeId);
                 setLoadingQR(false);
             } catch (error) {
                 console.error("QR Error:", error);
                 alert("สร้าง QR Code ไม่สำเร็จ: " + (error.response?.data?.message || error.message));
-                onCancel();
+                // ⚠️ เอา onCancel() ออกชั่วคราว เพื่อไม่ให้พอมัน Error แล้วมันเด้งออกไปเรียกวนลูปใหม่
+                setLoadingQR(false);
             }
         };
 
         generateQR();
-    }, [amount, bookingId, onCancel]); // ✅ เพิ่ม bookingId ใน Dependency array
+    }, [amount, bookingId]); // ✅ เอา onCancel ออกจาก Dependency เพื่อลดโอกาสการเกิด Loop
 
     // 2. Polling Check Status
     useEffect(() => {
@@ -77,17 +85,17 @@ const PaymentSection = ({ amount, bookingId, onComplete, onCancel }) => {
 
     return (
         <div className="payment-card">
-            
+
             {/* 👈 ฝั่งซ้าย: ข้อมูล */}
             <div className="payment-info-side">
                 <h2 className="payment-title">ชำระเงินผ่าน PromptPay</h2>
                 <p className="payment-subtitle">Secure Payment by Omise</p>
-                
+
                 <div className="amount-box">
                     <h3 className="amount-text">ยอดชำระ: {amount} บาท</h3>
                 </div>
                 <p className="instruction-text">
-                    {status === 'successful' 
+                    {status === 'successful'
                         ? "การชำระเงินเสร็จสมบูรณ์ ขอบคุณที่ใช้บริการ"
                         : "กรุณาสแกน QR Code ผ่านแอปพลิเคชันธนาคาร\nระบบจะทำการตรวจสอบยอดเงินโดยอัตโนมัติ"}
                 </p>
@@ -95,7 +103,7 @@ const PaymentSection = ({ amount, bookingId, onComplete, onCancel }) => {
 
             {/* 👉 ฝั่งขวา: QR หรือ Success */}
             <div className="payment-action-side">
-                
+
                 {loadingQR && (
                     <div className="loading-state">
                         <RefreshCw size={24} className="spin-animation" /> กำลังสร้าง QR Code...
@@ -113,7 +121,7 @@ const PaymentSection = ({ amount, bookingId, onComplete, onCancel }) => {
                         </div>
 
                         {/* ✅ ปุ่ม Demo */}
-                        <button 
+                        <button
                             className="btn-demo"
                             onClick={handleManualComplete}
                             disabled={isSimulating}
@@ -131,11 +139,11 @@ const PaymentSection = ({ amount, bookingId, onComplete, onCancel }) => {
                 {status === 'successful' && (
                     <div className="success-container">
                         <div style={{ marginBottom: '20px' }}>
-                            <CheckCircle size={90} color="#10B981" fill="#D1FAE5" /> 
+                            <CheckCircle size={90} color="#10B981" fill="#D1FAE5" />
                         </div>
                         <h3 className="success-title">ชำระเงินสำเร็จ!</h3>
                         <p className="success-desc">รายการจองได้รับการยืนยัน</p>
-                        
+
                         <button className="btn-history" onClick={onComplete}>
                             ไปที่ประวัติการจอง
                         </button>

@@ -68,7 +68,7 @@ const ChatBotPage = ({ isEmbedded = false }) => {
 
   const isReloading = useInitialMessageProcessor(location, user, handleSendMessage);
 
-  const renderMessageContent = (msg) => {
+  const renderMessageContent = (msg, isLatest) => {
     let actualText = msg.text || '';
 
     // 🛡️ 1. ดักจับกรณี Backend ส่งมาเป็นก้อน JSON ของ MCP Tool
@@ -109,8 +109,9 @@ const ChatBotPage = ({ isEmbedded = false }) => {
 
             {VisualComponent ? (
               <VisualComponent
-                data={visualData.data || visualData}
+                data={visualData.data ? visualData.data : visualData}
                 onAction={handleSendMessage}
+                isLatest={isLatest}
               />
             ) : (
               <div className="message-bubble text-red-400">⚠️ ไม่รองรับรูปแบบ {visualData.type}</div>
@@ -174,12 +175,15 @@ const ChatBotPage = ({ isEmbedded = false }) => {
                   </div>
                 )}
                 {messages.length > 0 && <div className="date-divider"><span>การสนทนาในวันนี้</span></div>}
-                {messages.map((msg) => (
+                {messages.map((msg, index) => (
                   <div key={msg.id} className={`message-row ${msg.sender}`}>
                     {msg.sender === 'bot' && <div className="bot-icon-chat"><Bot size={20} /></div>}
                     <div className="message-content-wrapper">
                       {msg.image && <img src={msg.image} alt="uploaded" className="chat-image-bubble" style={{ maxWidth: '200px', borderRadius: '10px', marginBottom: '5px' }} />}
-                      {renderMessageContent(msg)}
+
+                      {/* 👇 2. ส่งค่า isLatest เข้าไป โดยเช็คว่า index ปัจจุบันคือข้อความสุดท้ายหรือเปล่า */}
+                      {renderMessageContent(msg, index === messages.length - 1)}
+
                     </div>
                   </div>
                 ))}

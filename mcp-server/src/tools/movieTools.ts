@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import { MovieModel } from "../models/movie.js";
 import { connectDB } from "../db.js";
+import axios from 'axios';
 
 import AuditoriumModel from "../models/auditoriumModel.js";
 import ShowtimeModel from "../models/showtimeModel.js";
@@ -10,6 +11,7 @@ import CinemaModel from "../models/cinemaModel.js";
 import SeatModel from "../models/seatModel.js";
 import SeatTypeModel from "../models/seatTypeModel.js";
 import BookingModel from "../models/bookingModel.js";
+import PaymentModel from '../models/paymentModel.js';
 
 import omise from 'omise';
 const omiseClient = (omise as any)({
@@ -138,6 +140,16 @@ export const movieTools = [
                 if (auditoriumIds.length === 0) {
                     return { content: [{ type: "text", text: `ไม่พบข้อมูลโรงภาพยนตร์ในสาขา ${cinemaExists.name} กรุณาตรวจสอบการผูกข้อมูลใน Database` }] };
                 }
+
+                // ----------------------------------------------------
+                // 🔥 เพิ่มโค้ดส่วนนี้เพื่อแอบดูว่ามันค้นหาด้วยเงื่อนไขอะไร 🔥
+                console.log("\n========================================");
+                console.log(`🔍 กำลังค้นหารอบฉายเรื่อง: ${movieName}`);
+                console.log(`📅 วันที่ AI ส่งมา: ${date}`);
+                console.log(`🕒 ขอบเขตเวลา: ${startOfDay.toISOString()} ถึง ${endOfDay.toISOString()}`);
+                console.log(`🏢 ID ของโรงหนังในสาขานี้:`, auditoriumIds);
+                console.log("========================================\n");
+                // ----------------------------------------------------
 
                 // 🔥 4. ค้นหารอบฉายและดึงข้อมูลโรงหนังพ่วงมาด้วย
                 const showtimes = await ShowtimeModel.find({
@@ -280,163 +292,123 @@ export const movieTools = [
             }
         }
     },
-
-    // 💳 5. สรุปยอดชำระเงิน (รองรับการดึง User จริง)
+    // 🎟️ 5. สรุปการจอง (ตัด Omise ออก ให้ Frontend จัดการแทน)
     {
         name: "confirm_booking",
-        description: "สรุปการจอง คำนวณราคา และสร้าง QR Code สแกนจ่าย",
+        description: "สรุปการจองและส่งข้อมูลไปให้ระบบ Payment ของ Frontend จัดการชำระเงิน",
         args: {
-            userId: z.string().describe("User ID ปัจจุบันของผู้ใช้ (ดึงจาก System Prompt)"),
-            showtimeId: z.string(),
+            userId: z.string().describe("User ID ปัจจุบันของผู้ใช้"),
+            showtimeId: z.string().describe("ID ของรอบฉาย"),
             seatIds: z.array(z.string()).describe("Array ของ Seat ID ที่ผู้ใช้เลือก")
         },
         handler: async ({ userId, showtimeId, seatIds }: any) => {
-            await connectDB();
-
+            await connectDB(); // 1. ต้องต่อ DB ก่อน
             try {
-                const showtime: any = await ShowtimeModel.findById(showtimeId).populate('movie_id');
+                // 2. ใช้ .lean() เพื่อให้ได้ plain JS object ที่ส่งออกไปง่ายๆ
+                const showtime: any = await ShowtimeModel.findById(showtimeId)
+                    .populate('movie_id')
+                    .lean();
 
-                if (!showtime) {
-                    return { content: [{ type: "text", text: "ไม่พบข้อมูลรอบฉายนี้" }] };
-                }
+                if (!showtime) throw new Error("ไม่พบรอบฉาย");
 
-                const auditorium: any = await AuditoriumModel.findById(showtime.auditorium_id);
+                // 3. ดึงค่าออกมาพักไว้ในตัวแปรแยก (เพื่อความชัวร์)
+                const posterUrl = showtime.movie_id?.poster_url || "";
 
-                if (!auditorium) {
-                    return {
-                        content: [{
-                            type: "text",
-                            text: "ไม่พบข้อมูลโรงภาพยนตร์ของรอบฉายนี้ กรุณาตรวจสอบ auditorium_id"
-                        }]
-                    };
-                }
+                // 2. ดึงค่าออกมาเก็บในตัวแปรแยกชัดๆ กันพลาด
+                const movieInfo = showtime.movie_id;
+                const movieTitle = movieInfo.title_th || "ไม่ระบุชื่อเรื่อง";
+                const moviePoster = movieInfo.poster_url || ""; // ตรวจสอบชื่อฟิลด์ใน Schema ว่าเป็น poster_url เป๊ะๆ นะครับ
 
-                if (!auditorium.cinema_id) {
-                    return {
-                        content: [{
-                            type: "text",
-                            text: "ไม่พบ cinema_id ในข้อมูล auditorium กรุณาตรวจสอบ schema และข้อมูลในฐานข้อมูล"
-                        }]
-                    };
-                }
-
-                const cinema: any = await CinemaModel.findById(auditorium.cinema_id);
-
-                if (!cinema) {
-                    return {
-                        content: [{
-                            type: "text",
-                            text: "ไม่พบข้อมูลสาขา (Cinema) ที่เชื่อมกับโรงภาพยนตร์นี้"
-                        }]
-                    };
-                }
-
-                const seats: any = await SeatModel.find({ _id: { $in: seatIds } }).populate('seat_type_id');
-
-                if (!seats || seats.length === 0) {
-                    return {
-                        content: [{
-                            type: "text",
-                            text: "ไม่พบข้อมูลที่นั่งที่เลือก"
-                        }]
-                    };
-                }
+                const auditorium: any = await AuditoriumModel.findById(showtime.auditorium_id).lean();
+                const seats: any = await SeatModel.find({ _id: { $in: seatIds } }).populate('seat_type_id').lean();
 
                 let totalPrice = 0;
                 const seatNames: string[] = [];
 
                 seats.forEach((seat: any) => {
-                    const seatPrice = seat.seat_type_id?.price || 0;
-                    totalPrice += showtime.base_price + seatPrice;
+                    const seatPrice = seat.seat_type_id?.price || showtime.base_price || 0;
+                    totalPrice += seatPrice;
                     seatNames.push(`${seat.row_label}${seat.seat_number}`);
                 });
 
-                const source: any = await new Promise((resolve, reject) => {
-                    omiseClient.sources.create({
-                        type: 'promptpay',
-                        amount: totalPrice * 100,
-                        currency: 'thb'
-                    }, (err: any, source: any) => {
-                        if (err) reject(err);
-                        else resolve(source);
-                    });
-                });
+                const bookingNumber = `BK-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
 
-                const qrCodeUrl =
-                    source?.scannable_code?.image?.download_uri ||
-                    source?.scannable_code?.download_uri ||
-                    source?.download_uri ||
-                    null;
-
-                const bookingNumber = `BK-${Date.now().toString().slice(-6)}`;
                 const newBooking = new BookingModel({
-                    user_id: userId,
+                    user_id: userId === "guest_user" ? null : userId,
                     showtime_id: showtimeId,
                     cinema_id: auditorium.cinema_id,
-                    movie_id: showtime.movie_id._id,
+                    movie_id: movieInfo._id,
                     seats: seatIds,
                     booking_number: bookingNumber,
                     total_price: totalPrice,
                     status: 'pending'
                 });
+                const savedBooking = await newBooking.save();
 
-                await newBooking.save();
-
-                return sendVisual("กรุณาสแกน QR Code ด้านล่างเพื่อชำระเงินครับ", "CHECKOUT_SUMMARY", {
-                    bookingId: bookingNumber,
-                    movieTitle: showtime.movie_id.title_th,
-                    seats: seatNames.join(", "),
-                    totalPrice: totalPrice,
-                    qrCodeUrl
-                });
-
+                // 3. ส่งข้อมูลกลับโดยใช้ตัวแปรที่เราดึงมาพักไว้
+                return sendVisual(
+                    `สรุปรายการจองเรื่อง ${movieTitle} เรียบร้อยครับ กรุณาดำเนินการชำระเงินด้านล่างได้เลยครับ`,
+                    "CHECKOUT_SUMMARY",
+                    {
+                        bookingId: savedBooking._id.toString(),
+                        bookingNumber: bookingNumber,
+                        movieName: movieTitle,
+                        poster_url: posterUrl,
+                        time: new Date(showtime.start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                        seats: seatNames.join(", "),
+                        totalPrice: totalPrice,
+                        price: totalPrice
+                    }
+                );
             } catch (error: any) {
-                console.error("❌ Error in confirm_booking:", error);
-                return {
-                    content: [{
-                        type: "text",
-                        text: `เกิดข้อผิดพลาดในการสรุปการจอง: ${error.message}`
-                    }]
-                };
+                console.error("❌ Error confirm_booking:", error);
+                return { content: [{ type: "text", text: `เกิดข้อผิดพลาด: ${error.message}` }] };
             }
         }
     },
 
-    // 🎟️ 6. ออกตั๋ว (อัปเดตสถานะสำเร็จจริง)
+    // 🎟️ 6. ออกตั๋ว (ทำหน้าที่แค่อัปเดตสถานะ Booking เป็น Confirmed และโชว์ตั๋ว)
     {
         name: "issue_ticket",
-        description: "ออกตั๋วภาพยนตร์เมื่อผู้ใช้ชำระเงินสำเร็จ พร้อมอัปเดตสถานะใน Database เป็นยืนยันแล้ว",
+        description: "เปลี่ยนสถานะเป็น confirmed และออกตั๋วให้ผู้ใช้",
         args: {
-            bookingId: z.string().describe("รหัสการจอง (booking_number) เช่น BK-XXXXX"),
-            movieName: z.string().describe("ชื่อภาพยนตร์"),
-            time: z.string().describe("เวลาฉาย"),
-            seats: z.string().describe("ที่นั่ง")
+            bookingId: z.string().describe("รหัสการจอง ObjectId (จากที่ PaymentCard ส่งมา) หรือ BK-XXXXX"),
+            movieName: z.string().describe("ชื่อภาพยนตร์").optional(),
+            time: z.string().describe("เวลาฉาย").optional(),
+            seats: z.string().describe("ที่นั่ง").optional()
         },
         handler: async ({ bookingId, movieName, time, seats }: any) => {
             await connectDB();
 
-            // ✅ อัปเดตสถานะ Booking ในระบบจริงเป็น 'confirmed'
-            const updatedBooking = await BookingModel.findOneAndUpdate(
-                { booking_number: bookingId },
-                { status: 'confirmed' },
-                { new: true }
-            );
+            try {
+                // รองรับการค้นหาทั้งแบบ ObjectId และ Booking Number
+                const isObjectId = mongoose.Types.ObjectId.isValid(bookingId);
+                const query = isObjectId ? { _id: bookingId } : { booking_number: bookingId };
 
-            if (!updatedBooking) {
-                return { content: [{ type: "text", text: `ไม่พบข้อมูลการจองรหัส ${bookingId} ในระบบครับ กรุณาลองใหม่อีกครั้ง` }] };
-            }
-
-            return sendVisual(
-                `ชำระเงินเรียบร้อยครับ! 🎉 ข้อมูลของคุณถูกบันทึกแล้ว นี่คือตั๋วของคุณ ขอให้สนุกกับการชมภาพยนตร์นะครับ`,
-                "TICKET_SLIP",
-                {
-                    bookingId,
-                    movieName,
-                    time,
-                    seats,
-                    status: updatedBooking.status
+                const booking = await BookingModel.findOne(query).populate('movie_id');
+                if (!booking) {
+                    return { content: [{ type: "text", text: `ไม่พบข้อมูลการจองรหัส ${bookingId}` }] };
                 }
-            );
+
+                // เปลี่ยนสถานะเป็น Confirmed ได้เลย (เพราะถ้าหลุดมาถึงตรงนี้แปลว่า PaymentSection เช็คยอดเงินสำเร็จแล้ว)
+                booking.status = 'confirmed';
+                await booking.save();
+
+                return sendVisual(
+                    `ขอบคุณที่ชำระเงินครับ! 🎉 นี่คือตั๋วของคุณ ขอให้สนุกกับการชมภาพยนตร์นะครับ`,
+                    "TICKET_SLIP",
+                    {
+                        bookingId: booking.booking_number, // โชว์เป็น BK-XXX สวยๆ บนตั๋ว
+                        movieName: movieName || (booking.movie_id as any).title_th,
+                        time: time || "ตามรอบฉาย",
+                        seats: seats || "ตามที่เลือกไว้",
+                        status: booking.status
+                    }
+                );
+            } catch (error: any) {
+                console.error("❌ Error in issue_ticket:", error);
+                return { content: [{ type: "text", text: `เกิดข้อผิดพลาดในการออกตั๋ว: ${error.message}` }] };
+            }
         }
     }
 ];
