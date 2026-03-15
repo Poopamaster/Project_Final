@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import { MovieModel } from "../models/movie.js";
 import { connectDB } from "../db.js";
-import axios from 'axios';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
 import AuditoriumModel from "../models/auditoriumModel.js";
 import ShowtimeModel from "../models/showtimeModel.js";
@@ -11,7 +12,8 @@ import CinemaModel from "../models/cinemaModel.js";
 import SeatModel from "../models/seatModel.js";
 import SeatTypeModel from "../models/seatTypeModel.js";
 import BookingModel from "../models/bookingModel.js";
-import PaymentModel from '../models/paymentModel.js';
+const { sendBookingConfirmation } = require('../../../backend/src/services/emailService');
+import User from '../models/userModel.js';
 
 import omise from 'omise';
 const omiseClient = (omise as any)({
@@ -370,7 +372,7 @@ export const movieTools = [
     // 🎟️ 6. ออกตั๋ว (ทำหน้าที่แค่อัปเดตสถานะ Booking เป็น Confirmed และโชว์ตั๋ว)
     {
         name: "issue_ticket",
-        description: "เปลี่ยนสถานะเป็น confirmed และออกตั๋วให้ผู้ใช้",
+        description: "เปลี่ยนสถานะเป็น confirmed และออกตั๋วให้ผู้ใช้ พร้อมส่งอีเมลยืนยัน",
         args: {
             bookingId: z.string().describe("รหัสการจอง ObjectId (จากที่ PaymentCard ส่งมา) หรือ BK-XXXXX"),
             movieName: z.string().describe("ชื่อภาพยนตร์").optional(),
@@ -381,27 +383,58 @@ export const movieTools = [
             await connectDB();
 
             try {
-                // รองรับการค้นหาทั้งแบบ ObjectId และ Booking Number
                 const isObjectId = mongoose.Types.ObjectId.isValid(bookingId);
                 const query = isObjectId ? { _id: bookingId } : { booking_number: bookingId };
 
-                const booking = await BookingModel.findOne(query).populate('movie_id');
+
+                // 1. ดึง Booking และ Populate ข้อมูลให้ลึกพอที่ emailService.js ต้องการ
+                const booking: any = await BookingModel.findOne(query)
+                    .populate({
+                        path: 'showtime_id',
+                        populate: [
+                            { path: 'movie_id' },
+                            { path: 'auditorium_id' }
+                        ]
+                    })
+                    .populate('seats');
+
                 if (!booking) {
                     return { content: [{ type: "text", text: `ไม่พบข้อมูลการจองรหัส ${bookingId}` }] };
                 }
 
-                // เปลี่ยนสถานะเป็น Confirmed ได้เลย (เพราะถ้าหลุดมาถึงตรงนี้แปลว่า PaymentSection เช็คยอดเงินสำเร็จแล้ว)
+                const posterUrl = booking.showtime_id?.movie_id?.poster_url || "";
+                console.log("👉 โปสเตอร์ที่ดึงได้คือ:", posterUrl); // <--- เติมบรรทัดนี้ลงไปเพื่อแอบดู
+                // 2. เปลี่ยนสถานะเป็น Confirmed
                 booking.status = 'confirmed';
                 await booking.save();
 
+                // 3. ดึงอีเมลลูกค้าและส่งตั๋ว
+                let emailStatusMsg = "";
+                if (booking.user_id) {
+                    const user = await User.findById(booking.user_id);
+                    if (user && user.email) {
+                        try {
+                            const emailSent = await sendBookingConfirmation(user.email, booking);
+                            if (emailSent) {
+                                emailStatusMsg = ` และจัดส่งตั๋วอิเล็กทรอนิกส์ไปยังอีเมล ${user.email} เรียบร้อยแล้วครับ 📧`;
+                            }
+                        } catch (emailErr) {
+                            console.error("Mail Error:", emailErr);
+                            emailStatusMsg = ` (ระบบส่งอีเมลขัดข้องชั่วคราว แต่การจองสำเร็จแล้วครับ)`;
+                        }
+                    }
+                }
+
+                // 4. ส่ง Visual กลับไปโชว์ในแชท
                 return sendVisual(
-                    `ขอบคุณที่ชำระเงินครับ! 🎉 นี่คือตั๋วของคุณ ขอให้สนุกกับการชมภาพยนตร์นะครับ`,
+                    `ขอบคุณที่ชำระเงินครับ! 🎉 สถานะการจองได้รับการยืนยัน${emailStatusMsg} นี่คือตั๋วของคุณ ขอให้สนุกกับการชมภาพยนตร์นะครับ 🍿`,
                     "TICKET_SLIP",
                     {
-                        bookingId: booking.booking_number, // โชว์เป็น BK-XXX สวยๆ บนตั๋ว
-                        movieName: movieName || (booking.movie_id as any).title_th,
-                        time: time || "ตามรอบฉาย",
+                        bookingId: booking.booking_number,
+                        movieName: movieName || booking.showtime_id.movie_id.title_th,
+                        time: time || new Date(booking.showtime_id.start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
                         seats: seats || "ตามที่เลือกไว้",
+                        poster_url: posterUrl,
                         status: booking.status
                     }
                 );

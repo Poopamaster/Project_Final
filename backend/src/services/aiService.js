@@ -110,7 +110,7 @@ const extraPrompt = `
 
     // 4. สร้าง Model
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash", // หรือ gemini-2.5-flash-lite ตามโควต้าที่มี
+      model: "gemini-3-flash-preview", // หรือ gemini-2.5-flash-lite ตามโควต้าที่มี
       systemInstruction: getSystemPrompt(user) + "\n\n" + extraPrompt,
       tools: filteredTools.length > 0 ? [googleTools] : [],
     });

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import PaymentSection from './PaymentSection'; // 👈 สำคัญมาก! เช็ค path ให้ถูกด้วยนะครับ
 import { Film, Clock, Star, Calendar, CreditCard, QrCode, MapPin, ChevronRight } from 'lucide-react';
+import TicketTemplate from '../components/TicketTemplate';
 
 // 1. Movie Carousel (Design ตามต้นฉบับเป๊ะๆ)
 export const MovieCarousel = ({ data, onAction }) => (
@@ -480,43 +481,119 @@ export const PaymentCard = ({ data, onAction, isLatest = false, movie }) => {
 };
 
 // 5. Digital Ticket
-export const DigitalTicket = ({ data }) => (
-  <div style={{ background: 'white', color: '#0f172a', borderRadius: '20px', width: '100%', maxWidth: '320px', overflow: 'hidden', marginTop: '10px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', position: 'relative' }}>
-    <div style={{ padding: '20px', background: '#3b82f6', color: 'white' }}>
-      <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>{data.movieName}</h2>
-      <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.9 }}>Digital Ticket</p>
+export const DigitalTicket = ({ data }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // ดึงรูปโปสเตอร์ (ถ้าใน TICKET_SLIP มีการส่งมา ถ้าไม่มีใช้รูปสำรอง)
+  const posterSrc = data.poster_url || data.movieImage || "https://placehold.co/150x225?text=No+Poster";
+
+  // 🎟️ โครงสร้างดีไซน์ตั๋วที่ถอดแบบมาจาก TicketTemplate.jsx
+  const TicketDesign = () => (
+    <div style={{ width: '100%', maxWidth: '350px', backgroundColor: '#ffffff', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+
+      {/* Header */}
+      <div style={{ backgroundColor: '#1a1f2c', padding: '15px 0', textAlign: 'center', borderBottom: '3px solid #f1c40f' }}>
+        <h1 style={{ color: '#f1c40f', margin: 0, fontSize: '18px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>MCP CINEMA</h1>
+        <p style={{ color: '#f1c40f', margin: '3px 0 0 0', fontSize: '10px', opacity: 0.9 }}>E-Ticket ยืนยันการจอง</p>
+      </div>
+
+      {/* Checkmark & Booking ID */}
+      <div style={{ padding: '20px 15px', textAlign: 'center', backgroundColor: '#ffffff' }}>
+        <div style={{ width: '40px', height: '40px', backgroundColor: '#27ae60', borderRadius: '50%', display: 'inline-flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontSize: '20px', marginBottom: '10px' }}>
+          ✓
+        </div>
+        <p style={{ color: '#7f8c8d', margin: '0', fontSize: '12px' }}>รหัสการจอง (Booking ID)</p>
+        <h2 style={{ color: '#2c3e50', margin: '5px 0', fontSize: '22px', letterSpacing: '1px', fontWeight: 'bold' }}>{data.bookingId}</h2>
+        <p style={{ color: '#27ae60', margin: '0', fontSize: '12px', fontWeight: 'bold' }}>ชำระเงินเรียบร้อยแล้ว</p>
+      </div>
+
+      <hr style={{ border: 0, borderTop: '1px dashed #ecf0f1', margin: '0' }} />
+
+      {/* Movie Details */}
+      <div style={{ padding: '15px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+          <div style={{ marginRight: '15px', flexShrink: 0 }}>
+            <img src={posterSrc} alt="Poster" style={{ width: '70px', borderRadius: '5px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)', display: 'block', objectFit: 'cover' }} />
+          </div>
+          <div style={{ flexGrow: 1 }}>
+            <h3 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '15px', fontWeight: 'bold', lineHeight: '1.2' }}>{data.movieName}</h3>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                <tr>
+                  <td style={{ color: '#7f8c8d', fontSize: '11px', paddingBottom: '3px', width: '60px' }}>เวลาฉาย:</td>
+                  <td style={{ color: '#2c3e50', fontSize: '12px', fontWeight: 'bold', paddingBottom: '3px' }}>{data.time}</td>
+                </tr>
+                <tr>
+                  <td style={{ color: '#7f8c8d', fontSize: '11px', paddingBottom: '3px' }}>ที่นั่ง:</td>
+                  <td style={{ color: '#e74c3c', fontSize: '12px', fontWeight: 'bold', paddingBottom: '3px' }}>{data.seats}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* QR Code */}
+      <div style={{ textAlign: 'center', padding: '10px 15px 20px 15px', backgroundColor: '#fcfcfc', borderTop: '1px solid #eee' }}>
+        <img
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
+            `${window.location.origin}/admin/verify/${data.bookingId}` // <--- แก้ตรงนี้ครับ
+          )}`}
+          alt="QR Code"
+          style={{ width: '100px', height: '100px', display: 'inline-block' }}
+        />
+        <p style={{ color: '#95a5a6', fontSize: '10px', marginTop: '8px', marginBottom: 0 }}>
+          พนักงานสแกน QR Code นี้เพื่อตรวจสอบสถานะตั๋ว
+        </p>
+      </div>
     </div>
+  );
 
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-        <div>
-          <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>Time</span>
-          <p style={{ margin: 0, fontWeight: 700 }}>{data.time}</p>
+  return (
+    <>
+      {/* 1. ส่วนที่แสดงในกล่องแชท (ย่อส่วนนิดนึงให้ดูพอดี ไม่เกะกะแชท) */}
+      <div
+        onClick={() => setIsOpen(true)}
+        style={{ cursor: 'pointer', transition: 'transform 0.2s', marginTop: '10px' }}
+        title="คลิกเพื่อดูตั๋วขนาดเต็ม"
+      >
+        <div style={{ pointerEvents: 'none', transform: 'scale(0.9)', transformOrigin: 'top left' }}>
+          <TicketDesign />
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>Seats</span>
-          <p style={{ margin: 0, fontWeight: 700, color: '#3b82f6' }}>{data.seats}</p>
-        </div>
-      </div>
-
-      <div style={{ borderTop: '2px dashed #e2e8f0', padding: '15px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Booking ID</span>
-          <p style={{ margin: 0, fontSize: '0.8rem', fontFamily: 'monospace' }}>#{data.bookingId}</p>
+        <div style={{ color: '#3b82f6', fontSize: '12px', marginTop: '-15px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          🔍 <span>คลิกเพื่อดูภาพตั๋ว</span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
-        <QrCode size={90} color="#1e293b" />
-      </div>
-      <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#94a3b8', marginTop: '10px' }}>Scan this QR code at entrance</p>
-    </div>
+      {/* 2. Modal แบบกางเต็มจอ (เมื่อถูกคลิก) */}
+      {isOpen && (
+        <div
+          onClick={() => setIsOpen(false)} // คลิกพื้นที่ว่างเพื่อปิด
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()} // ป้องกันการคลิกตั๋วแล้วปิด
+            style={{ position: 'relative', width: '100%', maxWidth: '380px' }}
+          >
+            {/* ปุ่มปิด (X) */}
+            <button
+              onClick={() => setIsOpen(false)}
+              style={{ position: 'absolute', top: '-40px', right: '0', background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '30px' }}
+            >
+              &times;
+            </button>
 
-    {/* Ticket circles */}
-    <div style={{ position: 'absolute', top: '85px', left: '-10px', width: '20px', height: '20px', background: '#0B1120', borderRadius: '50%' }}></div>
-    <div style={{ position: 'absolute', top: '85px', right: '-10px', width: '20px', height: '20px', background: '#0B1120', borderRadius: '50%' }}></div>
-  </div>
-);
+            {/* ตั๋วขนาดเต็ม */}
+            <div style={{ transform: 'scale(1.05)', transformOrigin: 'center' }}>
+              <TicketDesign />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
 // 6. Bulk Import Preview Grid (สำหรับ Admin ตรวจสอบไฟล์ Excel)
 export const BulkImportGrid = ({ data, onAction }) => {
