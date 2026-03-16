@@ -6,7 +6,7 @@
         "C:/Users/Poopa/OneDrive/Desktop/Final_project/Project_Final/mcp-server/src/index.ts"
       ],
       "env": {
-        "MONGO_URI": "mongodb+srv://testMCP:testMCP@cluster0.bupaf.mongodb.net/mcp_cinema"
+        "MONGO_URI": "process.env.MONGO_URI"
       }
     }
   }
