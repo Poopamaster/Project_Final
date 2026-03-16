@@ -99,6 +99,75 @@ export const movieTools = [
         }
     },
 
+    {
+        name: "get_available_dates",
+        description: "ดึงวันที่ทั้งหมดที่มีรอบฉาย สำหรับหนังและสาขาที่ผู้ใช้เลือก เพื่อส่งเป็นปุ่มเลือกวันให้ผู้ใช้",
+        args: {
+            movieId: z.string().describe("รหัสภาพยนตร์"),
+            movieName: z.string().describe("ชื่อภาพยนตร์"),
+            branchId: z.string().describe("รหัสสาขา (ต้องรับจากผู้ใช้เท่านั้น)")
+        },
+        handler: async ({ movieId, movieName, branchId }: any) => {
+            await connectDB();
+            try {
+                // 1. ตรวจสอบความถูกต้องของ ID เหมือนใน get_showtimes
+                const movieObjectId = new mongoose.Types.ObjectId(movieId);
+                const branchObjectId = new mongoose.Types.ObjectId(branchId);
+
+                // 2. หาโรงหนังทั้งหมดในสาขานี้
+                const auditoriums = await AuditoriumModel.find({ cinema_id: branchObjectId })
+                    .setOptions({ strictPopulate: false });
+                const auditoriumIds = auditoriums.map(a => a._id);
+
+                if (auditoriumIds.length === 0) {
+                    return { content: [{ type: "text", text: `ไม่พบข้อมูลโรงภาพยนตร์ในสาขานี้ครับ` }] };
+                }
+
+                // 3. หาวันที่ปัจจุบัน (เอาเวลา 00:00:00 เพื่อรวมรอบฉายของวันนี้ทั้งหมด)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                // 4. ดึงรอบฉายทั้งหมดตั้งแต่วันนี้เป็นต้นไป
+                const showtimes = await ShowtimeModel.find({
+                    movie_id: movieObjectId,
+                    auditorium_id: { $in: auditoriumIds },
+                    start_time: { $gte: today }
+                }).select('start_time'); // ดึงมาแค่เวลาเพื่อประหยัดทรัพยากร
+
+                if (showtimes.length === 0) {
+                    return { content: [{ type: "text", text: `ขออภัยครับ ตอนนี้ยังไม่มีรอบฉายสำหรับเรื่อง ${movieName} ในสาขานี้เลยครับ 😥` }] };
+                }
+
+               // 5. สกัดเอาเฉพาะ "วันที่" แบบไม่ซ้ำกัน (Format: YYYY-MM-DD โซนไทย)
+                const uniqueDates = [...new Set(showtimes.map((st: any) => {
+                    const d = new Date(st.start_time);
+                    
+                    // ✨ วิธีที่ปลอดภัยที่สุด: แปลงตามโซนเวลา Asia/Bangkok
+                    const formatter = new Intl.DateTimeFormat('en-CA', { 
+                        timeZone: 'Asia/Bangkok', 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit' 
+                    });
+                    
+                    return formatter.format(d); // จะได้ออกมาเป็น "2024-03-18" เป๊ะๆ
+                }))].sort(); // เรียงจากวันที่น้อยไปมาก
+
+                // 6. ส่งเป็น Visual ออกไป
+                return sendVisual(`กรุณาเลือกวันที่ต้องการชมภาพยนตร์เรื่อง ${movieName} ได้เลยครับ 📅`, "DATE_SELECTOR", {
+                    movieId,
+                    movieName,
+                    branchId,
+                    availableDates: uniqueDates // ส่ง Array ของวันที่ไปให้ Frontend สร้างปุ่ม
+                });
+
+            } catch (error: any) {
+                console.error("❌ Error in get_available_dates:", error);
+                return { content: [{ type: "text", text: `เกิดข้อผิดพลาดในการดึงข้อมูลวันที่: ${error.message}` }] };
+            }
+        }
+    },
+
     // 🕒 3. เลือกรอบฉาย
     {
         name: "get_showtimes",
@@ -143,15 +212,6 @@ export const movieTools = [
                     return { content: [{ type: "text", text: `ไม่พบข้อมูลโรงภาพยนตร์ในสาขา ${cinemaExists.name} กรุณาตรวจสอบการผูกข้อมูลใน Database` }] };
                 }
 
-                // ----------------------------------------------------
-                // 🔥 เพิ่มโค้ดส่วนนี้เพื่อแอบดูว่ามันค้นหาด้วยเงื่อนไขอะไร 🔥
-                console.log("\n========================================");
-                console.log(`🔍 กำลังค้นหารอบฉายเรื่อง: ${movieName}`);
-                console.log(`📅 วันที่ AI ส่งมา: ${date}`);
-                console.log(`🕒 ขอบเขตเวลา: ${startOfDay.toISOString()} ถึง ${endOfDay.toISOString()}`);
-                console.log(`🏢 ID ของโรงหนังในสาขานี้:`, auditoriumIds);
-                console.log("========================================\n");
-                // ----------------------------------------------------
 
                 // 🔥 4. ค้นหารอบฉายและดึงข้อมูลโรงหนังพ่วงมาด้วย
                 const showtimes = await ShowtimeModel.find({
@@ -403,7 +463,6 @@ export const movieTools = [
                 }
 
                 const posterUrl = booking.showtime_id?.movie_id?.poster_url || "";
-                console.log("👉 โปสเตอร์ที่ดึงได้คือ:", posterUrl); // <--- เติมบรรทัดนี้ลงไปเพื่อแอบดู
                 // 2. เปลี่ยนสถานะเป็น Confirmed
                 booking.status = 'confirmed';
                 await booking.save();

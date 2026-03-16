@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import PaymentSection from './PaymentSection'; // 👈 สำคัญมาก! เช็ค path ให้ถูกด้วยนะครับ
-import { Film, Clock, Star, Calendar, CreditCard, QrCode, MapPin, ChevronRight } from 'lucide-react';
-import TicketTemplate from '../components/TicketTemplate';
+import { Film, Clock, Star, Calendar, CreditCard, QrCode, MapPin, ChevronRight, Trash2 } from 'lucide-react';
 
 // 1. Movie Carousel (Design ตามต้นฉบับเป๊ะๆ)
 export const MovieCarousel = ({ data, onAction }) => (
@@ -68,7 +67,9 @@ export const ShowtimeSelector = ({ data, onAction }) => {
           <button
             key={st.showtimeId || st._id}
             // ✅ เปลี่ยนคำสั่ง onAction ให้ชัดเจนขึ้น เพื่อบังคับ AI ดึงผังที่นั่ง!
-            onClick={() => onAction(`กรุณาเรียกใช้คำสั่ง select_seat เพื่อดึงผังที่นั่งของรอบฉายเวลา ${st.time} (ShowtimeID: ${st.showtimeId || st._id}) เรื่อง ${data.movieName || 'ที่เลือก'}`)}
+            onClick={() => onAction(
+              `ดึงผังที่นั่งรอบเวลา ${st.time} (ShowtimeID: ${st.showtimeId || st._id}) เรื่อง ${data.movieName}`
+            )}
             style={{
               padding: '10px', background: '#1E293B', border: '1px solid #334155', color: '#e2e8f0',
               borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer',
@@ -400,82 +401,78 @@ export const SeatMap = ({ data, onAction }) => {
 
 // 4. Payment Card
 // 1. รับค่า isLatest เข้ามา (ถ้าไม่ส่งมา ให้ค่าเริ่มต้นเป็น false)
-export const PaymentCard = ({ data, onAction, isLatest = false, movie }) => {
+export const PaymentCard = ({ data, onAction, messages = [] }) => {
 
-  // 2. เอา isLatest ไปใส่ใน useState 
-  // (ถ้าเป็นข้อความล่าสุด มันจะกางออก (true) แต่ถ้าเป็นประวัติเก่ามันจะพับไว้ (false))
-  const [showPayment, setShowPayment] = useState(isLatest);
+  // 1. ตรวจสอบว่าในประวัติแชท มีการยืนยัน BookingID นี้ไปแล้วหรือยัง
+  // เราจะเช็คว่ามีข้อความจาก user ที่มี BookingID ตรงกับ Card นี้ไหม
+  const isAlreadyProcessed = messages.some(msg =>
+    msg.sender === 'user' && msg.text?.includes(data.bookingId)
+  );
+
+  const handleProceed = () => {
+    // ถ้าเคยส่งไปแล้ว ไม่ต้องทำอะไร
+    if (isAlreadyProcessed) return;
+
+    // ถ้ายังไม่เคย ให้ส่ง Action ยืนยันชำระเงิน
+    onAction(`ยืนยันการสรุปยอด และดำเนินการชำระเงินสำหรับ BookingID: ${data.bookingId} เรื่อง ${data.movieName}`);
+  };
 
   return (
-    <div style={{ background: '#1E293B', padding: '20px', borderRadius: '16px', border: '1px solid #334155', width: '100%', maxWidth: '500px', marginTop: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}>
-      {/* ... โค้ดส่วนบน (รูปหนัง/ชื่อหนัง) เหมือนเดิมเป๊ะ ... */}
+    <div style={{
+      background: '#1E293B',
+      padding: '20px',
+      borderRadius: '16px',
+      border: '1px solid #334155',
+      width: '100%',
+      maxWidth: '500px',
+      marginTop: '10px',
+      opacity: isAlreadyProcessed ? 0.7 : 1, // จางลงถ้ากดไปแล้ว
+      transition: 'opacity 0.3s ease'
+    }}>
+
+      {/* ... (ส่วนแสดงรูปหนังและรายละเอียด เหมือนเดิม) ... */}
       <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
-        <div style={{ width: '60px', height: '80px', background: '#334155', borderRadius: '8px', flexShrink: 0, overflow: 'hidden' }}>
-          {(() => {
-            let imgUrl = data.poster_url || data.movieImage;
-
-            if (imgUrl) {
-              // 🔥 หักดิบ Cache: เติม ?t=สุ่มเลข เข้าไปท้าย URL เพื่อให้เบราว์เซอร์เลิกจำอันเดิม
-              const cleanUrl = imgUrl.includes('?') ? `${imgUrl}&t=${Date.now()}` : `${imgUrl}?t=${Date.now()}`;
-
-              return (
-                <img
-                  src={cleanUrl}
-                  alt="Movie Poster"
-                  // ⚠️ สำคัญมาก: ต้องไม่มี attribute crossOrigin เด็ดขาด!
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  onError={(e) => {
-                    console.error("Image failed to load:", cleanUrl);
-                    e.target.src = "https://via.placeholder.com/60x80?text=No+Pic";
-                  }}
-                />
-              );
-            }
-
-            return (
-              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '10px' }}>
-                ไม่มีรูป
-              </div>
-            );
-          })()}
+        <div style={{ width: '60px', height: '80px', background: '#334155', borderRadius: '8px', overflow: 'hidden' }}>
+          {data.poster_url && <img src={data.poster_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
         </div>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'white' }}>{data.movieName}</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#94a3b8', marginTop: '5px' }}>
-            วันนี้ <span style={{ opacity: 0.5 }}>|</span> {data.time}
-          </div>
-          <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '5px' }}>
-            ที่นั่ง: <span style={{ color: '#3b82f6' }}>{data.seats}</span>
-          </div>
+          <h3 style={{ margin: 0, color: 'white' }}>{data.movieName}</h3>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>ที่นั่ง: {data.seats}</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
         <span style={{ color: '#cbd5e1' }}>ยอดรวมสุทธิ</span>
         <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{data.price || data.totalPrice} ฿</span>
       </div>
 
-      {/* เงื่อนไขแสดงปุ่ม หรือ แสดง Omise */}
-      {!showPayment ? (
-        <button
-          onClick={() => setShowPayment(true)}
-          style={{ width: '100%', padding: '14px', background: 'linear-gradient(90deg, #3b82f6, #6366f1)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}
-        >
-          ดำเนินการต่อ
-        </button>
-      ) : (
-        <div style={{ background: 'white', borderRadius: '12px', padding: '10px', animation: 'fadeIn 0.3s ease-in-out' }}>
-          <PaymentSection
-            amount={data.price || data.totalPrice}
-            bookingId={data.bookingId}
-            onComplete={() => {
-              setShowPayment(false);
-              onAction(`ชำระเงินเรียบร้อย! BookingID: ${data.bookingId}, หนัง: ${data.movieName}, รอบ: ${data.time}, ที่นั่ง: ${data.seats}`);
-            }}
-            onCancel={() => setShowPayment(false)}
-          />
-        </div>
-      )}
+      {/* 2. ปรับปุ่มตามสถานะ isAlreadyProcessed */}
+      <button
+        onClick={handleProceed}
+        disabled={isAlreadyProcessed}
+        style={{
+          width: '100%',
+          padding: '14px',
+          background: isAlreadyProcessed
+            ? '#334155' // สีเทาเมื่อกดแล้ว
+            : 'linear-gradient(90deg, #3b82f6, #6366f1)',
+          color: isAlreadyProcessed ? '#94a3b8' : 'white',
+          border: 'none',
+          borderRadius: '12px',
+          fontWeight: 'bold',
+          cursor: isAlreadyProcessed ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '10px'
+        }}
+      >
+        {isAlreadyProcessed ? (
+          'ดำเนินการเรียบร้อยแล้ว'
+        ) : (
+          <>ดำเนินการชำระเงิน</>
+        )}
+      </button>
     </div>
   );
 };
@@ -599,88 +596,180 @@ export const DigitalTicket = ({ data }) => {
 export const BulkImportGrid = ({ data, onAction }) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // ข้อมูลหนังที่ส่งมาจาก Backend (Parsed from Excel)
-  const movies = Array.isArray(data) ? data : (data?.movies || []);
-  const total = movies.length;
-  // ตรวจสอบเบื้องต้นว่ามี Row ไหนข้อมูลไม่ครบไหม
-  const errors = movies.filter(m => !m.title_th || !m.genre).length;
+  // ดึงข้อมูลหนังเริ่มต้น
+  const initialMovies = Array.isArray(data) ? data : (data?.movies || []);
+  const [movies, setMovies] = useState(initialMovies);
+
+  // ฟิลด์ที่บังคับ
+  const requiredFields = ['title_th', 'genre', 'duration_min', 'start_date', 'due_date'];
+
+  // ลำดับคอลัมน์ที่ต้องการแสดง
+  const orderedColumns = [
+    'title_th',
+    'title_en',
+    'genre',
+    'duration_min',
+    'start_date',
+    'due_date',
+    'language',
+    'poster_url'
+  ];
+
+  // กวาดคอลัมน์อื่นๆ ที่อาจหลงมา
+  const allKeys = new Set([...movies.flatMap(Object.keys)]);
+  const extraColumns = Array.from(allKeys).filter(
+    key => !orderedColumns.includes(key) && key !== '_id' && key !== '__v'
+  );
+  const displayColumns = [...orderedColumns, ...extraColumns];
+
+  // ฟังก์ชันแปลงวันที่ให้อยู่ในรูปแบบ YYYY-MM-DD สำหรับ input type="date"
+  const formatDateForInput = (val) => {
+    if (!val) return '';
+    try {
+      const dateStr = String(val).trim();
+      // ถ้าเป็น YYYY-MM-DD อยู่แล้ว
+      if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.substring(0, 10);
+
+      // ลองแปลงด้วย Date object
+      const parsedDate = new Date(dateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toISOString().split('T')[0];
+      }
+    } catch (e) {
+      return ''; // แปลงไม่ได้ปล่อยว่าง
+    }
+    return '';
+  };
+
+  const handleCellChange = (rowIndex, column, value) => {
+    const newMovies = [...movies];
+    newMovies[rowIndex] = { ...newMovies[rowIndex], [column]: value };
+    setMovies(newMovies);
+  };
+
+  // 🔥 ฟังก์ชันลบแถว
+  const handleDeleteRow = (indexToRemove) => {
+    const newMovies = movies.filter((_, index) => index !== indexToRemove);
+    setMovies(newMovies);
+  };
+
+  const getRowErrors = (movie) => {
+    return requiredFields.filter(field => {
+      const val = movie[field];
+      return val === undefined || val === null || String(val).trim() === '';
+    });
+  };
+
+  const totalErrors = movies.reduce((sum, movie) => sum + getRowErrors(movie).length, 0);
 
   const handleConfirm = () => {
     setIsSubmitted(true);
-    // ส่ง Action กลับไปหา AI เพื่อบันทึกลง Database
-    onAction(`ยืนยันบันทึกข้อมูลหนัง ${total} เรื่องจากไฟล์ Excel ลงระบบ`);
+    onAction(`ยืนยันบันทึกข้อมูลหนัง ${movies.length} เรื่อง ข้อมูลที่ต้องการบันทึกคือ:\n\`\`\`json\n${JSON.stringify(movies, null, 2)}\n\`\`\``);
   };
 
   return (
     <div style={{
-      background: '#1E293B',
-      borderRadius: '16px',
-      border: '1px solid #334155',
-      width: '100%',
-      maxWidth: '600px',
-      marginTop: '10px',
-      overflow: 'hidden',
+      background: '#1E293B', borderRadius: '16px', border: '1px solid #334155',
+      width: '100%', maxWidth: '1000px', marginTop: '10px', overflow: 'hidden',
       boxShadow: '0 4px 25px rgba(0,0,0,0.4)'
     }}>
-      {/* Header */}
       <div style={{ padding: '15px 20px', background: '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Film size={18} color="#3b82f6" />
-          <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>พรีวิวรายการนำเข้า ({total})</span>
+          <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'white' }}>พรีวิวและตรวจสอบข้อมูล ({movies.length} รายการ)</span>
         </div>
-        {errors > 0 && (
-          <span style={{ fontSize: '0.7rem', color: '#f87171', background: 'rgba(248, 113, 113, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-            พบข้อผิดพลาด {errors} จุด
+        {movies.length === 0 ? (
+          <span style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(148, 163, 184, 0.2)', padding: '5px 12px', borderRadius: '6px' }}>ไม่มีข้อมูล</span>
+        ) : totalErrors > 0 ? (
+          <span style={{ fontSize: '0.75rem', color: '#fca5a5', background: 'rgba(248, 113, 113, 0.2)', padding: '5px 12px', borderRadius: '6px', fontWeight: 'bold' }}>
+            ⚠️ พบข้อมูลไม่สมบูรณ์ {totalErrors} จุด
+          </span>
+        ) : (
+          <span style={{ fontSize: '0.75rem', color: '#86efac', background: 'rgba(134, 239, 172, 0.2)', padding: '5px 12px', borderRadius: '6px', fontWeight: 'bold' }}>
+            ✅ พร้อมบันทึก
           </span>
         )}
       </div>
 
-      {/* Table Area */}
-      <div style={{ maxHeight: '250px', overflowY: 'auto', background: '#0f172a' }} className="no-scrollbar">
+      <div style={{ maxHeight: '450px', overflow: 'auto', background: '#0f172a' }} className="no-scrollbar">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
-          <thead style={{ position: 'sticky', top: 0, background: '#1e293b', color: '#94a3b8' }}>
+          <thead style={{ position: 'sticky', top: 0, background: '#1e293b', color: '#94a3b8', zIndex: 10 }}>
             <tr>
-              <th style={{ padding: '12px' }}>ชื่อภาษาไทย</th>
-              <th style={{ padding: '12px' }}>หมวดหมู่</th>
-              <th style={{ padding: '12px' }}>ราคา</th>
-              <th style={{ padding: '12px' }}>สถานะ</th>
+              <th style={{ padding: '12px', width: '40px', textAlign: 'center' }}>#</th>
+              {displayColumns.map(col => (
+                <th key={col} style={{ padding: '12px', minWidth: col.includes('title') ? '180px' : '120px' }}>
+                  {col} {requiredFields.includes(col) && <span style={{ color: '#f87171' }}>*</span>}
+                </th>
+              ))}
+              <th style={{ padding: '12px', width: '50px', textAlign: 'center', position: 'sticky', right: 0, background: '#1e293b' }}>ลบ</th>
             </tr>
           </thead>
           <tbody>
-            {movies.map((movie, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid #1e293b', color: '#e2e8f0' }}>
-                <td style={{ padding: '12px' }}>{movie.title_th || <span style={{ color: '#f87171' }}>ข้อมูลหาย!</span>}</td>
-                <td style={{ padding: '12px', color: '#94a3b8' }}>{movie.genre || 'N/A'}</td>
-                <td style={{ padding: '12px', color: '#3b82f6' }}>{movie.price || 220}</td>
-                <td style={{ padding: '12px' }}>
-                  {!movie.title_th ? '❌' : '✅'}
-                </td>
-              </tr>
-            ))}
+            {movies.map((movie, rowIndex) => {
+              const rowErrors = getRowErrors(movie);
+              const hasRowError = rowErrors.length > 0;
+
+              return (
+                <tr key={rowIndex} style={{ borderBottom: '1px solid #1e293b', backgroundColor: hasRowError ? 'rgba(248, 113, 113, 0.05)' : 'transparent' }}>
+                  <td style={{ padding: '12px', color: '#64748b', textAlign: 'center' }}>{rowIndex + 1}</td>
+
+                  {displayColumns.map(col => {
+                    const isRequired = requiredFields.includes(col);
+                    const isError = isRequired && rowErrors.includes(col);
+                    const val = movie[col] !== undefined && movie[col] !== null ? movie[col] : '';
+                    const isDateField = col.includes('date');
+
+                    return (
+                      <td key={col} style={{ padding: '6px' }}>
+                        <input
+                          type={isDateField ? 'date' : (col === 'duration_min' ? 'number' : 'text')}
+                          value={isDateField ? formatDateForInput(val) : val}
+                          onChange={(e) => handleCellChange(rowIndex, col, e.target.value)}
+                          placeholder={isRequired ? "ต้องระบุ..." : "-"}
+                          style={{
+                            width: '100%', padding: '8px', borderRadius: '6px',
+                            border: isError ? '1px solid #ef4444' : '1px solid transparent',
+                            background: isError ? 'rgba(239, 68, 68, 0.1)' : '#1e293b',
+                            color: isError ? '#fca5a5' : '#e2e8f0',
+                            outline: 'none', transition: 'all 0.2s',
+                          }}
+                        />
+                      </td>
+                    );
+                  })}
+
+                  {/* ปุ่มลบแถว */}
+                  <td style={{ padding: '6px', textAlign: 'center', position: 'sticky', right: 0, background: hasRowError ? 'rgba(248, 113, 113, 0.05)' : '#0f172a' }}>
+                    <button
+                      onClick={() => handleDeleteRow(rowIndex)}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '5px', borderRadius: '4px' }}
+                      title="ลบข้อมูลแถวนี้"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* Footer / Action */}
       <div style={{ padding: '20px', background: '#1E293B', borderTop: '1px solid #334155' }}>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button
-            disabled={isSubmitted || errors > 0}
+            disabled={isSubmitted || totalErrors > 0 || movies.length === 0}
             onClick={handleConfirm}
             style={{
               flex: 2,
-              background: errors > 0 ? '#475569' : 'linear-gradient(90deg, #3b82f6, #2563eb)',
-              color: 'white',
-              border: 'none',
-              padding: '12px',
-              borderRadius: '10px',
-              fontWeight: 600,
-              cursor: errors > 0 ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              transition: 'all 0.2s'
+              background: (totalErrors > 0 || movies.length === 0) ? '#475569' : 'linear-gradient(90deg, #3b82f6, #2563eb)',
+              color: (totalErrors > 0 || movies.length === 0) ? '#94a3b8' : 'white',
+              border: 'none', padding: '12px', borderRadius: '10px', fontWeight: 600,
+              cursor: (totalErrors > 0 || isSubmitted || movies.length === 0) ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s', opacity: isSubmitted ? 0.7 : 1
             }}
           >
-            {isSubmitted ? 'กำลังบันทึก...' : 'ยืนยันนำเข้าข้อมูล'}
+            {isSubmitted ? 'กำลังบันทึก...' : `✅ ยืนยันข้อมูลและนำเข้า Database (${movies.length} เรื่อง)`}
           </button>
           <button
             onClick={() => onAction("ยกเลิกการนำเข้า")}
@@ -689,9 +778,6 @@ export const BulkImportGrid = ({ data, onAction }) => {
             ยกเลิก
           </button>
         </div>
-        <p style={{ margin: '12px 0 0 0', fontSize: '0.65rem', color: '#64748b', textAlign: 'center' }}>
-          * ข้อมูลจะถูกบันทึกเข้าคอลเลกชัน Movies ของระบบทันที
-        </p>
       </div>
     </div>
   );
@@ -737,10 +823,87 @@ export const BranchList = ({ data, onAction }) => {
   );
 };
 
+// 📅 4. Date Selector (เลือกวันที่ฉาย)
+export const DateSelector = ({ data, onAction }) => {
+  const { movieId, movieName, branchId, availableDates } = data;
+
+  // Helper สำหรับแปลงรูปแบบวันที่ (YYYY-MM-DD) เป็นภาษาไทยสวยๆ
+  const formatDateThai = (dateString) => {
+    const d = new Date(dateString);
+    const days = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+    const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    return {
+      dayOfWeek: days[d.getDay()],
+      date: d.getDate(),
+      month: months[d.getMonth()]
+    };
+  };
+
+  return (
+    <div style={{ marginTop: '10px' }}>
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        overflowX: 'auto',
+        padding: '5px 5px 15px 5px',
+        scrollbarWidth: 'none', /* Firefox */
+        msOverflowStyle: 'none' /* IE/Edge */
+      }} className="no-scrollbar">
+
+        {availableDates.map((dateStr, index) => {
+          const tDate = formatDateThai(dateStr);
+          return (
+            <button
+              key={index}
+              // 🚨 สำคัญ: ส่งข้อความซ่อนกลับไปให้ AI รู้ว่าเลือกวันไหน หนังอะไร สาขาอะไร
+              onClick={() => onAction(`ดูรอบฉายวันที่ ${dateStr}`)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '70px',
+                height: '85px',
+                backgroundColor: '#1e293b',
+                border: '1px solid #334155',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                flexShrink: 0
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.borderColor = '#3b82f6';
+                e.currentTarget.style.backgroundColor = '#2dd4bf20'; // สีฟ้าอ่อนๆ ตอน Hover
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.borderColor = '#334155';
+                e.currentTarget.style.backgroundColor = '#1e293b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
+                {tDate.dayOfWeek}
+              </span>
+              <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#f8fafc', lineHeight: '1' }}>
+                {tDate.date}
+              </span>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+                {tDate.month}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // 🛠️ อัปเดต REGISTRY เป็นชุดสุดท้าย
 export const COMPONENT_REGISTRY = {
   'MOVIE_CAROUSEL': MovieCarousel,
   'SHOWTIME_SELECTOR': ShowtimeSelector,
+  'DATE_SELECTOR': DateSelector,
   'SEAT_PICKER': SeatMap,
   'PAYMENT_SLIP': PaymentCard,
   'TICKET_SLIP': DigitalTicket,

@@ -56,16 +56,25 @@ export const adminTools = [
         },
         handler: async ({ movies }: { movies: any[] }) => {
             await connectDB();
-            console.log(`🚀 กำลังนำเข้าหนังจำนวน ${movies.length} เรื่อง...`);
 
             try {
-                // จัดการข้อมูลเบื้องต้น (เช่นใส่ title_en ถ้าไม่มี)
-                const preparedMovies = movies.map(m => ({
-                    ...m,
-                    title_en: m.title_en || m.title_th,
-                    start_date: new Date(m.start_date),
-                    due_date: new Date(m.due_date)
-                }));
+                // จัดการข้อมูลเบื้องต้นอย่างปลอดภัย
+                const preparedMovies = movies.map(m => {
+                    // สร้าง Helper Function สำหรับเช็ควันที่ ป้องกัน Invalid Date
+                    const parseDateSafe = (dateStr: any) => {
+                        if (!dateStr) return new Date(); // ถ้าไม่มีให้ใช้วันนี้ (หรือจะ throw error ก็ได้ถ้าอยากเคร่ง)
+                        const d = new Date(dateStr);
+                        return isNaN(d.getTime()) ? new Date() : d; // ถ้าแปลงแล้ว Invalid ให้ใช้วันนี้ไปก่อน
+                    };
+
+                    return {
+                        ...m,
+                        title_en: m.title_en || m.title_th,
+                        start_date: parseDateSafe(m.start_date), // แปลงอย่างปลอดภัย
+                        due_date: parseDateSafe(m.due_date),     // แปลงอย่างปลอดภัย
+                        duration_min: Number(m.duration_min) || 120 // ป้องกันกรณีพิมพ์ข้อความลงในช่องเวลา
+                    };
+                });
 
                 const result = await MovieModel.insertMany(preparedMovies);
                 return {

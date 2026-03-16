@@ -68,11 +68,50 @@ const ChatBotPage = ({ isEmbedded = false }) => {
 
   const isReloading = useInitialMessageProcessor(location, user, handleSendMessage);
 
+  const formatDisplayText = (text) => {
+    if (!text || typeof text !== 'string') return text;
+
+    let cleanText = text;
+
+    // 1. ซ่อนก้อน JSON จากระบบ Import Excel
+    if (cleanText.includes("ข้อมูลที่ต้องการบันทึกคือ:")) {
+      cleanText = cleanText.split("ข้อมูลที่ต้องการบันทึกคือ:")[0].trim() + " 📄 [แนบไฟล์ข้อมูลสำเร็จ]";
+      return cleanText;
+    }
+
+    // 2. [เพิ่มใหม่] ลบประโยคที่ AI พยายามบอกว่าจะใช้เครื่องมือ/Tool อะไร
+    // เช่น "กรุณาใช้ Tool get_showtimes ค้นหา..." หรือ "ฉันจะเรียกใช้..."
+    cleanText = cleanText.replace(/(กรุณา)?(ใช้|เรียกใช้)\s*(Tool|เครื่องมือ|คำสั่ง)\s+\w+\s*(เพื่อ)?/gi, '');
+    cleanText = cleanText.replace(/กำลังค้นหาโดยใช้วันที่/gi, 'รอบฉายวันที่');
+
+    // 3. ลบ ObjectID และรหัส ID (69b176...) ทั้งแบบมีคำนำหน้าและไม่มี
+    // ดักจับ: (รหัสหนัง: 69b...), (ID: 69b...), (69b...)
+    cleanText = cleanText.replace(/\w*ID?s?[:：]\s*[a-f\d]{24}/gi, '');
+    cleanText = cleanText.replace(/รหัส(หนัง|สาขา|รอบฉาย)[:：]\s*[a-f\d]{24}/gi, '');
+    cleanText = cleanText.replace(/[a-f\d]{24}/gi, ''); // ลบ Hex ID 24 หลักเปล่าๆ
+
+    // 4. ลบวงเล็บที่ว่างเปล่า หรือเหลือแค่เศษเครื่องหมายข้างใน ( , )
+    cleanText = cleanText.replace(/\(\s*[,，]?\s*\)/g, '');
+    cleanText = cleanText.replace(/\(\s*[:：]?\s*\)/g, '');
+
+    // 5. กวาดล้างเศษเครื่องหมายจุลภาคที่หลงเหลือ
+    cleanText = cleanText.replace(/,\s*\)/g, ')');
+    cleanText = cleanText.replace(/\(\s*,/g, '(');
+    cleanText = cleanText.replace(/,\s*,/g, ',');
+    cleanText = cleanText.replace(/,\s*ราคารวม/gi, ' ราคารวม');
+
+    // 6. ลบช่องว่างซ้ำซ้อน และจุลภาคที่ค้างหัว/ท้ายประโยค
+    cleanText = cleanText.replace(/^[\s,，.:：]+|[\s,，.:：]+$/g, '');
+    cleanText = cleanText.replace(/\s\s+/g, ' ').trim();
+
+    // ถ้าลบไปลบมาแล้วข้อความว่างเปล่า ให้ส่งค่าว่างกลับไป (Frontend จะได้ไม่โชว์ Bubble เปล่า)
+    return cleanText || "";
+  };
+
   const renderMessageContent = (msg, isLatest) => {
     let actualText = msg.text || '';
 
     // 🛡️ 1. ดักจับกรณี Backend ส่งมาเป็นก้อน JSON ของ MCP Tool
-    // แกะเอาเฉพาะข้อความข้างในออกมาใช้งาน
     if (typeof actualText === 'string' && actualText.startsWith('{"content"')) {
       try {
         const parsedMcp = JSON.parse(actualText);
@@ -89,7 +128,6 @@ const ChatBotPage = ({ isEmbedded = false }) => {
       try {
         const [textPart, rawJsonPart] = actualText.split('::VISUAL::');
 
-        // ค้นหาปีกกาเปิด { และปิด } เพื่อดึงเฉพาะ JSON ออกมา
         const jsonStartIndex = rawJsonPart.indexOf('{');
         const jsonEndIndex = rawJsonPart.lastIndexOf('}');
 
@@ -100,37 +138,40 @@ const ChatBotPage = ({ isEmbedded = false }) => {
         const cleanJson = rawJsonPart.substring(jsonStartIndex, jsonEndIndex + 1);
         const trailingText = rawJsonPart.substring(jsonEndIndex + 1).trim();
 
-        const visualData = JSON.parse(cleanJson); // คราวนี้ Parse ผ่านแน่นอน 100%
+        const visualData = JSON.parse(cleanJson);
         const VisualComponent = COMPONENT_REGISTRY[visualData.type];
 
         return (
           <div className="message-content-visual" style={{ width: '100%' }}>
-            {textPart && <div className="message-bubble">{textPart}</div>}
+            {/* ✨ กรองข้อความส่วนหัวของ Visual */}
+            {textPart && <div className="message-bubble">{formatDisplayText(textPart)}</div>}
 
             {VisualComponent ? (
               <VisualComponent
                 data={visualData.data ? visualData.data : visualData}
                 onAction={handleSendMessage}
                 isLatest={isLatest}
+                messages={messages}
               />
             ) : (
               <div className="message-bubble text-red-400">⚠️ ไม่รองรับรูปแบบ {visualData.type}</div>
             )}
 
-            {trailingText && <div className="message-bubble" style={{ marginTop: '10px' }}>{trailingText}</div>}
+            {/* ✨ กรองข้อความส่วนท้ายของ Visual */}
+            {trailingText && <div className="message-bubble" style={{ marginTop: '10px' }}>{formatDisplayText(trailingText)}</div>}
           </div>
         );
       } catch (e) {
-        // 🔥 ถ้าพัง ให้เข้าไปดูใน Console (F12) ได้เลยว่าพังเพราะตัวอักษรไหน
         console.error("🚨 Visual Parse Error:", e, "\nRaw Text:", actualText);
-        return <div className="message-bubble">{actualText}</div>;
+        return <div className="message-bubble">{formatDisplayText(actualText)}</div>;
       }
     }
 
-    // 3. ถ้าเป็นข้อความธรรมดา
+    // 3. ถ้าเป็นข้อความธรรมดา (ฝั่ง User หรือ Bot ที่ไม่มี Visual)
     return (
       <div className={`message-bubble ${actualText?.startsWith('🛠️') ? 'admin-msg' : ''}`}>
-        {actualText?.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
+        {/* ✨ ใช้ formatDisplayText ครอบก่อนแสดงผล */}
+        {formatDisplayText(actualText)?.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
       </div>
     );
   };
