@@ -6,6 +6,12 @@ const { getSystemPrompt } = require("../utils/promptGenerator"); // ตรวจ
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
+// 🌟 ดึงรายการ Model จาก .env และแปลงเป็น Array
+// ถ้าใน .env ไม่ได้ตั้งค่าไว้ จะใช้ค่า Default
+const GEMINI_MODELS = process.env.GEMINI_MODELS
+  ? process.env.GEMINI_MODELS.split(",").map(m => m.trim())
+  : ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+
 // 🧠 1. ตัวแปรเก็บความจำ (In-Memory Session)
 // หมายเหตุ: ใน Production ควรใช้ Redis หรือ Database
 const chatSessions = {};
@@ -81,7 +87,7 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
     };
 
     // 🔥 System Prompt + Memory Rule
-const extraPrompt = `
+    const extraPrompt = `
     [CURRENT USER ROLE]: ${user.role.toUpperCase()}
     
     [ADMIN DATA HANDLING]:
@@ -93,6 +99,12 @@ const extraPrompt = `
     
     2. หาก Admin พิมพ์ว่า "✅ ยืนยันการบันทึก" หรือคลิกปุ่มยืนยันจาก Visual Component:
        - ให้ดึงข้อมูลชุดเดิมจากประวัติ (Memory) และเรียกใช้ tool 'bulk_add_movies' ทันที
+
+    [🚀 SHORTCUT & QUICK ACTION RULES - กฎสำหรับปุ่มลัด (สำคัญมาก)]:
+    เมื่อผู้ใช้กดปุ่มลัด หรือพิมพ์ Keyword ต่อไปนี้ **ห้ามชวนคุยหรือถามกลับ ให้เรียกใช้ Tool ทันที**:
+    - หากผู้ใช้พิมพ์ "หนังเข้าใหม่", "แนะนำหนัง", "กำลังเป็นกระแส": ให้เรียก Tool 'search_movie' (หรือ Tool สำหรับดึงข้อมูลหนังทั้งหมดที่คุณมี) โดยเว้นพารามิเตอร์ชื่อหนังให้ว่างไว้ เพื่อดึงหนังทั้งหมดมาแสดง
+    - หากผู้ใช้พิมพ์ "โรงหนังใกล้ฉัน", "สาขา": ให้เรียก Tool 'get_branches' ทันที
+    - หากผู้ใช้พิมพ์ "คำสั่ง Admin": ให้นำเสนอเมนูหรือความสามารถที่ Admin ทำได้ (เช่น อัปโหลด Excel)
 
     [TICKET BOOKING RULES - สำคัญมาก]:
     คุณคือพนักงานขายตั๋วหนัง หน้าที่ของคุณคือช่วยเหลือผู้ใช้ในการจองตั๋ว
@@ -109,15 +121,6 @@ const extraPrompt = `
     - You only have access to the tools provided. If a user asks for a feature you don't have, politely refuse.
     `;
 
-    // 4. สร้าง Model
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash", // หรือ gemini-2.5-flash-lite ตามโควต้าที่มี
-      systemInstruction: getSystemPrompt(user) + "\n\n" + extraPrompt,
-      tools: filteredTools.length > 0 ? [googleTools] : [],
-    });
-
-    const chat = model.startChat({ history: history });
-
     let messagePayload = [];
     if (userMessage) messagePayload.push(userMessage);
     if (imageBase64) {
@@ -126,83 +129,121 @@ const extraPrompt = `
     }
     if (messagePayload.length === 0) return "กรุณาส่งข้อความหรือรูปภาพ";
 
-    // 🚀 ส่งข้อความหา AI
-    const result = await chat.sendMessage(messagePayload);
-    const response = result.response;
+    // 🌟 4. ระบบ Fallback: วนลูปใช้ Model ตามลำดับใน .env
+    for (const currentModel of GEMINI_MODELS) {
+      try {
+        console.log(`⏳ กำลังพยายามใช้ AI Model: [${currentModel}]`);
 
-    // Handle Function Calling
-    const functionCalls = response.functionCalls();
-
-    if (functionCalls && functionCalls.length > 0) {
-      console.log("🤖 Gemini is calling tools:", functionCalls.map(fc => fc.name));
-
-      let mcpFinalText = "";
-
-      for (const call of functionCalls) {
-        const functionName = call.name;
-        const functionArgs = call.args;
-
-        // เรียกใช้งาน Tool ผ่าน MCP Client
-        const mcpResult = await client.callTool({
-          name: functionName,
-          arguments: functionArgs,
+        // สร้าง Model ตามชื่อในลูป
+        const model = genAI.getGenerativeModel({
+          model: currentModel,
+          systemInstruction: getSystemPrompt(user) + "\n\n" + extraPrompt,
+          tools: filteredTools.length > 0 ? [googleTools] : [],
         });
 
-        const toolOutput = mcpResult.content[0].text;
+        const chat = model.startChat({ history: history });
 
-        // 🔥🔥🔥 [จุดที่แก้ไขสำคัญ] 🔥🔥🔥
-        // ตรวจสอบว่า Tool ส่งกลับมาเป็น Visual Component หรือไม่ (มี Tag ::VISUAL::)
-        if (toolOutput.includes("::VISUAL::")) {
-          console.log("🎨 Visual Layout detected, returning directly.");
+        // 🚀 ส่งข้อความหา AI
+        const result = await chat.sendMessage(messagePayload);
+        const response = result.response;
 
-          // บันทึก History ก่อน return (เพื่อให้ AI จำได้ว่าส่งอะไรไป)
-          chatSessions[userId].push({
-            role: "user",
-            parts: [{ text: userMessage }]
-          });
-          chatSessions[userId].push({
-            role: "model",
-            parts: [{ text: toolOutput }] // บันทึก Raw Visual Data
-          });
+        // Handle Function Calling
+        const functionCalls = response.functionCalls();
 
-          // ✅ Return ทันทีเพื่อให้ Frontend ไป Parse เป็น Component
-          return toolOutput;
+        if (functionCalls && functionCalls.length > 0) {
+          console.log(`🤖 [${currentModel}] is calling tools:`, functionCalls.map(fc => fc.name));
+
+          let mcpFinalText = "";
+
+          for (const call of functionCalls) {
+            const functionName = call.name;
+            const functionArgs = call.args;
+
+            // เรียกใช้งาน Tool ผ่าน MCP Client
+            const mcpResult = await client.callTool({
+              name: functionName,
+              arguments: functionArgs,
+            });
+
+            const toolOutput = mcpResult.content[0].text;
+
+            // 🔥🔥🔥 [จุดที่แก้ไขสำคัญ] 🔥🔥🔥
+            // ตรวจสอบว่า Tool ส่งกลับมาเป็น Visual Component หรือไม่ (มี Tag ::VISUAL::)
+            if (toolOutput.includes("::VISUAL::")) {
+              console.log("🎨 Visual Layout detected, returning directly.");
+
+              // บันทึก History ก่อน return (เพื่อให้ AI จำได้ว่าส่งอะไรไป)
+              chatSessions[userId].push({
+                role: "user",
+                parts: [{ text: userMessage }]
+              });
+              chatSessions[userId].push({
+                role: "model",
+                parts: [{ text: toolOutput }] // บันทึก Raw Visual Data
+              });
+
+              // ✅ Return ทันทีเพื่อให้ Frontend ไป Parse เป็น Component
+              return toolOutput;
+            }
+            // 🔥🔥🔥 [จบส่วนแก้ไข] 🔥🔥🔥
+
+            // ถ้าไม่ใช่ Visual ให้เข้า Format ปกติ
+            mcpFinalText = forceFormatOutput(toolOutput);
+          }
+
+          // บันทึกความจำกรณี Text ปกติ
+          if (mcpFinalText) {
+            chatSessions[userId].push({
+              role: "user",
+              parts: [{ text: userMessage }]
+            });
+            chatSessions[userId].push({
+              role: "model",
+              parts: [{ text: mcpFinalText }]
+            });
+            return mcpFinalText;
+          }
         }
-        // 🔥🔥🔥 [จบส่วนแก้ไข] 🔥🔥🔥
 
-        // ถ้าไม่ใช่ Visual ให้เข้า Format ปกติ
-        mcpFinalText = forceFormatOutput(toolOutput);
-      }
-
-      // บันทึกความจำกรณี Text ปกติ
-      if (mcpFinalText) {
+        // กรณีคุยปกติ (ไม่มีการเรียก Tool)
+        const botText = response.text();
         chatSessions[userId].push({
           role: "user",
           parts: [{ text: userMessage }]
         });
         chatSessions[userId].push({
           role: "model",
-          parts: [{ text: mcpFinalText }]
+          parts: [{ text: botText }]
         });
-        return mcpFinalText;
+
+        // ✅ ถ้าทำงานถึงบรรทัดนี้ได้แปลว่าสำเร็จ ให้คืนค่าและออกจากการทำงานเลย
+        return botText;
+
+      } catch (error) {
+        console.error(`⚠️ Model [${currentModel}] ขัดข้อง:`, error.message);
+
+        // เช็คว่า Token/Quota หมดใช่หรือไม่ (Error 429)
+        const isQuotaError = error.status === 429 ||
+          error.message.includes('429') ||
+          error.message.includes('quota') ||
+          error.message.includes('exhausted');
+
+        if (isQuotaError) {
+          console.log(`🔄 Token น่าจะหมด! กำลังสลับไปลองใช้ Model สำรองตัวถัดไป...`);
+          continue; // สั่งให้ลูปหมุนไปใช้ Model ตัวถัดไป
+        } else {
+          // ถ้า error จากสาเหตุอื่น (เช่น Code พัง, Schema ผิด) ให้โยน Error ออกไปเลย
+          return "ขออภัยครับ ระบบขัดข้อง: " + error.message;
+        }
       }
     }
 
-    // กรณีคุยปกติ (ไม่มีการเรียก Tool)
-    const botText = response.text();
-    chatSessions[userId].push({
-      role: "user",
-      parts: [{ text: userMessage }]
-    });
-    chatSessions[userId].push({
-      role: "model",
-      parts: [{ text: botText }]
-    });
-
-    return botText;
+    // 🌟 5. ถ้าลองครบทุกโมเดลในลูปแล้วพังหมด
+    console.error("🚨 AI Models สำรองทั้งหมดถูกใช้งานเต็มโควต้าแล้ว");
+    return "ขออภัยครับ ตอนนี้โควต้า AI ประจำวันถูกใช้งานเต็มทุกช่องทางแล้ว กรุณารอสักครู่แล้วลองใหม่ครับ";
 
   } catch (error) {
-    console.error("Gemini Native Error:", error);
+    console.error("System Error:", error);
     return "ขออภัยครับ ระบบขัดข้อง: " + error.message;
   }
 };

@@ -33,18 +33,37 @@ export const movieTools = [
     // 🎬 1. ค้นหาหนัง
     {
         name: "search_movie",
-        description: "ค้นหาภาพยนตร์ในฐานข้อมูลจากชื่อเรื่อง",
+        description: "ค้นหาภาพยนตร์ในฐานข้อมูลจากชื่อเรื่อง หรือดึงรายชื่อหนังทั้งหมดเมื่อผู้ใช้ขอดูหนังเข้าใหม่หรือแนะนำหนัง",
         args: {
-            keyword: z.string().describe("ชื่อหนังที่ผู้ใช้ต้องการค้นหา เช่น 'ธี่หยด' (ห้ามส่งค่าว่างเด็ดขาด)")
+            keyword: z.string().optional().describe("ชื่อหนังที่ต้องการค้นหา (หากผู้ใช้พิมพ์กว้างๆ เช่น 'หนังเข้าใหม่', 'แนะนำหนัง' ให้ไม่ต้องส่งค่านี้มา)")
         },
-        handler: async ({ keyword }: { keyword: string }) => {
+        handler: async ({ keyword }: { keyword?: string }) => {
             await connectDB();
-            const movies = await MovieModel.find({
-                $or: [{ title_th: { $regex: keyword, $options: "i" } }, { title_en: { $regex: keyword, $options: "i" } }]
-            }).limit(10);
+            
+            // ✨ 1. สร้างตัวแปรเวลาปัจจุบัน (ใช้อ้างอิงว่าหนังเรื่องไหนยังไม่ออกกจากโรง)
+            const now = new Date();
+
+            // ✨ 2. สร้าง Query หลัก: หนังต้องเข้าฉายแล้ว (start_date <= วันนี้) และยังไม่ออกจากโรง (due_date >= วันนี้)
+            // ใช้ $lte (Less than or equal) และ $gte (Greater than or equal)
+            let query: any = { 
+                start_date: { $lte: now },
+                due_date: { $gte: now }
+            };
+
+            // ✨ 3. ถ้า User พิมพ์ชื่อหนังมาด้วย ค่อยกรองชื่อเพิ่มเข้าไป
+            if (keyword && keyword.trim() !== "") {
+                query.$or = [
+                    { title_th: { $regex: keyword, $options: "i" } }, 
+                    { title_en: { $regex: keyword, $options: "i" } }
+                ];
+            }
+
+            // ✨ 4. ดึงข้อมูลหนัง เรียงจากวันที่เข้าฉายล่าสุด (start_date -1)
+            const movies = await MovieModel.find(query).sort({ start_date: -1 }).limit(10);
 
             if (movies.length === 0) {
-                return { content: [{ type: "text", text: `ขออภัยครับ ไม่พบหนังที่ชื่อ "${keyword}" ในระบบเลยครับ 😢` }] };
+                const errorMsg = keyword ? `ขออภัยครับ ไม่พบรอบฉายของเรื่อง "${keyword}" ในขณะนี้ครับ 😢` : `ตอนนี้ยังไม่มีภาพยนตร์เข้าใหม่ที่เปิดให้จองครับ 😢`;
+                return { content: [{ type: "text", text: errorMsg }] };
             }
 
             const colors = ["linear-gradient(135deg, #f97316, #b45309)", "linear-gradient(135deg, #22c55e, #047857)", "linear-gradient(135deg, #64748b, #1e293b)", "linear-gradient(135deg, #a855f7, #7e22ce)"];
@@ -56,7 +75,12 @@ export const movieTools = [
                 price: 160 // ตั้งเป็นราคาเริ่มต้น
             }));
 
-            return sendVisual(`เจอหนังเรื่อง "${keyword}" ตามนี้ครับ`, "MOVIE_CAROUSEL", enrichedMovies);
+            // ปรับประโยคให้สื่อว่า "เปิดให้จอง"
+            const replyMessage = keyword 
+                ? `เจอหนังเรื่อง "${keyword}" ที่กำลังฉายอยู่ตามนี้ครับ` 
+                : `นี่คือภาพยนตร์ที่กำลังเข้าฉายในตอนนี้ครับ เลือกชมได้เลยครับ 🍿`;
+
+            return sendVisual(replyMessage, "MOVIE_CAROUSEL", enrichedMovies);
         }
     },
 
