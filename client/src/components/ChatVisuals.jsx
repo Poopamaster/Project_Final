@@ -823,10 +823,87 @@ export const BranchList = ({ data, onAction }) => {
   );
 };
 
+// 📅 4. Date Selector (เลือกวันที่ฉาย)
+export const DateSelector = ({ data, onAction }) => {
+  const { movieId, movieName, branchId, availableDates } = data;
+
+  // Helper สำหรับแปลงรูปแบบวันที่ (YYYY-MM-DD) เป็นภาษาไทยสวยๆ
+  const formatDateThai = (dateString) => {
+    const d = new Date(dateString);
+    const days = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+    const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    return {
+      dayOfWeek: days[d.getDay()],
+      date: d.getDate(),
+      month: months[d.getMonth()]
+    };
+  };
+
+  return (
+    <div style={{ marginTop: '10px' }}>
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        overflowX: 'auto',
+        padding: '5px 5px 15px 5px',
+        scrollbarWidth: 'none', /* Firefox */
+        msOverflowStyle: 'none' /* IE/Edge */
+      }} className="no-scrollbar">
+
+        {availableDates.map((dateStr, index) => {
+          const tDate = formatDateThai(dateStr);
+          return (
+            <button
+              key={index}
+              // 🚨 สำคัญ: ส่งข้อความซ่อนกลับไปให้ AI รู้ว่าเลือกวันไหน หนังอะไร สาขาอะไร
+              onClick={() => onAction(`ดูรอบฉายวันที่ ${dateStr}`)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '70px',
+                height: '85px',
+                backgroundColor: '#1e293b',
+                border: '1px solid #334155',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                flexShrink: 0
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.borderColor = '#3b82f6';
+                e.currentTarget.style.backgroundColor = '#2dd4bf20'; // สีฟ้าอ่อนๆ ตอน Hover
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.borderColor = '#334155';
+                e.currentTarget.style.backgroundColor = '#1e293b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
+                {tDate.dayOfWeek}
+              </span>
+              <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#f8fafc', lineHeight: '1' }}>
+                {tDate.date}
+              </span>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+                {tDate.month}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // 🛠️ อัปเดต REGISTRY เป็นชุดสุดท้าย
 export const COMPONENT_REGISTRY = {
   'MOVIE_CAROUSEL': MovieCarousel,
   'SHOWTIME_SELECTOR': ShowtimeSelector,
+  'DATE_SELECTOR': DateSelector,
   'SEAT_PICKER': SeatMap,
   'PAYMENT_SLIP': PaymentCard,
   'TICKET_SLIP': DigitalTicket,

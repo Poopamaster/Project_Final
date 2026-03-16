@@ -7,10 +7,12 @@ const ALL_TOOLS_CONFIG = {
     
     // --- เพิ่ม Tools สำหรับการจองตั๋ว (New!) ---
     get_branches: { name: "get_branches", description: "ดึงรายชื่อสาขา" },
+    // ✨ 1. เพิ่ม Tool เลือกวันที่เข้าไปตรงนี้
+    get_available_dates: { name: "get_available_dates", description: "ดึงวันที่ที่มีรอบฉาย" }, 
     get_showtimes: { name: "get_showtimes", description: "ดึงรอบฉาย" },
     select_seat: { name: "select_seat", description: "เลือกที่นั่ง" },
     confirm_booking: { name: "confirm_booking", description: "ยืนยันการจองและชำระเงิน" },
-    issue_ticket: { name: "issue_ticket", description: "ออกตั๋วภาพยนตร์" }, // ✅ เพิ่มตัวนี้!
+    issue_ticket: { name: "issue_ticket", description: "ออกตั๋วภาพยนตร์" },
 
     // Tools สำหรับ Admin
     add_movie: { name: "add_movie", description: "เพิ่มหนังใหม่" },
@@ -20,25 +22,27 @@ const ALL_TOOLS_CONFIG = {
 };
 
 const ROLE_PERMISSIONS = {
-    // เพิ่มสิทธิ์ให้ User ทั่วไปสามารถจองหนังได้
+    // ✨ 2. เพิ่มสิทธิ์ให้ User ทั่วไปสามารถเรียกใช้การเลือกวันที่ได้
     user: [
         'search_movie', 
         'get_movie_detail', 
         'get_branches', 
+        'get_available_dates', // ✅ เพิ่มตัวนี้!
         'get_showtimes', 
         'select_seat', 
         'confirm_booking',
-        'issue_ticket' // ✅ เพิ่มตัวนี้!
+        'issue_ticket'
     ], 
-    // Admin ก็ควรจะจองได้เช่นกัน
+    // ✨ 3. เพิ่มสิทธิ์ให้ Admin ด้วยเช่นกัน
     admin: [
         'search_movie', 
         'get_movie_detail', 
         'get_branches', 
+        'get_available_dates', // ✅ เพิ่มตัวนี้!
         'get_showtimes', 
         'select_seat', 
         'confirm_booking', 
-        'issue_ticket', // ✅ เพิ่มตัวนี้!
+        'issue_ticket',
         'add_movie', 
         'bulk_add_movies',
         'delete_movie', 

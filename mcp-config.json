@@ -1,17 +1,12 @@
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:/Users/Ideapad slim 3/OneDrive/Desktop/Project_Final"]
-    },
-    
-    "my-secure-cinema-server": {
-      "command": "node",
+    "cinema-mcp-server": {
+      "command": "tsx",
       "args": [
-        "C:/Users/Ideapad slim 3/OneDrive/Desktop/Project_Final/mcp-server/dist/index.js"
+        "C:/Users/Poopa/OneDrive/Desktop/Final_project/Project_Final/mcp-server/src/index.ts"
       ],
       "env": {
-        "MONGO_URI": "mongodb://localhost:27017/mcp_cinema_db"
+        "MONGO_URI": "mongodb+srv://testMCP:testMCP@cluster0.bupaf.mongodb.net/mcp_cinema"
       }
     }
   }

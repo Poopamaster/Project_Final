@@ -79,32 +79,33 @@ const ChatBotPage = ({ isEmbedded = false }) => {
       return cleanText;
     }
 
-    // 2. ซ่อน ObjectID ในวงเล็บ หรือที่มีคำนำหน้า (กวาดล้าง ID ทุกรูปแบบ)
-    // เพิ่มการดักจับ , หรือช่องว่าง ที่อยู่ข้างในวงเล็บด้วย เพื่อไม่ให้เหลือเศษ ( , )
-    cleanText = cleanText.replace(/\s*\(\s*\w*ID?s?:\s*[a-f\d]{24}[^)]*\)/gi, '');
-    cleanText = cleanText.replace(/\s*\(\s*[a-f\d]{24}[^)]*\)/gi, '');
+    // 2. [เพิ่มใหม่] ลบประโยคที่ AI พยายามบอกว่าจะใช้เครื่องมือ/Tool อะไร
+    // เช่น "กรุณาใช้ Tool get_showtimes ค้นหา..." หรือ "ฉันจะเรียกใช้..."
+    cleanText = cleanText.replace(/(กรุณา)?(ใช้|เรียกใช้)\s*(Tool|เครื่องมือ|คำสั่ง)\s+\w+\s*(เพื่อ)?/gi, '');
+    cleanText = cleanText.replace(/กำลังค้นหาโดยใช้วันที่/gi, 'รอบฉายวันที่');
 
-    // 3. ซ่อน ObjectID ที่ไม่มีวงเล็บ
-    cleanText = cleanText.replace(/\w*ID?s?:\s*[a-f\d]{24}/gi, '');
+    // 3. ลบ ObjectID และรหัส ID (69b176...) ทั้งแบบมีคำนำหน้าและไม่มี
+    // ดักจับ: (รหัสหนัง: 69b...), (ID: 69b...), (69b...)
+    cleanText = cleanText.replace(/\w*ID?s?[:：]\s*[a-f\d]{24}/gi, '');
+    cleanText = cleanText.replace(/รหัส(หนัง|สาขา|รอบฉาย)[:：]\s*[a-f\d]{24}/gi, '');
+    cleanText = cleanText.replace(/[a-f\d]{24}/gi, ''); // ลบ Hex ID 24 หลักเปล่าๆ
 
-    // 4. ซ่อนชื่อคำสั่งระบบ
-    cleanText = cleanText.replace(/กรุณาเรียกใช้คำสั่ง\s+\w+(_\w+)*\s+เพื่อ/gi, 'กำลัง');
-    cleanText = cleanText.replace(/เรียกใช้คำสั่ง\s+\w+(_\w+)*/gi, 'ระบบกำลังดำเนินการ');
+    // 4. ลบวงเล็บที่ว่างเปล่า หรือเหลือแค่เศษเครื่องหมายข้างใน ( , )
+    cleanText = cleanText.replace(/\(\s*[,，]?\s*\)/g, '');
+    cleanText = cleanText.replace(/\(\s*[:：]?\s*\)/g, '');
 
-    // ✨ 5. [จุดสำคัญ] กวาดล้างเศษเครื่องหมายที่หลงเหลือจากการลบ ID
-    cleanText = cleanText.replace(/,\s*\)/g, ')'); // เปลี่ยน ", )" เป็น ")"
-    cleanText = cleanText.replace(/\(\s*,/g, '('); // เปลี่ยน "( ," เป็น "("
-    cleanText = cleanText.replace(/\(\s*\)/g, ''); // ลบวงเล็บเปล่า "()" ทิ้ง
-    cleanText = cleanText.replace(/,\s*,/g, ','); // ลบจุลภาคซ้ำซ้อน ", ,"
-
-    // ✨ 6. ลบจุลภาคที่อยู่หน้าคำว่า "ราคารวม" หรืออยู่ท้ายประโยค
+    // 5. กวาดล้างเศษเครื่องหมายจุลภาคที่หลงเหลือ
+    cleanText = cleanText.replace(/,\s*\)/g, ')');
+    cleanText = cleanText.replace(/\(\s*,/g, '(');
+    cleanText = cleanText.replace(/,\s*,/g, ',');
     cleanText = cleanText.replace(/,\s*ราคารวม/gi, ' ราคารวม');
-    cleanText = cleanText.replace(/,\s*$/g, '');
 
-    // 7. ลบช่องว่างซ้ำซ้อน
+    // 6. ลบช่องว่างซ้ำซ้อน และจุลภาคที่ค้างหัว/ท้ายประโยค
+    cleanText = cleanText.replace(/^[\s,，.:：]+|[\s,，.:：]+$/g, '');
     cleanText = cleanText.replace(/\s\s+/g, ' ').trim();
 
-    return cleanText;
+    // ถ้าลบไปลบมาแล้วข้อความว่างเปล่า ให้ส่งค่าว่างกลับไป (Frontend จะได้ไม่โชว์ Bubble เปล่า)
+    return cleanText || "";
   };
 
   const renderMessageContent = (msg, isLatest) => {

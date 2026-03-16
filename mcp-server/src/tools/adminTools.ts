@@ -56,7 +56,6 @@ export const adminTools = [
         },
         handler: async ({ movies }: { movies: any[] }) => {
             await connectDB();
-            console.log(`🚀 กำลังนำเข้าหนังจำนวน ${movies.length} เรื่อง...`);
 
             try {
                 // จัดการข้อมูลเบื้องต้นอย่างปลอดภัย
