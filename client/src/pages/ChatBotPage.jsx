@@ -253,8 +253,20 @@ const ChatBotPage = ({ isEmbedded = false }) => {
               {user?.role === 'admin' && (
                 <button className="shortcut-chip admin-chip" onClick={() => setInputText('/addmovie ')}>⚡ คำสั่ง Admin</button>
               )}
-              {["📽️ หนังเข้าใหม่", "📍 โรงหนังใกล้ฉัน"].map((text, idx) => (
-                <button key={idx} className="shortcut-chip" onClick={() => handleSendMessage(text)} disabled={isLoading}>{text}</button>
+
+              {[
+                { label: "📽️ หนังเข้าใหม่", action: "แนะนำหนังเข้าใหม่ให้หน่อย" },
+                { label: "📍 โรงหนังใกล้ฉัน", action: "มีโรงหนังสาขาไหนบ้าง" },
+                { label: "🔥 รอบฉาย", action: "มีรอบฉายอะไรบ้าง" },
+              ].map((item, idx) => (
+                <button
+                  key={idx}
+                  className="shortcut-chip"
+                  onClick={() => handleSendMessage(item.action)}
+                  disabled={isLoading}
+                >
+                  {item.label}
+                </button>
               ))}
             </div>
 

@@ -1,99 +1,235 @@
 import React, { useState } from 'react';
 import PaymentSection from './PaymentSection'; // 👈 สำคัญมาก! เช็ค path ให้ถูกด้วยนะครับ
-import { Film, Clock, Star, Calendar, CreditCard, QrCode, MapPin, ChevronRight, Trash2 } from 'lucide-react';
+import { Film, Clock, Star, CheckCircle2, CreditCard, Ticket, MapPin, ChevronRight, Trash2, ShieldCheck } from 'lucide-react';
 
 // 1. Movie Carousel (Design ตามต้นฉบับเป๊ะๆ)
-export const MovieCarousel = ({ data, onAction }) => (
-  <div style={{
-    display: 'flex',
-    gap: '15px',
-    overflowX: 'auto',
-    padding: '10px 5px',
-    scrollbarWidth: 'none', /* ซ่อน scrollbar ใน Firefox */
-    msOverflowStyle: 'none' /* ซ่อน scrollbar ใน IE/Edge */
-  }} className="no-scrollbar">
-    {data.map((movie) => (
-      <div
-        key={movie._id || movie.id}
-        onClick={() => onAction(`สนใจดูเรื่อง ${movie.title_th || movie.title} (ID: ${movie._id || movie.id}) ครับ`)}
-        style={{
-          minWidth: '160px',
-          backgroundColor: '#1E293B',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          cursor: 'pointer',
-          border: '1px solid #334155',
-          transition: 'transform 0.2s',
-          flexShrink: 0
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-      >
-        <div style={{ height: '220px', background: movie.color || '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-          {movie.poster_url ?
-            <img src={movie.poster_url} alt={movie.title_th} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
-            <Film size={48} color="rgba(255,255,255,0.5)" />
-          }
-          <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}>
-            <Star size={12} fill="#fbbf24" color="#fbbf24" /> {movie.rating || "4.5"}
-          </div>
-        </div>
-        <div style={{ padding: '12px' }}>
-          <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{movie.title_th || movie.title}</h3>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>{movie.genre}</p>
-          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#3b82f6', fontSize: '0.8rem', fontWeight: 600 }}>{movie.price || 220} ฿</span>
-            <button style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '0.7rem', cursor: 'pointer' }}>เลือก</button>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
-// 2. Showtime Selector
-// 2. Showtime Selector
-export const ShowtimeSelector = ({ data, onAction }) => {
-  const showtimes = Array.isArray(data) ? data : (data?.showtimes || []);
+export const MovieCarousel = ({ data, onAction, messages = [] }) => {
+  // 1. ตรวจสอบว่าในประวัติแชท มีการกดเลือกหนังเรื่องไหนไปแล้วหรือยัง
+  const isAnyMovieSelected = messages.some(msg =>
+    msg.sender === 'user' && msg.text?.includes('สนใจดูเรื่อง')
+  );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '10px', width: '100%', maxWidth: '350px' }}>
+    <div style={{
+      display: 'flex',
+      gap: '15px',
+      overflowX: 'auto',
+      padding: '10px 5px',
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+      opacity: isAnyMovieSelected ? 0.8 : 1 // จางลงเล็กน้อยถ้าเลือกไปแล้ว
+    }} className="no-scrollbar">
+      {data.map((movie) => {
+        const title = movie.title_th || movie.title;
+
+        // เช็คว่าการ์ดใบนี้คือเรื่องที่ถูกเลือกใช่หรือไม่
+        const isThisMovieSelected = messages.some(msg =>
+          msg.sender === 'user' && msg.text?.includes(`สนใจดูเรื่อง ${title}`)
+        );
+
+        return (
+          <div
+            key={movie._id || movie.id}
+            onClick={() => {
+              if (!isAnyMovieSelected) {
+                onAction(`สนใจดูเรื่อง ${title} (ID: ${movie._id || movie.id}) ครับ`);
+              }
+            }}
+            style={{
+              minWidth: '160px',
+              backgroundColor: '#1E293B',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              cursor: isAnyMovieSelected ? 'default' : 'pointer',
+              // ถ้าเลือกเรื่องนี้ ให้เปลี่ยนขอบเป็นสีฟ้า ถ้าเลือกเรื่องอื่นให้ขอบปกติ
+              border: isThisMovieSelected ? '2px solid #3b82f6' : '1px solid #334155',
+              transition: 'all 0.2s',
+              flexShrink: 0,
+              position: 'relative',
+              transform: isThisMovieSelected ? 'scale(1.02)' : 'scale(1)',
+              pointerEvents: isAnyMovieSelected ? 'none' : 'auto' // ล็อคการคลิก
+            }}
+          >
+            {/* Badge แสดงสถานะถ้าเลือกเรื่องนี้ */}
+            {isThisMovieSelected && (
+              <div style={{
+                position: 'absolute', top: '8px', right: '8px',
+                backgroundColor: '#3b82f6', color: 'white',
+                padding: '2px 8px', borderRadius: '10px',
+                fontSize: '0.65rem', fontWeight: 'bold', z_index: 2
+              }}>
+                เลือกแล้ว
+              </div>
+            )}
+
+            <div style={{
+              height: '220px',
+              background: movie.color || '#334155',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              filter: (isAnyMovieSelected && !isThisMovieSelected) ? 'grayscale(0.5)' : 'none' // เรื่องอื่นจะกลายเป็นสีขาวดำจางๆ
+            }}>
+              {movie.poster_url ?
+                <img src={movie.poster_url} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
+                <Film size={48} color="rgba(255,255,255,0.5)" />
+              }
+              <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}>
+                <Star size={12} fill="#fbbf24" color="#fbbf24" /> {movie.rating || "4.5"}
+              </div>
+            </div>
+
+            <div style={{ padding: '12px' }}>
+              <h3 style={{
+                margin: 0, fontSize: '0.9rem', fontWeight: 600,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                color: isThisMovieSelected ? '#3b82f6' : '#f8fafc'
+              }}>
+                {title}
+              </h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>{movie.genre}</p>
+
+              <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#3b82f6', fontSize: '0.8rem', fontWeight: 600 }}>{movie.price || 220} ฿</span>
+                <button
+                  disabled={isAnyMovieSelected}
+                  style={{
+                    background: isThisMovieSelected ? '#22C55E' : (isAnyMovieSelected ? '#475569' : '#3b82f6'),
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '4px 10px',
+                    fontSize: '0.7rem',
+                    cursor: isAnyMovieSelected ? 'default' : 'pointer'
+                  }}
+                >
+                  {isThisMovieSelected ? 'เลือกแล้ว' : 'เลือก'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// 2. Showtime Selector
+export const ShowtimeSelector = ({ data, onAction, messages = [] }) => {
+  const showtimes = Array.isArray(data) ? data : (data?.showtimes || []);
+  const movieName = data?.movieName || "";
+
+  // 1. ตรวจสอบว่าในประวัติแชท มีการกดเลือก "ดึงผังที่นั่ง" ของหนังเรื่องนี้ไปแล้วหรือยัง
+  const isAlreadySelected = messages.some(msg =>
+    msg.sender === 'user' &&
+    msg.text?.includes('ดึงผังที่นั่ง') &&
+    msg.text?.includes(movieName)
+  );
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, 1fr)',
+      gap: '8px',
+      marginTop: '10px',
+      width: '100%',
+      maxWidth: '350px',
+      // ถ้าเลือกไปแล้ว ให้ล็อคการคลิกและทำให้จางลง
+      opacity: isAlreadySelected ? 0.7 : 1,
+      pointerEvents: isAlreadySelected ? 'none' : 'auto'
+    }}>
       {showtimes.length === 0 ? (
         <div style={{ gridColumn: 'span 2', textAlign: 'center', padding: '15px', background: '#1E293B', borderRadius: '8px', border: '1px solid #334155' }}>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: '#f87171' }}>ขออภัยครับ ไม่พบรอบฉายของสาขาและวันที่คุณเลือก 😥</p>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#f87171' }}>ขออภัยครับ ไม่พบรอบฉาย 😥</p>
         </div>
       ) : (
-        showtimes.map((st) => (
-          <button
-            key={st.showtimeId || st._id}
-            // ✅ เปลี่ยนคำสั่ง onAction ให้ชัดเจนขึ้น เพื่อบังคับ AI ดึงผังที่นั่ง!
-            onClick={() => onAction(
-              `ดึงผังที่นั่งรอบเวลา ${st.time} (ShowtimeID: ${st.showtimeId || st._id}) เรื่อง ${data.movieName}`
-            )}
-            style={{
-              padding: '10px', background: '#1E293B', border: '1px solid #334155', color: '#e2e8f0',
-              borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
-            onMouseOut={(e) => e.currentTarget.style.borderColor = '#334155'}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-              <Clock size={14} color="#3b82f6" /> {st.time}
-            </div>
-            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{st.auditorium || 'โรงปกติ'} • {st.price || 220} ฿</span>
-          </button>
-        ))
+        showtimes.map((st) => {
+          // เช็คว่าปุ่มรอบเวลานี้ คือรอบที่ถูกเลือกไปใช่หรือไม่
+          const isThisTimeSelected = messages.some(msg =>
+            msg.sender === 'user' &&
+            msg.text?.includes(`รอบเวลา ${st.time}`) &&
+            msg.text?.includes(movieName)
+          );
+
+          return (
+            <button
+              key={st.showtimeId || st._id}
+              // ใช้ isAlreadySelected (ชื่อตัวแปรที่ประกาศไว้ข้างบน)
+              disabled={isAlreadySelected}
+              onClick={() => onAction(
+                `ดึงผังที่นั่งรอบเวลา ${st.time} (ShowtimeID: ${st.showtimeId || st._id}) เรื่อง ${movieName}`
+              )}
+              style={{
+                padding: '10px',
+                background: isThisTimeSelected ? '#1e3a8a' : '#1E293B',
+                border: isThisTimeSelected ? '1px solid #3b82f6' : '1px solid #334155',
+                color: isThisTimeSelected ? '#ffffff' : '#e2e8f0',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                cursor: isAlreadySelected ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                position: 'relative'
+              }}
+            >
+              {/* แสดงเครื่องหมายถูกบนรอบที่เลือก */}
+              {isThisTimeSelected && (
+                <div style={{
+                  position: 'absolute', top: '-5px', right: '-5px',
+                  background: '#22C55E', borderRadius: '50%', width: '18px', height: '18px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '10px', color: 'white', fontWeight: 'bold', border: '2px solid #0f172a'
+                }}>✓</div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                <Clock size={14} color={isThisTimeSelected ? "#FFF" : "#3b82f6"} /> {st.time}
+              </div>
+              <span style={{ fontSize: '0.7rem', color: isThisTimeSelected ? '#bfdbfe' : '#94a3b8' }}>
+                {st.auditorium || 'โรงปกติ'} • {st.price || 220} ฿
+              </span>
+            </button>
+          );
+        })
       )}
     </div>
   );
 };
 
-// 3. Seat Map (Dynamic ดึงจาก Database จริง - แมปข้อมูล Mongoose อัตโนมัติ)
-export const SeatMap = ({ data, onAction }) => {
+const LegendItem = ({ color, label }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+    <div style={{ width: '12px', height: '12px', backgroundColor: color, borderRadius: '3px' }} />
+    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{label}</span>
+  </div>
+);
+
+const InfoRow = ({ icon, label, value }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+    <span style={{ color: '#64748B' }}>{icon} {label}</span>
+    <span style={{ color: '#0F172A', fontWeight: '500' }}>{value}</span>
+  </div>
+);
+
+// 3. Seat Map (ฉบับสมบูรณ์: แก้ undefined + ล็อคการกดซ้ำเมื่อจองแล้ว)
+export const SeatMap = ({ data, onAction, messages = [] }) => { // 👈 รับ messages มาเพื่อเช็คประวัติ
   const seatsData = data.seatsData || [];
   const [selectedSeats, setSelectedSeats] = useState([]);
 
+  // 1. ตรวจสอบว่าเคยมีการกดยืนยันจองรอบนี้ไปแล้วหรือยัง (เช็คจากประวัติแชท)
+  // ค้นหาข้อความที่ user เคยพิมพ์ที่มี ชื่อหนัง + เวลา + "จองที่นั่ง"
+  const isAlreadyProcessed = messages.some(msg =>
+    msg.sender === 'user' &&
+    msg.text?.includes(data.movieName) &&
+    msg.text?.includes(data.time) &&
+    msg.text?.includes('จองที่นั่ง')
+  );
+
+  // 2. จัดเตรียมข้อมูลที่นั่ง (Robust Logic)
   const normalizedSeats = seatsData.map((seat) => {
     const row = seat.row_label || seat.row;
     const col = seat.seat_number || seat.col;
@@ -103,24 +239,13 @@ export const SeatMap = ({ data, onAction }) => {
       id: seat._id || seat.id,
       row,
       col,
-      price:
-        seat.price ||
-        (seat.seat_type_id && seat.seat_type_id.price) ||
-        data.basePrice ||
-        220,
-      type:
-        seat.type ||
-        (seat.seat_type_id && seat.seat_type_id.name) ||
-        'Normal',
-      isBooked:
-        seat.isBooked ||
-        seat.is_blocked ||
-        (data.bookedSeats &&
-          data.bookedSeats.includes(`${row}${col}`)) ||
-        false
+      price: seat.price || (seat.seat_type_id && seat.seat_type_id.price) || data.basePrice || 220,
+      type: seat.type || (seat.seat_type_id && seat.seat_type_id.name) || 'Normal',
+      isBooked: seat.isBooked || seat.is_blocked || (data.bookedSeats && data.bookedSeats.includes(`${row}${col}`)) || false
     };
   });
 
+  // 3. จัดกลุ่มที่นั่งตามแถว
   const rows = normalizedSeats.reduce((acc, seat) => {
     if (!acc[seat.row]) acc[seat.row] = [];
     acc[seat.row].push(seat);
@@ -128,14 +253,10 @@ export const SeatMap = ({ data, onAction }) => {
   }, {});
 
   const sortedRowLabels = Object.keys(rows).sort();
-  const maxSeatsInRow = Math.max(
-    ...sortedRowLabels.map((rowLabel) => rows[rowLabel].length),
-    0
-  );
 
+  // 4. ฟังก์ชันเลือกที่นั่ง (ล็อคถ้าจองไปแล้ว)
   const toggleSeat = (seat) => {
-    if (seat.isBooked) return;
-
+    if (seat.isBooked || isAlreadyProcessed) return;
     setSelectedSeats((prev) => {
       const exists = prev.find((s) => s.id === seat.id);
       return exists ? prev.filter((s) => s.id !== seat.id) : [...prev, seat];
@@ -143,336 +264,256 @@ export const SeatMap = ({ data, onAction }) => {
   };
 
   const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
-  const seatLabels = selectedSeats.map((s) => `${s.row}${s.col}`).join(', ');
-  const seatIds = selectedSeats.map((s) => s.id).join(',');
+  const seatLabels = selectedSeats.map((s) => `${s.row}${s.col}`).sort().join(', ');
+
+  // ดักจับชื่อสาขาเพื่อป้องกัน undefined
+  const safeCinemaName = data.cinemaName || data.branchName || 'สาขาที่เลือก';
 
   return (
-    <div
-      style={{
-        background: '#1E293B',
-        padding: '16px',
-        borderRadius: '16px',
-        border: '1px solid #334155',
-        width: '100%',
-        maxWidth: '100%',
-        marginTop: '10px',
-        boxSizing: 'border-box',
-        overflow: 'hidden'
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          height: '4px',
-          background: 'linear-gradient(90deg, transparent, #3b82f6, transparent)',
-          marginBottom: '6px',
-          opacity: 0.7
-        }}
-      />
-      <p
-        style={{
-          textAlign: 'center',
-          fontSize: '0.7rem',
-          color: '#64748b',
-          marginBottom: '16px',
-          textTransform: 'uppercase',
-          letterSpacing: '2px'
-        }}
-      >
-        SCREEN
-      </p>
+    <div style={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '24px',
+      width: '100%',
+      justifyContent: 'center',
+      padding: '10px 0',
+      opacity: isAlreadyProcessed ? 0.8 : 1, // จางลงถ้าจองแล้ว
+      pointerEvents: isAlreadyProcessed ? 'none' : 'auto' // ล็อคการคลิกทั้งหมดถ้าจองแล้ว
+    }}>
+      {/* 🎬 ส่วนผังที่นั่ง (ซ้าย/กลาง) */}
+      <div style={{
+        flex: '1 1 500px',
+        backgroundColor: isAlreadyProcessed ? '#F8FAFC' : '#FFFFFF',
+        borderRadius: '24px',
+        padding: '40px 24px',
+        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)',
+        border: isAlreadyProcessed ? '2px solid #22C55E' : '1px solid #F1F5F9',
+        position: 'relative'
+      }}>
 
-      {normalizedSeats.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#f87171', fontSize: '0.8rem' }}>
-          ไม่พบข้อมูลที่นั่งในระบบ
-        </p>
-      ) : (
-        <>
-          <div
-            className="no-scrollbar"
-            style={{
-              width: '100%',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              paddingBottom: '8px',
-              WebkitOverflowScrolling: 'touch'
-            }}
-          >
-            <div
-              style={{
-                minWidth:
-                  maxSeatsInRow > 0
-                    ? `${Math.max(280, maxSeatsInRow * 34 + 34)}px`
-                    : '280px',
-                width: 'fit-content',
-                margin: '0 auto'
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  marginBottom: '18px'
-                }}
-              >
-                {sortedRowLabels.map((rowLabel) => (
-                  <div
-                    key={rowLabel}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: `20px repeat(${rows[rowLabel].length}, minmax(28px, 32px))`,
-                      gap: '6px',
-                      alignItems: 'center',
-                      justifyContent: 'start'
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: '#94a3b8',
-                        fontSize: '0.78rem',
-                        textAlign: 'center'
-                      }}
-                    >
-                      {rowLabel}
-                    </span>
+        {/* Badge แจ้งสถานะ */}
+        {isAlreadyProcessed && (
+          <div style={{
+            position: 'absolute', top: '15px', right: '20px',
+            backgroundColor: '#22C55E', color: 'white',
+            padding: '4px 12px', borderRadius: '20px',
+            fontSize: '0.75rem', fontWeight: 'bold', zIndex: 10
+          }}>
+            ✓ ยืนยันรายการแล้ว
+          </div>
+        )}
 
-                    {rows[rowLabel]
-                      .sort((a, b) =>
-                        String(a.col).localeCompare(String(b.col), undefined, {
-                          numeric: true
-                        })
-                      )
-                      .map((seat) => {
-                        const isSelected = selectedSeats.find((s) => s.id === seat.id);
-                        const seatColor =
-                          seat.type !== 'Normal' ? '#fbbf24' : '#334155';
+        {/* จอหนัง */}
+        <div style={{ marginBottom: '50px', textAlign: 'center' }}>
+          <div style={{ width: '85%', height: '6px', background: '#E2E8F0', margin: '0 auto', borderRadius: '100%' }} />
+          <p style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: '8px', letterSpacing: '3px' }}>SCREEN</p>
+        </div>
 
-                        return (
-                          <button
-                            key={seat.id}
-                            disabled={seat.isBooked}
-                            onClick={() => toggleSeat(seat)}
-                            style={{
-                              width: '100%',
-                              aspectRatio: '1 / 1',
-                              minWidth: '28px',
-                              minHeight: '28px',
-                              maxWidth: '32px',
-                              maxHeight: '32px',
-                              borderRadius: '8px 8px 4px 4px',
-                              border: 'none',
-                              background: seat.isBooked
-                                ? '#475569'
-                                : isSelected
-                                  ? '#3b82f6'
-                                  : seatColor,
-                              cursor: seat.isBooked ? 'not-allowed' : 'pointer',
-                              opacity: seat.isBooked ? 0.5 : 1,
-                              boxShadow: isSelected
-                                ? '0 0 10px rgba(59, 130, 246, 0.6)'
-                                : 'none',
-                              color:
-                                seat.type !== 'Normal' &&
-                                  !isSelected &&
-                                  !seat.isBooked
-                                  ? '#000'
-                                  : 'white',
-                              fontSize: '10px',
-                              fontWeight: 600,
-                              transition: 'all 0.2s',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              padding: 0
-                            }}
-                            title={`ประเภท: ${seat.type} | ราคา: ${seat.price} ฿`}
-                          >
-                            {seat.col}
-                          </button>
-                        );
-                      })}
-                  </div>
-                ))}
+        {/* ผังที่นั่ง */}
+        <div className="no-scrollbar" style={{ overflowX: 'auto', paddingBottom: '20px' }}>
+          <div style={{ width: 'fit-content', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {sortedRowLabels.map((rowLabel) => (
+              <div key={rowLabel} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ width: '20px', color: '#94A3B8', fontSize: '0.8rem', fontWeight: 'bold' }}>{rowLabel}</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {rows[rowLabel]
+                    .sort((a, b) => String(a.col).localeCompare(String(b.col), undefined, { numeric: true }))
+                    .map((seat) => {
+                      const isSelected = selectedSeats.find((s) => s.id === seat.id);
+                      let seatColor = seat.type === 'Normal' ? '#F97316' : '#EF4444';
+                      if (seat.isBooked) seatColor = '#E2E8F0';
+                      if (isSelected) seatColor = '#22C55E';
+                      if (isAlreadyProcessed) seatColor = '#CBD5E1'; // สีเทาเมื่อจบรายการ
+
+                      return (
+                        <button
+                          key={seat.id}
+                          disabled={seat.isBooked || isAlreadyProcessed}
+                          onClick={() => toggleSeat(seat)}
+                          style={{
+                            width: '30px', height: '30px', borderRadius: '8px', border: 'none',
+                            backgroundColor: seatColor,
+                            cursor: (seat.isBooked || isAlreadyProcessed) ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {isSelected && <span style={{ color: '#FFF', fontSize: '10px', fontWeight: 'bold' }}>{seat.col}</span>}
+                        </button>
+                      );
+                    })}
+                </div>
+                <span style={{ width: '20px', color: '#94A3B8', fontSize: '0.8rem', fontWeight: 'bold' }}>{rowLabel}</span>
               </div>
-            </div>
+            ))}
           </div>
+        </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-              gap: '10px 14px',
-              borderTop: '1px solid #334155',
-              paddingTop: '14px',
-              fontSize: '0.78rem',
-              color: '#94a3b8'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  background: '#334155',
-                  borderRadius: '2px',
-                  flexShrink: 0
-                }}
-              />
-              ปกติ
-            </div>
+        {/* คำอธิบายสัญลักษณ์ */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '30px', fontSize: '0.75rem', color: '#64748B' }}>
+          <LegendItem color="#F97316" label="ปกติ" />
+          <LegendItem color="#EF4444" label="พิเศษ" />
+          <LegendItem color="#22C55E" label="เลือก" />
+          <LegendItem color="#E2E8F0" label="จองแล้ว" />
+        </div>
+      </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  background: '#fbbf24',
-                  borderRadius: '2px',
-                  flexShrink: 0
-                }}
-              />
-              พิเศษ
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  background: '#3b82f6',
-                  borderRadius: '2px',
-                  flexShrink: 0
-                }}
-              />
-              เลือก
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  background: '#475569',
-                  borderRadius: '2px',
-                  opacity: 0.5,
-                  flexShrink: 0
-                }}
-              />
-              จองแล้ว
-            </div>
+      {/* 📋 ส่วนสรุปข้อมูล (ขวา) */}
+      <div style={{
+        width: '340px', backgroundColor: '#FFFFFF', borderRadius: '24px', padding: '28px',
+        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', border: '1px solid #F1F5F9',
+        display: 'flex', flexDirection: 'column'
+      }}>
+        <div style={{ marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '1.4rem', color: '#0F172A', margin: '0 0 8px 0', lineHeight: '1.2' }}>{data.movieName}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', fontSize: '0.85rem' }}>
+            <span style={{ color: '#3B82F6' }}>📍</span> {safeCinemaName}
           </div>
-        </>
-      )}
+        </div>
 
-      {selectedSeats.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+          <InfoRow icon="📅" label="วันที่" value={data.date} />
+          <InfoRow icon="⏰" label="รอบเวลา" value={data.time} />
+        </div>
+
+        <div style={{
+          backgroundColor: '#F8FAFC', borderRadius: '16px', padding: '20px',
+          border: '1px dashed #CBD5E1', marginBottom: '24px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <span style={{ color: '#64748B', fontSize: '0.9rem' }}>ที่นั่งที่เลือก:</span>
+            <span style={{ color: '#0F172A', fontWeight: '700', fontSize: '0.9rem' }}>{selectedSeats.length > 0 ? seatLabels : (isAlreadyProcessed ? 'ทำรายการสำเร็จ' : '-')}</span>
+          </div>
+          <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '12px 0' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#0F172A', fontWeight: '600' }}>ราคารวมทั้งสิ้น:</span>
+            <span style={{ color: '#22C55E', fontWeight: '800', fontSize: '1.4rem' }}>฿{totalPrice.toLocaleString()}</span>
+          </div>
+        </div>
+
         <button
-          onClick={() =>
-            onAction(
-              `จองที่นั่ง ${seatLabels} (IDs: ${seatIds}) ราคารวม ${totalPrice} บาท สำหรับรอบ ${data.time} (ShowtimeID: ${data.showtimeId}) เรื่อง ${data.movieName}`
-            )
-          }
+          disabled={selectedSeats.length === 0 || isAlreadyProcessed}
+          onClick={() => {
+            onAction(`จองที่นั่ง ${seatLabels} ราคารวม ${totalPrice} บาท สำหรับรอบ ${data.time} เรื่อง ${data.movieName} สาขา ${safeCinemaName}`);
+          }}
           style={{
-            width: '100%',
-            marginTop: '18px',
-            background: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            padding: '13px 14px',
-            borderRadius: '999px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            fontSize: '0.95rem',
-            textAlign: 'center',
-            lineHeight: 1.3,
-            flexWrap: 'wrap'
+            width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
+            backgroundColor: isAlreadyProcessed ? '#94A3B8' : (selectedSeats.length > 0 ? '#22C55E' : '#E2E8F0'),
+            color: '#FFFFFF', fontSize: '1rem', fontWeight: '700',
+            cursor: (selectedSeats.length > 0 && !isAlreadyProcessed) ? 'pointer' : 'not-allowed',
+            transition: 'all 0.2s',
+            boxShadow: (selectedSeats.length > 0 && !isAlreadyProcessed) ? '0 4px 12px rgba(34, 197, 94, 0.3)' : 'none'
           }}
         >
-          ยืนยัน {selectedSeats.length} ที่นั่ง ({totalPrice} ฿)
+          {isAlreadyProcessed ? 'ยืนยันการจองเรียบร้อย' : (selectedSeats.length > 0 ? `ชำระเงิน (${selectedSeats.length} ที่นั่ง)` : 'กรุณาเลือกที่นั่ง')}
         </button>
-      )}
+      </div>
     </div>
   );
 };
 
 // 4. Payment Card
-// 1. รับค่า isLatest เข้ามา (ถ้าไม่ส่งมา ให้ค่าเริ่มต้นเป็น false)
 export const PaymentCard = ({ data, onAction, messages = [] }) => {
+  const [showOmise, setShowOmise] = useState(false);
 
-  // 1. ตรวจสอบว่าในประวัติแชท มีการยืนยัน BookingID นี้ไปแล้วหรือยัง
-  // เราจะเช็คว่ามีข้อความจาก user ที่มี BookingID ตรงกับ Card นี้ไหม
+  // เช็คว่าเคยจ่ายเงินหรือยังจากประวัติแชท
   const isAlreadyProcessed = messages.some(msg =>
     msg.sender === 'user' && msg.text?.includes(data.bookingId)
   );
 
-  const handleProceed = () => {
-    // ถ้าเคยส่งไปแล้ว ไม่ต้องทำอะไร
-    if (isAlreadyProcessed) return;
-
-    // ถ้ายังไม่เคย ให้ส่ง Action ยืนยันชำระเงิน
-    onAction(`ยืนยันการสรุปยอด และดำเนินการชำระเงินสำหรับ BookingID: ${data.bookingId} เรื่อง ${data.movieName}`);
+  const handlePaymentComplete = () => {
+    // เมื่อจ่ายเงินสำเร็จ ให้ส่ง action บอก AI
+    onAction(`ชำระเงินสำเร็จแล้ว BookingID: ${data.bookingId}`);
   };
+
+  // ถ้ากดชำระเงินแล้ว ให้เปลี่ยนไปโชว์หน้า PaymentSection (QR Code/Omise)
+  if (showOmise && !isAlreadyProcessed) {
+    return (
+      <div style={{
+        background: '#1E293B',
+        borderRadius: '20px',
+        border: '1px solid #334155',
+        width: '100%',
+        maxWidth: '450px',
+        overflow: 'hidden'
+      }}>
+        <PaymentSection
+          amount={data.price || data.totalPrice}
+          bookingId={data.bookingId}
+          onComplete={handlePaymentComplete}
+          onCancel={() => setShowOmise(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{
-      background: '#1E293B',
-      padding: '20px',
-      borderRadius: '16px',
+      background: 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
+      padding: '24px',
+      borderRadius: '20px',
       border: '1px solid #334155',
       width: '100%',
-      maxWidth: '500px',
-      marginTop: '10px',
-      opacity: isAlreadyProcessed ? 0.7 : 1, // จางลงถ้ากดไปแล้ว
-      transition: 'opacity 0.3s ease'
+      maxWidth: '450px',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+      opacity: isAlreadyProcessed ? 0.7 : 1,
+      position: 'relative'
     }}>
-
-      {/* ... (ส่วนแสดงรูปหนังและรายละเอียด เหมือนเดิม) ... */}
-      <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
-        <div style={{ width: '60px', height: '80px', background: '#334155', borderRadius: '8px', overflow: 'hidden' }}>
+      {/* ส่วนหัว Card */}
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
+        <div style={{ width: '60px', height: '80px', backgroundColor: '#334155', borderRadius: '8px', overflow: 'hidden' }}>
           {data.poster_url && <img src={data.poster_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
         </div>
-        <div>
-          <h3 style={{ margin: 0, color: 'white' }}>{data.movieName}</h3>
-          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>ที่นั่ง: {data.seats}</div>
+        <div style={{ flex: 1 }}>
+          <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>{data.movieName}</h3>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '5px' }}>
+            <Ticket size={12} style={{ marginRight: '4px' }} /> ที่นั่ง: {data.seats}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+      {/* ราคาสรุป */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <span style={{ color: '#cbd5e1' }}>ยอดรวมสุทธิ</span>
-        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{data.price || data.totalPrice} ฿</span>
+        <span style={{ fontSize: '1.6rem', fontWeight: '800', color: '#38bdf8' }}>
+          ฿{(data.price || data.totalPrice).toLocaleString()}
+        </span>
       </div>
 
-      {/* 2. ปรับปุ่มตามสถานะ isAlreadyProcessed */}
+      {/* ปุ่มกด */}
       <button
-        onClick={handleProceed}
+        onClick={() => isAlreadyProcessed ? null : setShowOmise(true)}
         disabled={isAlreadyProcessed}
         style={{
           width: '100%',
-          padding: '14px',
+          padding: '16px',
           background: isAlreadyProcessed
-            ? '#334155' // สีเทาเมื่อกดแล้ว
+            ? '#334155'
             : 'linear-gradient(90deg, #3b82f6, #6366f1)',
-          color: isAlreadyProcessed ? '#94a3b8' : 'white',
+          color: 'white',
           border: 'none',
-          borderRadius: '12px',
+          borderRadius: '14px',
           fontWeight: 'bold',
           cursor: isAlreadyProcessed ? 'not-allowed' : 'pointer',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: '10px'
+          gap: '10px',
+          boxShadow: isAlreadyProcessed ? 'none' : '0 4px 15px rgba(59, 130, 246, 0.4)'
         }}
       >
         {isAlreadyProcessed ? (
-          'ดำเนินการเรียบร้อยแล้ว'
+          <><CheckCircle2 size={20} color="#10b981" /> จ่ายเงินเรียบร้อยแล้ว</>
         ) : (
-          <>ดำเนินการชำระเงิน</>
+          <><CreditCard size={20} /> ดำเนินการชำระเงิน</>
         )}
       </button>
+
+      {!isAlreadyProcessed && (
+        <div style={{ textAlign: 'center', marginTop: '12px', color: '#64748b', fontSize: '0.7rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px' }}>
+          <ShieldCheck size={12} /> Secure Checkout by Omise
+        </div>
+      )}
     </div>
   );
 };

@@ -171,9 +171,11 @@ function MoviePage() {
                     <span>⏰ {movie.duration_min} นาที</span>
                   </div>
                   <div className="audio-badge">🔊 {movie.language || "TH/EN"}</div>
-                  <button className="detail-btn" onClick={() => navigate('/booking', { state: { movie } })}>
-                    {activeTab === 'coming_soon' ? 'ดูข้อมูลเพิ่มเติม' : 'ซื้อตั๋วภาพยนตร์'}
-                  </button>
+                  {activeTab !== 'coming_soon' && (
+                    <button className="detail-btn" onClick={() => navigate('/booking', { state: { movie } })}>
+                      ซื้อตั๋วภาพยนตร์
+                    </button>
+                  )}
                 </div>
               </div>
             ))

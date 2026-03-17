@@ -30,39 +30,46 @@ const sendVisual = (text: string, type: string, data: any) => {
 };
 
 export const movieTools = [
-    // 🎬 1. ค้นหาหนัง
+    // 🎬 1. ค้นหาหนัง (อัปเดตให้รองรับหมวดหมู่ภาษาไทยแบบยืดหยุ่น)
     {
         name: "search_movie",
-        description: "ค้นหาภาพยนตร์ในฐานข้อมูลจากชื่อเรื่อง หรือดึงรายชื่อหนังทั้งหมดเมื่อผู้ใช้ขอดูหนังเข้าใหม่หรือแนะนำหนัง",
+        description: "ค้นหาภาพยนตร์ในฐานข้อมูลจากชื่อเรื่อง หมวดหมู่(เช่น การ์ตูน ผี แอคชั่น) หรือดึงรายชื่อหนังทั้งหมดเมื่อผู้ใช้ขอดูหนังเข้าใหม่",
         args: {
-            keyword: z.string().optional().describe("ชื่อหนังที่ต้องการค้นหา (หากผู้ใช้พิมพ์กว้างๆ เช่น 'หนังเข้าใหม่', 'แนะนำหนัง' ให้ไม่ต้องส่งค่านี้มา)")
+            keyword: z.string().optional().describe("ชื่อหนังหรือหมวดหมู่ที่ต้องการค้นหา")
         },
         handler: async ({ keyword }: { keyword?: string }) => {
             await connectDB();
-            
-            // ✨ 1. สร้างตัวแปรเวลาปัจจุบัน (ใช้อ้างอิงว่าหนังเรื่องไหนยังไม่ออกกจากโรง)
             const now = new Date();
-
-            // ✨ 2. สร้าง Query หลัก: หนังต้องเข้าฉายแล้ว (start_date <= วันนี้) และยังไม่ออกจากโรง (due_date >= วันนี้)
-            // ใช้ $lte (Less than or equal) และ $gte (Greater than or equal)
-            let query: any = { 
+            let query: any = {
                 start_date: { $lte: now },
                 due_date: { $gte: now }
             };
 
-            // ✨ 3. ถ้า User พิมพ์ชื่อหนังมาด้วย ค่อยกรองชื่อเพิ่มเข้าไป
             if (keyword && keyword.trim() !== "") {
+                const searchKeyword = keyword.trim();
+                const kw = searchKeyword.toLowerCase();
+
+                // ✨ Mapping คำไทยเป็น Genre ใน Database (ใช้ includes เพื่อให้ยืดหยุ่นถ้า User พิมพ์ยาว)
+                let mappedGenre = searchKeyword;
+                if (kw.includes("การ์ตูน") || kw.includes("animation")) mappedGenre = "Animation";
+                else if (kw.includes("ผี") || kw.includes("สยองขวัญ") || kw.includes("horror")) mappedGenre = "Horror";
+                else if (kw.includes("ตลก") || kw.includes("comedy")) mappedGenre = "Comedy";
+                else if (kw.includes("บู๊") || kw.includes("แอคชั่น") || kw.includes("action")) mappedGenre = "Action";
+                else if (kw.includes("รัก") || kw.includes("โรแมนติก") || kw.includes("romance")) mappedGenre = "Romance";
+                else if (kw.includes("ไซไฟ") || kw.includes("sci-fi")) mappedGenre = "Sci-Fi";
+
+                // ค้นหาจากชื่อไทย, ชื่ออังกฤษ หรือ หมวดหมู่
                 query.$or = [
-                    { title_th: { $regex: keyword, $options: "i" } }, 
-                    { title_en: { $regex: keyword, $options: "i" } }
+                    { title_th: { $regex: searchKeyword, $options: "i" } },
+                    { title_en: { $regex: searchKeyword, $options: "i" } },
+                    { genre: { $regex: mappedGenre, $options: "i" } }
                 ];
             }
 
-            // ✨ 4. ดึงข้อมูลหนัง เรียงจากวันที่เข้าฉายล่าสุด (start_date -1)
             const movies = await MovieModel.find(query).sort({ start_date: -1 }).limit(10);
 
             if (movies.length === 0) {
-                const errorMsg = keyword ? `ขออภัยครับ ไม่พบรอบฉายของเรื่อง "${keyword}" ในขณะนี้ครับ 😢` : `ตอนนี้ยังไม่มีภาพยนตร์เข้าใหม่ที่เปิดให้จองครับ 😢`;
+                const errorMsg = keyword ? `ขออภัยครับ ไม่พบภาพยนตร์ในหมวดหมู่หรือชื่อเรื่อง "${keyword}" ในขณะนี้ครับ 😢` : `ตอนนี้ยังไม่มีภาพยนตร์เข้าใหม่ที่เปิดให้จองครับ 😢`;
                 return { content: [{ type: "text", text: errorMsg }] };
             }
 
@@ -72,12 +79,11 @@ export const movieTools = [
                 ...m.toObject(),
                 color: colors[index % colors.length],
                 rating: (4.0 + Math.random()).toFixed(1),
-                price: 160 // ตั้งเป็นราคาเริ่มต้น
+                price: 160
             }));
 
-            // ปรับประโยคให้สื่อว่า "เปิดให้จอง"
-            const replyMessage = keyword 
-                ? `เจอหนังเรื่อง "${keyword}" ที่กำลังฉายอยู่ตามนี้ครับ` 
+            const replyMessage = keyword
+                ? `เจอภาพยนตร์เกี่ยวกับ "${keyword}" ที่กำลังฉายอยู่ตามนี้ครับ 🍿`
                 : `นี่คือภาพยนตร์ที่กำลังเข้าฉายในตอนนี้ครับ เลือกชมได้เลยครับ 🍿`;
 
             return sendVisual(replyMessage, "MOVIE_CAROUSEL", enrichedMovies);
@@ -162,18 +168,18 @@ export const movieTools = [
                     return { content: [{ type: "text", text: `ขออภัยครับ ตอนนี้ยังไม่มีรอบฉายสำหรับเรื่อง ${movieName} ในสาขานี้เลยครับ 😥` }] };
                 }
 
-               // 5. สกัดเอาเฉพาะ "วันที่" แบบไม่ซ้ำกัน (Format: YYYY-MM-DD โซนไทย)
+                // 5. สกัดเอาเฉพาะ "วันที่" แบบไม่ซ้ำกัน (Format: YYYY-MM-DD โซนไทย)
                 const uniqueDates = [...new Set(showtimes.map((st: any) => {
                     const d = new Date(st.start_time);
-                    
+
                     // ✨ วิธีที่ปลอดภัยที่สุด: แปลงตามโซนเวลา Asia/Bangkok
-                    const formatter = new Intl.DateTimeFormat('en-CA', { 
-                        timeZone: 'Asia/Bangkok', 
-                        year: 'numeric', 
-                        month: '2-digit', 
-                        day: '2-digit' 
+                    const formatter = new Intl.DateTimeFormat('en-CA', {
+                        timeZone: 'Asia/Bangkok',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
                     });
-                    
+
                     return formatter.format(d); // จะได้ออกมาเป็น "2024-03-18" เป๊ะๆ
                 }))].sort(); // เรียงจากวันที่น้อยไปมาก
 
@@ -282,6 +288,17 @@ export const movieTools = [
             try {
                 await connectDB();
 
+                // ✨ 1. ใส่ Guard ป้องกัน ID ปลอม/ข้อมูล Mock ทำให้ระบบพัง
+                if (!mongoose.Types.ObjectId.isValid(showtimeId)) {
+                    console.error(`🚨 ตรวจพบ ID ไม่ถูกต้อง: ${showtimeId}`);
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `ขออภัยครับ รหัสรอบฉายไม่ถูกต้อง (${showtimeId}) น่าจะเป็นข้อมูลจำลอง รบกวนกดเลือกรอบฉายจากปุ่มด้านบนใหม่อีกครั้งนะครับ 😅`
+                        }]
+                    };
+                }
+
                 const showtime = await ShowtimeModel.findById(showtimeId);
                 if (!showtime) {
                     return { content: [{ type: "text", text: "ไม่พบข้อมูลรอบฉายครับ" }] };
@@ -320,10 +337,11 @@ export const movieTools = [
                     };
                 }
 
+                // ✨ 2. เติม as any ตรงนี้ ป้องกัน TypeScript build error 
                 const bookings = await BookingModel.find({
                     showtime_id: showtimeId,
                     status: { $ne: 'cancelled' }
-                });
+                } as any);
 
                 const bookedSeatIds = bookings.flatMap((b: any) => (b.seats || []).map((s: any) => s.toString()));
 
@@ -337,7 +355,6 @@ export const movieTools = [
                         row: s.row_label,
                         col: s.seat_number,
                         type: seatTypeName,
-                        // ใช้ราคา seat type ตรงๆ ไม่บวก base_price
                         price: seatTypePrice,
                         isBooked: bookedSeatIds.includes(s._id.toString()) || s.is_blocked === true
                     };
@@ -378,6 +395,7 @@ export const movieTools = [
             }
         }
     },
+
     // 🎟️ 5. สรุปการจอง (ตัด Omise ออก ให้ Frontend จัดการแทน)
     {
         name: "confirm_booking",
@@ -524,6 +542,131 @@ export const movieTools = [
             } catch (error: any) {
                 console.error("❌ Error in issue_ticket:", error);
                 return { content: [{ type: "text", text: `เกิดข้อผิดพลาดในการออกตั๋ว: ${error.message}` }] };
+            }
+        }
+    },
+
+    // 🚀 7. จองด่วน (Fast-Track) ข้ามสเต็ปมาหน้าเลือกที่นั่งเลย
+    {
+        name: "fast_track_booking",
+        description: "ใช้เมื่อผู้ใช้บอกข้อมูลครบถ้วนในครั้งเดียว (ชื่อหนัง, สาขา, วันที่, เวลา) เพื่อค้นหารอบฉาย แล้วแสดงผังที่นั่งให้ทันที",
+        args: {
+            movieName: z.string().describe("ชื่อหนัง (เช่น ดาบพิฆาตอสูร)"),
+            branchName: z.string().describe("ชื่อสาขาแบบสั้นๆ (ตัดคำว่าสาขาออก เช่น รังสิต, rangsit)"),
+            date: z.string().describe("วันที่ในรูปแบบ YYYY-MM-DD (ห้ามส่งคำว่า วันนี้ ให้แปลงเป็นวันที่จริงๆ เสมอ)"),
+            time: z.string().describe("เวลาที่ต้องการดู (เช่น 10:00)")
+        },
+        handler: async ({ movieName, branchName, date, time }: any) => {
+            await connectDB();
+            try {
+                // 1. ค้นหา ID หนังจากชื่อ
+                const movie = await MovieModel.findOne({
+                    $or: [
+                        { title_th: { $regex: movieName, $options: "i" } },
+                        { title_en: { $regex: movieName, $options: "i" } }
+                    ]
+                });
+                if (!movie) return { content: [{ type: "text", text: `ไม่พบภาพยนตร์ชื่อ "${movieName}" ครับ` }] };
+
+                // 2. ค้นหา ID สาขา (ตัดคำว่า สาขา ออกเผื่อ AI ติดมา)
+                const cleanBranchName = branchName.replace(/สาขา/g, '').trim();
+                const branch = await CinemaModel.findOne({
+                    $or: [
+                        { name: { $regex: cleanBranchName, $options: "i" } },
+                        { province: { $regex: cleanBranchName, $options: "i" } }
+                    ]
+                });
+                if (!branch) return { content: [{ type: "text", text: `ไม่พบสาขา "${branchName}" ครับ รบกวนพิมพ์ชื่อสาขาให้ชัดเจนอีกนิดนะครับ` }] };
+
+                // 3. ค้นหาโรงหนังทั้งหมดในสาขานี้
+                const auditoriums = await AuditoriumModel.find({ cinema_id: branch._id });
+                if (auditoriums.length === 0) return { content: [{ type: "text", text: `สาขา ${branch.name} ยังไม่มีข้อมูลโรงภาพยนตร์ครับ` }] };
+                const audIds = auditoriums.map(a => a._id);
+
+                // 4. จัดการเรื่อง วันที่และเวลา (กันเหนียวกรณี AI พิมพ์ "วันนี้" มา)
+                let targetDate = new Date();
+                if (date !== "วันนี้" && date !== "today" && date.includes("-")) {
+                    targetDate = new Date(date);
+                }
+
+                const cleanTime = time.replace('.', ':');
+                const [hours, minutes] = cleanTime.split(':');
+                targetDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+                // 🔥 5. สร้างขอบเขตเวลาค้นหารอบฉาย (ขยายเป็น ก่อนเวลาขอ 1 ชม. และหลัง 2 ชม.)
+                const startRange = new Date(targetDate);
+                startRange.setHours(startRange.getHours() - 1);
+
+                const endRange = new Date(targetDate);
+                endRange.setHours(endRange.getHours() + 2);
+
+                const showtimes = await ShowtimeModel.find({
+                    movie_id: movie._id,
+                    auditorium_id: { $in: audIds },
+                    start_time: { $gte: startRange, $lte: endRange }
+                }).sort({ start_time: 1 }); // เรียงจากเวลาใกล้สุดไปไกลสุด
+
+                if (showtimes.length === 0) {
+                    return { content: [{ type: "text", text: `ไม่พบรอบฉายเรื่อง ${movie.title_th} ที่สาขา ${branch.name} วันที่ ${date} ช่วงเวลา ${cleanTime} ครับ ลองเปลี่ยนเวลาดูไหมครับ?` }] };
+                }
+
+                // 6. หากเจอรอบฉาย ให้ดึงผังที่นั่งมาโชว์ทันที
+                const showtimeId = showtimes[0]._id.toString();
+                const audId = showtimes[0].auditorium_id.toString();
+
+                let seats = await SeatModel.find({ auditorium_id: audId as any }).populate({ path: 'seat_type_id', model: SeatTypeModel });
+                if (seats.length === 0) {
+                    const objectId = new mongoose.Types.ObjectId(audId);
+                    seats = await SeatModel.find({ auditorium_id: objectId as any }).populate({ path: 'seat_type_id', model: SeatTypeModel });
+                }
+
+                if (seats.length === 0) return { content: [{ type: "text", text: `ไม่พบข้อมูลที่นั่งของรอบฉายนี้ครับ` }] };
+
+                const bookings = await BookingModel.find({
+                    showtime_id: showtimeId,
+                    status: { $ne: 'cancelled' }
+                } as any);
+                const bookedSeatIds = bookings.flatMap((b: any) => (b.seats || []).map((s: any) => s.toString()));
+
+                const formattedSeats = seats.map((s: any) => ({
+                    id: s._id.toString(),
+                    label: `${s.row_label}${s.seat_number}`,
+                    row: s.row_label,
+                    col: s.seat_number,
+                    type: s.seat_type_id?.name || 'Normal',
+                    price: Number(s.seat_type_id?.price || 0),
+                    isBooked: bookedSeatIds.includes(s._id.toString()) || s.is_blocked === true
+                }));
+
+                const groupedRows = formattedSeats.reduce((acc: any, seat: any) => {
+                    if (!acc[seat.row]) acc[seat.row] = [];
+                    acc[seat.row].push(seat);
+                    return acc;
+                }, {});
+
+                const rowLabels = Object.keys(groupedRows).sort();
+                const seatTypesSummary = Array.from(new Map(formattedSeats.map((seat: any) => [seat.type, { name: seat.type, price: seat.price }])).values()).sort((a: any, b: any) => a.price - b.price);
+
+                // 🎉 ข้าม Flow ปกติ ตรงดิ่งไปหน้าเลือกที่นั่งเลย พร้อมดึงเวลาจริง (actualTime) มาโชว์
+                const actualTime = new Date(showtimes[0].start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                return sendVisual(
+                    `พบรอบฉายเวลา ${actualTime} ครับ! นี่คือผังที่นั่งของเรื่อง ${movie.title_th} สาขา ${branch.name} เชิญเลือกที่นั่งได้เลยครับ 🎟️`,
+                    "SEAT_PICKER",
+                    {
+                        showtimeId, // 👈 ส่ง ObjectID ของแท้ไปให้ Frontend
+                        movieName: movie.title_th,
+                        time: actualTime,
+                        date,
+                        cinemaName: branch.name,
+                        seatsData: formattedSeats,
+                        layout: { rowLabels, totalColumns: Math.max(...rowLabels.map((row) => groupedRows[row].length), 0) },
+                        pricing: seatTypesSummary
+                    }
+                );
+
+            } catch (error: any) {
+                console.error("❌ Error in fast_track_booking:", error);
+                return { content: [{ type: "text", text: `เกิดข้อผิดพลาดในการค้นหารอบฉายด่วน: ${error.message}` }] };
             }
         }
     }
