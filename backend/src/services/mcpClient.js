@@ -11,9 +11,11 @@ if (!fs.existsSync(mcpServerScriptPath)) {
     process.exit(1);
 }
 
+// 🚨 จุดที่แก้ไข: เพิ่ม env เข้าไปเพื่อให้ตัวลูกรู้จัก MONGO_URI
 const transport = new StdioClientTransport({
     command: "node",
     args: [mcpServerScriptPath],
+    env: process.env // 👈👈👈 พระเอกของเราอยู่บรรทัดนี้ครับ!
 });
 
 const client = new Client(
