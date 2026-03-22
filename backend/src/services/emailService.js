@@ -2,10 +2,16 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // ใช้ SSL
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        pass: process.env.EMAIL_PASS,
+    },
+    // เพิ่มตรงนี้เพื่อกัน Railway บล็อก TLS
+    tls: {
+        rejectUnauthorized: false
     }
 });
 
@@ -15,16 +21,16 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
         const movieTitle = movieObj.title_th;
         const posterUrl = movieObj.poster_url || "https://via.placeholder.com/150x225?text=No+Poster";
         const duration = movieObj.duration_min || 120; // สมมติ 120 นาทีถ้าไม่มีข้อมูล
-        
+
         const cinemaName = bookingData.showtime_id.auditorium_id?.name || 'MCP Cinema';
-        
+
         const dateObj = new Date(bookingData.showtime_id.start_time);
         const showDate = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
         const showTime = dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-        
+
         const seatsArr = bookingData.seats.map(s => s.row_label ? `${s.row_label}${s.seat_number}` : s);
         const seatsString = seatsArr.join(', ');
-        
+
         const totalPrice = bookingData.total_price.toLocaleString();
         const bookingRef = bookingData.booking_number;
 
@@ -32,7 +38,7 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
         // สร้าง URL สำหรับให้พนักงานสแกน (อย่าลืมตั้งค่า FRONTEND_URL ใน .env)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const verificationLink = `${frontendUrl}/verify-ticket/${bookingRef}`;
-        
+
         // แปลง URL ให้ปลอดภัยสำหรับการใส่ในพารามิเตอร์ด้วย encodeURIComponent
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verificationLink)}`;
 
@@ -134,18 +140,19 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
             </html>
         `;
 
-        const info = await transporter.sendMail({
-            from: '"MCP Cinema Support" <' + process.env.EMAIL_USER + '>',
+        const mailOptions = {
+            from: `"MCP Cinema Support" <${process.env.EMAIL_USER}>`,
             to: userEmail,
             subject: `ยืนยันการจองตั๋วหนัง: ${movieTitle} (Booking #${bookingRef})`,
             html: htmlContent
-        });
+        };
 
-        console.log("✅ Email sent successfully: %s", info.messageId);
+        const info = await transporter.sendMail(mailOptions);
+        console.log("✅ Email sent successfully to:", userEmail, "ID:", info.messageId);
         return true;
 
     } catch (error) {
-        console.error("❌ Error sending email:", error);
+        console.error("❌ Railway Email Error:", error);
         return false;
     }
 };
