@@ -5,26 +5,25 @@ const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
     secure: true, // ใช้ SSL สำหรับพอร์ต 465
-    pool: true,   // 🚀 เพิ่ม Pool เพื่อให้รักษาการเชื่อมต่อ
+    pool: true,   // รักษาการเชื่อมต่อไว้เพื่อส่งเมลหลายฉบับได้เร็วขึ้น
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        pass: process.env.EMAIL_PASS, // ต้องเป็น App Password 16 หลัก
     },
     tls: {
-        // 🚀 บังคับให้รับ Certificate แม้จะรันบน environment ที่จำกัด
-        rejectUnauthorized: false
+        rejectUnauthorized: false // แก้ปัญหาเรื่อง Certificate บน Cloud/Railway
     },
-    connectionTimeout: 20000, // เพิ่มเวลาเป็น 20 วินาที (Railway บางช่วงเน็ตช้า)
+    connectionTimeout: 20000, 
     socketTimeout: 20000,
     idleTimeout: 30000
 });
 
-// ตรวจสอบการเชื่อมต่อทันทีที่รัน (เพื่อดู Log ใน Railway ว่าผ่านไหม)
+// ตรวจสอบสถานะการเชื่อมต่อทันทีที่ Server เริ่มทำงาน
 transporter.verify(function (error, success) {
     if (error) {
-        console.log("❌ Transporter Verify Error:", error);
+        console.log("❌ Transporter Verify Error (Check your EMAIL_PASS):", error);
     } else {
-        console.log("✅ Server is ready to take our messages");
+        console.log("✅ MCP Email Server is ready to send tickets");
     }
 });
 
@@ -33,7 +32,7 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
         const movieObj = bookingData.showtime_id.movie_id;
         const movieTitle = movieObj.title_th;
         const posterUrl = movieObj.poster_url || "https://via.placeholder.com/150x225?text=No+Poster";
-        const duration = movieObj.duration_min || 120; // สมมติ 120 นาทีถ้าไม่มีข้อมูล
+        const duration = movieObj.duration_min || 120;
 
         const cinemaName = bookingData.showtime_id.auditorium_id?.name || 'MCP Cinema';
 
@@ -47,12 +46,8 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
         const totalPrice = bookingData.total_price.toLocaleString();
         const bookingRef = bookingData.booking_number;
 
-        // 🌟 จุดที่แก้ไข 🌟
-        // สร้าง URL สำหรับให้พนักงานสแกน (อย่าลืมตั้งค่า FRONTEND_URL ใน .env)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const verificationLink = `${frontendUrl}/verify-ticket/${bookingRef}`;
-
-        // แปลง URL ให้ปลอดภัยสำหรับการใส่ในพารามิเตอร์ด้วย encodeURIComponent
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verificationLink)}`;
 
         const htmlContent = `
@@ -169,6 +164,7 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
         return false;
     }
 };
+
 
 module.exports = {
     sendBookingConfirmation
