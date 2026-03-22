@@ -3,7 +3,7 @@ import { MapPin, CreditCard, CheckCircle, Download, Clock, AlertCircle } from 'l
 import html2canvas from 'html2canvas';
 import '../css/HistoryPage.css';
 import { getMyBookings } from '../api/bookingApi';
-import TicketTemplate from '../components/TicketTemplate'; // ✅ IMPORT ไฟล์ตั๋วที่เราเพิ่งสร้าง
+import TicketTemplate from '../components/TicketTemplate'; 
 
 const HistoryPage = () => {
     const [bookings, setBookings] = useState([]);
@@ -14,7 +14,7 @@ const HistoryPage = () => {
     const ticketRef = useRef(null);
     const [ticketData, setTicketData] = useState(null);
 
-    // Helper Functions (สำหรับหน้าแสดงผลบนเว็บ)
+    // Helper Functions
     const formatDate = (dateString) => {
         if (!dateString) return "-";
         return new Date(dateString).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -68,9 +68,8 @@ const HistoryPage = () => {
     }, []);
 
     const handleDownloadTicket = async (booking) => {
-        setTicketData(booking); // 1. ส่งข้อมูลเข้า TicketTemplate
+        setTicketData(booking); 
 
-        // 2. รอให้ React Render TicketTemplate เสร็จก่อน (0.8 วิ)
         setTimeout(async () => {
             if (ticketRef.current) {
                 try {
@@ -96,6 +95,16 @@ const HistoryPage = () => {
         }, 800); 
     };
 
+    // 🚨🚀 จัดกลุ่มตามวันที่
+    const groupedBookings = bookings.reduce((groups, booking) => {
+        const dateKey = formatDate(booking.date);
+        if (!groups[dateKey]) {
+            groups[dateKey] = [];
+        }
+        groups[dateKey].push(booking);
+        return groups;
+    }, {});
+
     if (loading) return <div style={{textAlign:'center', paddingTop:'50px'}}>⏳ กำลังโหลดข้อมูล...</div>;
     if (error) return <div style={{textAlign:'center', color:'red', paddingTop:'50px'}}>{error}</div>;
 
@@ -103,57 +112,143 @@ const HistoryPage = () => {
         <div className="history-page-container">
             {/* ✅ ส่วน Ticket Template ซ่อนไว้ รอ render อย่างเดียว */}
             <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', zIndex: -1 }}>
-                <TicketTemplate 
-                    ref={ticketRef} 
-                    ticketData={ticketData} 
-                />
+                <TicketTemplate ref={ticketRef} ticketData={ticketData} />
             </div>
 
             {/* Content หน้าเว็บปกติ */}
             <div className="history-content">
                 <h1 className="page-title">ประวัติการจองของฉัน</h1>
-                {bookings.length === 0 ? (
+                
+                {Object.keys(groupedBookings).length === 0 ? (
                     <div className="empty-state">
                         <AlertCircle size={64} style={{marginBottom: '10px', color: '#888'}}/>
                         <h3>คุณยังไม่มีประวัติการจอง</h3>
                     </div>
                 ) : (
-                    bookings.map((booking, index) => (
-                        <div key={index} className="history-group">
-                            <h3 className="history-date-header">{formatDate(booking.date)}</h3>
-                            <div className="ticket-card">
-                                <div className="ticket-header">
-                                    <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-                                        <img src={booking.poster} alt="poster" style={{width:'40px', height:'60px', borderRadius:'4px', objectFit:'cover'}}/>
-                                        <h2 className="movie-title">{booking.movieTitle}</h2>
+                    Object.keys(groupedBookings).map((dateKey, index) => (
+                        <div key={index} className="history-date-section" style={{ marginBottom: '40px' }}>
+                            
+                            {/* 📅 หัวข้อกลุ่มวันที่ */}
+                            <h3 style={{ 
+                                borderBottom: '2px solid #334155', 
+                                paddingBottom: '10px', 
+                                marginBottom: '20px', 
+                                color: '#f8fafc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
+                            }}>
+                                📅 รอบฉายวันที่: {dateKey}
+                            </h3>
+                            
+                            {/* 📱 Grid Layout (จัดเรียงการ์ด) */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                                gap: '20px'
+                            }}>
+                                {groupedBookings[dateKey].map((booking, bIndex) => (
+                                    <div key={bIndex} className="ticket-card" style={{
+                                        background: '#1E293B',
+                                        borderRadius: '16px',
+                                        padding: '20px',
+                                        border: '1px solid #334155',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '15px',
+                                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                    }}>
+                                        {/* 🎬 ส่วนหัว: รูปหนัง + ชื่อ + สถานะ */}
+                                        <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
+                                            <img src={booking.poster} alt="poster" style={{ width: '60px', height: '90px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #334155' }}/>
+                                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                                    {booking.movieTitle}
+                                                </h3>
+                                                <span className={`status-badge ${booking.status}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '12px' }}>
+                                                    <CheckCircle size={14} /> {booking.status.toUpperCase()}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* 📋 รายละเอียดแบบ Receipt Style (ครบทุกฟิลด์ตามของเดิมเป๊ะ) */}
+                                        <div style={{ 
+                                            background: '#0F172A', 
+                                            padding: '16px', 
+                                            borderRadius: '12px', 
+                                            fontSize: '0.85rem', 
+                                            color: '#cbd5e1',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '10px'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ color: '#94a3b8' }}>Booking Ref:</span>
+                                                <span style={{ color: '#fff', fontWeight: 'bold' }}>{booking.id}</span>
+                                            </div>
+                                            
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ color: '#94a3b8' }}>โรงภาพยนตร์:</span>
+                                                <span style={{ color: '#3b82f6', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <MapPin size={14} /> {booking.cinema}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ color: '#94a3b8' }}>รอบเวลา:</span>
+                                                <span style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Clock size={14} /> {formatTime(booking.date)}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ color: '#94a3b8' }}>ที่นั่ง:</span>
+                                                <span style={{ color: '#fff', fontWeight: 'bold' }}>{booking.seats}</span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ color: '#94a3b8' }}>ชำระผ่าน:</span>
+                                                <span style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <CreditCard size={14} /> {booking.paymentMethod}
+                                                </span>
+                                            </div>
+
+                                            {/* เส้นคั่นก่อนยอดรวม */}
+                                            <div style={{ height: '1px', background: '#334155', margin: '4px 0' }}></div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ color: '#94a3b8' }}>ยอดรวม:</span>
+                                                <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                                                    {booking.totalPrice.toLocaleString()} ฿
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* 🎟️ ปุ่มดาวน์โหลด */}
+                                        <button 
+                                            className="download-btn" 
+                                            onClick={() => handleDownloadTicket(booking)}
+                                            disabled={ticketData !== null}
+                                            style={{
+                                                width: '100%', 
+                                                padding: '12px', 
+                                                borderRadius: '10px', 
+                                                background: ticketData && ticketData.id === booking.id ? '#475569' : '#3b82f6', 
+                                                color: 'white', 
+                                                border: 'none', 
+                                                cursor: ticketData !== null ? 'wait' : 'pointer', 
+                                                display: 'flex', 
+                                                justifyContent: 'center', 
+                                                alignItems: 'center', 
+                                                gap: '8px', 
+                                                fontWeight: 'bold',
+                                                transition: 'background 0.2s'
+                                            }}
+                                        >
+                                            <Download size={18} /> {ticketData && ticketData.id === booking.id ? 'กำลังสร้างรูป...' : 'Save E-Ticket'}
+                                        </button>
                                     </div>
-                                    <span className={`status-badge ${booking.status}`}>
-                                        <CheckCircle size={16} /> {booking.status.toUpperCase()}
-                                    </span>
-                                </div>
-                                <div className="ticket-body">
-                                    <div className="info-col">
-                                        <p><strong>Booking Ref :</strong> <span className="blue-text">{booking.id}</span></p>
-                                        <p><strong>โรงภาพยนตร์ :</strong> <span className="blue-text">{booking.cinema}</span></p>
-                                    </div>
-                                    <div className="info-col">
-                                        <p><Clock size={16} className="icon-inline"/> <strong>Time :</strong> <span className="blue-text">{formatTime(booking.date)}</span></p>
-                                        <p><MapPin size={16} className="icon-inline"/> <strong>ที่นั่ง :</strong> <span className="blue-text" style={{fontWeight:'bold'}}>{booking.seats}</span></p>
-                                    </div>
-                                    <div className="info-col">
-                                        <p><strong>ยอดรวม :</strong> <span className="blue-text">{booking.totalPrice.toLocaleString()} บาท</span></p>
-                                        <p><CreditCard size={16} className="icon-inline"/> <strong>ชำระผ่าน :</strong> <span className="blue-text">{booking.paymentMethod}</span></p>
-                                    </div>
-                                </div>
-                                <div className="ticket-footer">
-                                    <button 
-                                        className="download-btn" 
-                                        onClick={() => handleDownloadTicket(booking)}
-                                        disabled={ticketData !== null}
-                                    >
-                                        <Download size={18} /> {ticketData && ticketData.id === booking.id ? 'กำลังสร้างรูป...' : 'Save E-Ticket'}
-                                    </button>
-                                </div>
+                                ))}
                             </div>
                         </div>
                     ))
@@ -161,7 +256,7 @@ const HistoryPage = () => {
             </div>
             
             <footer className="simple-footer">
-                <p>Copyright © 2025 MCP Cinema Demo. All rights reserved.</p>
+                <p>Copyright © 2026 MCP Cinema Demo. All rights reserved.</p>
             </footer>
         </div>
     );

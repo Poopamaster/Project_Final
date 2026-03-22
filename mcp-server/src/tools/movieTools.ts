@@ -46,24 +46,38 @@ export const movieTools = [
             };
 
             if (keyword && keyword.trim() !== "") {
-                const searchKeyword = keyword.trim();
+                let searchKeyword = keyword.trim();
                 const kw = searchKeyword.toLowerCase();
 
-                // ✨ Mapping คำไทยเป็น Genre ใน Database (ใช้ includes เพื่อให้ยืดหยุ่นถ้า User พิมพ์ยาว)
-                let mappedGenre = searchKeyword;
-                if (kw.includes("การ์ตูน") || kw.includes("animation")) mappedGenre = "Animation";
-                else if (kw.includes("ผี") || kw.includes("สยองขวัญ") || kw.includes("horror")) mappedGenre = "Horror";
-                else if (kw.includes("ตลก") || kw.includes("comedy")) mappedGenre = "Comedy";
-                else if (kw.includes("บู๊") || kw.includes("แอคชั่น") || kw.includes("action")) mappedGenre = "Action";
-                else if (kw.includes("รัก") || kw.includes("โรแมนติก") || kw.includes("romance")) mappedGenre = "Romance";
-                else if (kw.includes("ไซไฟ") || kw.includes("sci-fi")) mappedGenre = "Sci-Fi";
+                // ดักจับคำที่แปลว่า "ขอดูหนังทั้งหมด"
+                const isRequestingAll = kw.includes("หนังเข้าใหม่") ||
+                    kw.includes("แนะนำ") ||
+                    kw.includes("ทั้งหมด") ||
+                    kw.includes("กำลังฉาย") ||
+                    kw.includes("มีหนังอะไร") ||
+                    kw.includes("ทุกเรื่อง") ||  // 👈 เพิ่มคำนี้เข้าไปดัก AI!
+                    kw === "";
 
-                // ค้นหาจากชื่อไทย, ชื่ออังกฤษ หรือ หมวดหมู่
-                query.$or = [
-                    { title_th: { $regex: searchKeyword, $options: "i" } },
-                    { title_en: { $regex: searchKeyword, $options: "i" } },
-                    { genre: { $regex: mappedGenre, $options: "i" } }
-                ];
+                if (!isRequestingAll) {
+                    // ถ้าไม่ใช่การขอดูทั้งหมด ค่อยทำ Mapping หมวดหมู่ปกติ
+                    let mappedGenre = searchKeyword;
+                    if (kw.includes("การ์ตูน") || kw.includes("animation")) mappedGenre = "Animation";
+                    else if (kw.includes("ผี") || kw.includes("สยองขวัญ") || kw.includes("horror")) mappedGenre = "Horror";
+                    else if (kw.includes("ตลก") || kw.includes("comedy")) mappedGenre = "Comedy";
+                    else if (kw.includes("บู๊") || kw.includes("แอคชั่น") || kw.includes("action")) mappedGenre = "Action";
+                    else if (kw.includes("รัก") || kw.includes("โรแมนติก") || kw.includes("romance")) mappedGenre = "Romance";
+                    else if (kw.includes("ไซไฟ") || kw.includes("sci-fi")) mappedGenre = "Sci-Fi";
+
+                    // ค้นหาจากชื่อไทย, ชื่ออังกฤษ หรือ หมวดหมู่
+                    query.$or = [
+                        { title_th: { $regex: searchKeyword, $options: "i" } },
+                        { title_en: { $regex: searchKeyword, $options: "i" } },
+                        { genre: { $regex: mappedGenre, $options: "i" } }
+                    ];
+                } else {
+                    // 🚨 จุดที่แก้: ล้างค่า keyword ทิ้งไปเลย เวลามันเด้ง Error จะได้พูดว่า "ตอนนี้ยังไม่มีภาพยนตร์เข้าใหม่..." แทน
+                    keyword = "";
+                }
             }
 
             const movies = await MovieModel.find(query).sort({ start_date: -1 }).limit(10);
@@ -82,9 +96,11 @@ export const movieTools = [
                 price: 160
             }));
 
-            const replyMessage = keyword
-                ? `เจอภาพยนตร์เกี่ยวกับ "${keyword}" ที่กำลังฉายอยู่ตามนี้ครับ 🍿`
-                : `นี่คือภาพยนตร์ที่กำลังเข้าฉายในตอนนี้ครับ เลือกชมได้เลยครับ 🍿`;
+            // เช็คอีกรอบเพื่อการตอบกลับที่เนียนขึ้น
+            const isAllMovies = !query.$or;
+            const replyMessage = isAllMovies
+                ? `นี่คือภาพยนตร์ที่กำลังเข้าฉายในตอนนี้ครับ เลือกชมได้เลยครับ 🍿`
+                : `เจอภาพยนตร์เกี่ยวกับ "${keyword}" ที่กำลังฉายอยู่ตามนี้ครับ 🍿`;
 
             return sendVisual(replyMessage, "MOVIE_CAROUSEL", enrichedMovies);
         }

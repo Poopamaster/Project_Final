@@ -146,13 +146,12 @@
 
 .messages-area {
   flex: 1;
-  padding: 20px 30px;
+  padding: 10px 10px;
   overflow-y: auto;
-  /* ✅ จุดเดียวในหน้านี้ที่อนุญาตให้เลื่อน (Scroll) ได้ */
+  overflow-x: hidden; /* 👈 เพิ่มบรรทัดนี้: ห้ามมี Scrollbar แนวนอน */
   display: flex;
   flex-direction: column;
   gap: 20px;
-  /* เพิ่ม smooth scroll เพื่อความเนียน */
   scroll-behavior: smooth;
 }
 
@@ -195,8 +194,9 @@
 .message-row {
   display: flex;
   gap: 10px;
-  max-width: 70%;
+  max-width: 95%;
   align-items: flex-start;
+  min-width: 0; /* 👈 เพิ่มบรรทัดนี้: ป้องกัน Flexbox ดันกล่องบวมทะลุจอ */
 }
 
 .message-row.user {
@@ -218,11 +218,16 @@
 .message-bubble {
   background: #1E293B;
   color: #e2e8f0;
-  padding: 12px 18px;
+  padding: 10px 14px;
   border-radius: 0 15px 15px 15px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.5;
   white-space: pre-wrap;
+  
+  /* 👇 เพิ่ม 3 บรรทัดนี้: หักคอข้อความยาวๆ ไม่ให้ดันกล่องแตก */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .message-row.user .message-bubble {
@@ -456,6 +461,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  max-width: 100%; /* 👈 เพิ่มบรรทัดนี้: บังคับกว้างสุดแค่ 100% ของพื้นที่ที่เหลือ */
+  min-width: 0; /* 👈 เพิ่มบรรทัดนี้: ยอมหดตัว */
 }
 
 .message-row.user .message-content-wrapper {

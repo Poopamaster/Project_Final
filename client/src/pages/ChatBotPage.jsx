@@ -2,7 +2,7 @@
 import React, { useContext, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { Mic, Send, Bot, Trash2, Paperclip, Loader2, X } from 'lucide-react'; // เพิ่ม X สำหรับลบ Preview
+import { Mic, Send, Bot, Trash2, Paperclip, Loader2, X } from 'lucide-react';
 import { AuthContext } from '../App';
 import HeroSection from '../components/HeroSection';
 import { useChatHistory, useChatInput, useInitialMessageProcessor } from '../hooks/useChatBotLogic';
@@ -19,7 +19,7 @@ const ChatBotPage = ({ isEmbedded = false }) => {
   // ✅ Hook 1: ดึง State พื้นฐาน
   const { messages, setMessages, isLoading, setIsLoading, messagesEndRef, clearChat } = useChatHistory(user);
 
-  // ✅ Hook 2: ส่ง Setter เข้าไปเพื่อให้ Hook จัดการอัปโหลด Excel เองได้ภายในตัว
+  // ✅ Hook 2: จัดการ Input และการอัปโหลดไฟล์
   const {
     inputText, setInputText, selectedImage, imagePreview, isListening,
     handleFileSelect, clearImage, toggleListening, fileInputRef
@@ -79,18 +79,16 @@ const ChatBotPage = ({ isEmbedded = false }) => {
       return cleanText;
     }
 
-    // 2. [เพิ่มใหม่] ลบประโยคที่ AI พยายามบอกว่าจะใช้เครื่องมือ/Tool อะไร
-    // เช่น "กรุณาใช้ Tool get_showtimes ค้นหา..." หรือ "ฉันจะเรียกใช้..."
+    // 2. ลบประโยคที่ AI พยายามบอกว่าจะใช้เครื่องมือ/Tool อะไร
     cleanText = cleanText.replace(/(กรุณา)?(ใช้|เรียกใช้)\s*(Tool|เครื่องมือ|คำสั่ง)\s+\w+\s*(เพื่อ)?/gi, '');
     cleanText = cleanText.replace(/กำลังค้นหาโดยใช้วันที่/gi, 'รอบฉายวันที่');
 
-    // 3. ลบ ObjectID และรหัส ID (69b176...) ทั้งแบบมีคำนำหน้าและไม่มี
-    // ดักจับ: (รหัสหนัง: 69b...), (ID: 69b...), (69b...)
+    // 3. ลบ ObjectID และรหัส ID ต่างๆ
     cleanText = cleanText.replace(/\w*ID?s?[:：]\s*[a-f\d]{24}/gi, '');
     cleanText = cleanText.replace(/รหัส(หนัง|สาขา|รอบฉาย)[:：]\s*[a-f\d]{24}/gi, '');
-    cleanText = cleanText.replace(/[a-f\d]{24}/gi, ''); // ลบ Hex ID 24 หลักเปล่าๆ
+    cleanText = cleanText.replace(/[a-f\d]{24}/gi, '');
 
-    // 4. ลบวงเล็บที่ว่างเปล่า หรือเหลือแค่เศษเครื่องหมายข้างใน ( , )
+    // 4. ลบวงเล็บที่ว่างเปล่า หรือเหลือแค่เศษเครื่องหมายข้างใน
     cleanText = cleanText.replace(/\(\s*[,，]?\s*\)/g, '');
     cleanText = cleanText.replace(/\(\s*[:：]?\s*\)/g, '');
 
@@ -104,7 +102,6 @@ const ChatBotPage = ({ isEmbedded = false }) => {
     cleanText = cleanText.replace(/^[\s,，.:：]+|[\s,，.:：]+$/g, '');
     cleanText = cleanText.replace(/\s\s+/g, ' ').trim();
 
-    // ถ้าลบไปลบมาแล้วข้อความว่างเปล่า ให้ส่งค่าว่างกลับไป (Frontend จะได้ไม่โชว์ Bubble เปล่า)
     return cleanText || "";
   };
 
@@ -123,7 +120,7 @@ const ChatBotPage = ({ isEmbedded = false }) => {
       }
     }
 
-    // 2. เริ่มหั่น ::VISUAL:: ตามปกติ
+    // 2. เริ่มหั่น ::VISUAL::
     if (msg.sender === 'bot' && actualText.includes('::VISUAL::')) {
       try {
         const [textPart, rawJsonPart] = actualText.split('::VISUAL::');
@@ -141,6 +138,11 @@ const ChatBotPage = ({ isEmbedded = false }) => {
         const visualData = JSON.parse(cleanJson);
         const VisualComponent = COMPONENT_REGISTRY[visualData.type];
 
+        const componentId = visualData.componentId;
+
+        // 💡 แปลง isLatest เป็น isDisabled เพื่อส่งต่อให้ Component ลูก
+        const isDisabled = !isLatest;
+
         return (
           <div className="message-content-visual" style={{ width: '100%' }}>
             {/* ✨ กรองข้อความส่วนหัวของ Visual */}
@@ -151,7 +153,9 @@ const ChatBotPage = ({ isEmbedded = false }) => {
                 data={visualData.data ? visualData.data : visualData}
                 onAction={handleSendMessage}
                 isLatest={isLatest}
+                isDisabled={isDisabled} // 👈 ส่งไม้ต่อให้ตัวลูกไปล็อคปุ่ม
                 messages={messages}
+                componentId={componentId}
               />
             ) : (
               <div className="message-bubble text-red-400">⚠️ ไม่รองรับรูปแบบ {visualData.type}</div>
@@ -170,7 +174,6 @@ const ChatBotPage = ({ isEmbedded = false }) => {
     // 3. ถ้าเป็นข้อความธรรมดา (ฝั่ง User หรือ Bot ที่ไม่มี Visual)
     return (
       <div className={`message-bubble ${actualText?.startsWith('🛠️') ? 'admin-msg' : ''}`}>
-        {/* ✨ ใช้ formatDisplayText ครอบก่อนแสดงผล */}
         {formatDisplayText(actualText)?.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
       </div>
     );
@@ -215,19 +218,28 @@ const ChatBotPage = ({ isEmbedded = false }) => {
                     <p>สวัสดีครับ Admin พร้อมจัดการไฟล์ Excel หรือยังครับ?</p>
                   </div>
                 )}
+
                 {messages.length > 0 && <div className="date-divider"><span>การสนทนาในวันนี้</span></div>}
-                {messages.map((msg, index) => (
-                  <div key={msg.id} className={`message-row ${msg.sender}`}>
-                    {msg.sender === 'bot' && <div className="bot-icon-chat"><Bot size={20} /></div>}
-                    <div className="message-content-wrapper">
-                      {msg.image && <img src={msg.image} alt="uploaded" className="chat-image-bubble" style={{ maxWidth: '200px', borderRadius: '10px', marginBottom: '5px' }} />}
 
-                      {/* 👇 2. ส่งค่า isLatest เข้าไป โดยเช็คว่า index ปัจจุบันคือข้อความสุดท้ายหรือเปล่า */}
-                      {renderMessageContent(msg, index === messages.length - 1)}
+                {messages.map((msg, index) => {
+                  // 💡 เช็คว่าหลังจากข้อความบอทอันนี้ มีการพิมพ์ข้อความของผู้ใช้ตามมาอีกไหม
+                  const hasUserRepliedAfter = messages.slice(index + 1).some(m => m.sender === 'user');
+                  const isActuallyLatest = !hasUserRepliedAfter;
 
+                  return (
+                    <div key={msg.id} className={`message-row ${msg.sender}`}>
+                      {msg.sender === 'bot' && <div className="bot-icon-chat"><Bot size={20} /></div>}
+                      <div className="message-content-wrapper">
+                        {msg.image && <img src={msg.image} alt="uploaded" className="chat-image-bubble" style={{ maxWidth: '200px', borderRadius: '10px', marginBottom: '5px' }} />}
+
+                        {/* 👇 2. ส่งค่า isActuallyLatest เข้าไป */}
+                        {renderMessageContent(msg, isActuallyLatest)}
+
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+
                 {isLoading && (
                   <div className="message-row bot">
                     <div className="bot-icon-chat"><Bot size={20} /></div>
@@ -271,7 +283,7 @@ const ChatBotPage = ({ isEmbedded = false }) => {
             </div>
 
             <div className="input-container" style={{ background: '#1e293b', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', padding: '5px 15px' }}>
-              {/* ✅ แก้ไข: เพิ่ม .xlsx ใน accept */}
+              {/* ✅ รองรับ Excel และรูปภาพ */}
               <input type="file" ref={fileInputRef} hidden accept="image/*,.xlsx" onChange={handleFileSelect} />
               <button className="attach-btn" onClick={() => fileInputRef.current.click()}><Paperclip size={20} /></button>
 

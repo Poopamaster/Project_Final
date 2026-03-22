@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { ArrowLeft } from 'lucide-react'; // ✅ ดึงไอคอนลูกศรกลับมาใช้
 import '../css/MoviePage.css';
 
 import { getAllMovies } from '../api/movieApi';
 import { getAllCinemas } from '../api/cinemaApi';
-import { getAllShowtimes } from '../api/showtimeApi'; // ✅ ต้องดึงตัวนี้มาเชื่อม!
+import { getAllShowtimes } from '../api/showtimeApi'; 
 
 function MoviePage() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ function MoviePage() {
   const [activeTab, setActiveTab] = useState('now_showing');
   const [movies, setMovies] = useState([]);
   const [cinemas, setCinemas] = useState([]);
-  const [showtimes, setShowtimes] = useState([]); // ✅ เพิ่ม State รอบฉาย
+  const [showtimes, setShowtimes] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -24,7 +25,6 @@ function MoviePage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // ดึง 3 อย่างพร้อมกัน: หนัง, สาขา, และรอบฉาย
         const [moviesRes, cinemasRes, showtimesRes] = await Promise.all([
           getAllMovies(),
           getAllCinemas(),
@@ -58,16 +58,12 @@ function MoviePage() {
     return 'ended';
   };
 
-  // ✅ 1. กรองรายชื่อหนังใน Dropdown ตามสาขาที่เลือก
   const moviesInDropdown = movies.filter(m => {
     const matchTab = getMovieCategory(m) === activeTab;
     if (!selectedCinemaId) return matchTab;
 
-    // 🌟 แก้ไขตรงนี้: เช็คทั้ง cinema_id โดยตรง และเช็คผ่าน auditorium_id
     return showtimes.some(st => {
       const isMovieMatch = (st.movie_id?._id === m._id || st.movie_id === m._id);
-
-      // เช็คว่าโรงนี้อยู่สาขาที่เลือกไหม (ครอบคลุมทั้ง 2 รูปแบบ Schema)
       const isCinemaMatch =
         (st.cinema_id?._id === selectedCinemaId || st.cinema_id === selectedCinemaId) ||
         (st.auditorium_id?.cinema_id?._id === selectedCinemaId || st.auditorium_id?.cinema_id === selectedCinemaId);
@@ -76,14 +72,12 @@ function MoviePage() {
     });
   });
 
-  // ✅ 2. กรอง Card หนังที่แสดงบนหน้าจอ
   const filteredMovies = movies.filter(movie => {
     const matchTab = getMovieCategory(movie) === activeTab;
     const matchMovie = selectedMovieId ? movie._id === selectedMovieId : true;
 
     let matchCinema = true;
     if (selectedCinemaId) {
-      // 🌟 แก้ไขตรงนี้: เพิ่มการเช็คผ่าน auditorium_id ด้วยเหมือนกัน
       matchCinema = showtimes.some(st => {
         const isMovieMatch = (st.movie_id?._id === movie._id || st.movie_id === movie._id);
         const isCinemaMatch =
@@ -109,14 +103,12 @@ function MoviePage() {
 
       <div className="filter-section">
         <div className="search-box">
-
-          {/* ✅ Dropdown 1: เลือกสาขา (Cinema) */}
           <select
             className="dropdown"
             value={selectedCinemaId}
             onChange={(e) => {
               setSelectedCinemaId(e.target.value);
-              setSelectedMovieId(''); // Reset หนังเมื่อเปลี่ยนสาขา
+              setSelectedMovieId(''); 
             }}
           >
             <option value="">โรงภาพยนตร์ทั้งหมด</option>
@@ -127,7 +119,6 @@ function MoviePage() {
             ))}
           </select>
 
-          {/* ✅ Dropdown 2: เลือกหนัง (กรองตามสาขาที่เลือกด้านบน) */}
           <select
             className="dropdown"
             value={selectedMovieId}
@@ -146,6 +137,28 @@ function MoviePage() {
       </div>
 
       <div className="content-wrapper">
+        
+        {/* ✅ เพิ่มปุ่มย้อนกลับตรงนี้ */}
+        <button 
+          onClick={() => navigate(-1)} 
+          style={{
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            background: 'none', 
+            border: 'none', 
+            color: '#94a3b8', 
+            fontSize: '1rem', 
+            cursor: 'pointer', 
+            marginBottom: '20px',
+            padding: '0'
+          }}
+          onMouseEnter={(e) => e.target.style.color = '#fff'}
+          onMouseLeave={(e) => e.target.style.color = '#94a3b8'}
+        >
+          <ArrowLeft size={20} style={{ pointerEvents: 'none' }} /> ย้อนกลับ
+        </button>
+
         <h1 className="section-title">
           {activeTab === 'now_showing' ? 'กำลังฉาย' : 'โปรแกรมล่วงหน้า'}
         </h1>
@@ -160,7 +173,19 @@ function MoviePage() {
         <div className="movie-grid">
           {filteredMovies.length > 0 ? (
             filteredMovies.map((movie) => (
-              <div key={movie._id} className="movie-card">
+              <div 
+                key={movie._id} 
+                className="movie-card"
+                onClick={() => {
+                  if (activeTab !== 'coming_soon') {
+                    navigate('/booking', { state: { movie } });
+                  }
+                }}
+                style={{ 
+                  cursor: activeTab !== 'coming_soon' ? 'pointer' : 'default',
+                  transition: 'transform 0.2s' 
+                }}
+              >
                 <div className="poster-wrapper">
                   <img src={movie.poster_url} alt={movie.title_th} className="poster-img" />
                 </div>
@@ -171,8 +196,9 @@ function MoviePage() {
                     <span>⏰ {movie.duration_min} นาที</span>
                   </div>
                   <div className="audio-badge">🔊 {movie.language || "TH/EN"}</div>
+                  
                   {activeTab !== 'coming_soon' && (
-                    <button className="detail-btn" onClick={() => navigate('/booking', { state: { movie } })}>
+                    <button className="detail-btn">
                       ซื้อตั๋วภาพยนตร์
                     </button>
                   )}
