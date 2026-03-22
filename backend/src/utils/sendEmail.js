@@ -3,17 +3,21 @@ const nodemailer = require('nodemailer');
 const sendEmail = async (options) => {
     // 1. สร้าง Transporter (SMTP Setup) แบบ Explicit (แก้ปัญหาบน Railway)
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com', // 🚨 เปลี่ยนจาก service: 'gmail' มากำหนด host ชัดเจน
-        port: 465,              // 🚨 ใช้ Port 465 สำหรับการเชื่อมต่อที่ปลอดภัย (SSL)
-        secure: true,           // 🚨 บังคับใช้ SSL
+        host: 'smtp.gmail.com',
+        port: 587,             // ✨ เปลี่ยนจาก 465 เป็น 587
+        secure: false,        // ✨ ต้องเป็น false สำหรับพอร์ต 587
+        requireTLS: true,     // ✨ บังคับใช้ TLS เพื่อความปลอดภัย
         auth: {
-            user: process.env.EMAIL_USER, 
-            pass: process.env.EMAIL_PASS, // 🚨 ต้องเป็น "App Password 16 หลัก" ของ Gmail เท่านั้นนะครับ รหัสผ่านปกติใช้ไม่ได้แล้ว
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
         },
-        // 🚨 ทริคเสริมสำหรับรันบน Cloud/Railway เพื่อป้องกันการโดนเตะออกเพราะ SSL/TLS
         tls: {
-            rejectUnauthorized: false 
-        }
+            // ✨ สำคัญมาก: ป้องกัน Error เรื่อง Certificate บน Server Cloud
+            rejectUnauthorized: false,
+            minVersion: 'TLSv1.2'
+        },
+        connectionTimeout: 10000, // เพิ่มเวลารอเชื่อมต่อเป็น 10 วินาที
+        greetingTimeout: 10000,
     });
 
     // 2. ตั้งค่า Email

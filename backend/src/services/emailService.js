@@ -3,16 +3,20 @@ const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // ใช้ SSL
+    port: 587,             // ✨ เปลี่ยนจาก 465 เป็น 587
+    secure: false,        // ✨ ต้องเป็น false สำหรับพอร์ต 587
+    requireTLS: true,     // ✨ บังคับใช้ TLS เพื่อความปลอดภัย
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
-    // เพิ่มตรงนี้เพื่อกัน Railway บล็อก TLS
     tls: {
-        rejectUnauthorized: false
-    }
+        // ✨ สำคัญมาก: ป้องกัน Error เรื่อง Certificate บน Server Cloud
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2'
+    },
+    connectionTimeout: 10000, // เพิ่มเวลารอเชื่อมต่อเป็น 10 วินาที
+    greetingTimeout: 10000,
 });
 
 const sendBookingConfirmation = async (userEmail, bookingData) => {
