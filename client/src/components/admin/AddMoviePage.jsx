@@ -14,16 +14,23 @@ export default function AddMoviePage() {
 
     const getImageUrl = (posterPath) => {
         if (!posterPath) return "https://placehold.co/500x750?text=No+Image";
-        if (posterPath.startsWith("http") || posterPath.startsWith("data:")) return posterPath;
 
-        // ลอง log ค่าออกมาดูใน console (เฉพาะตอนพัฒนา)
-        const envUrl = import.meta.env.VITE_API_URL;
+        // 1. ถ้าเป็น URL เต็มๆ หรือ Base64 ให้ใช้ได้เลย
+        if (posterPath.startsWith("http") || posterPath.startsWith("data:")) {
+            return posterPath;
+        }
 
-        // ถ้า envUrl ไม่มีค่า ให้ใช้ / เฉยๆ (เพื่อให้มันดึงจาก domain เดียวกัน) 
-        // หรือใส่ URL ของ Backend ตรงๆ ไปเลยถ้าแก้ Env ไม่ผ่านจริงๆ
-        const backendUrl = envUrl ? envUrl.replace(/\/+$/, "") : "https://mcp-cinema-backend.up.railway.app";
+        // 2. ตรวจสอบว่ารันอยู่บน Production (Railway) หรือ Localhost
+        const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+        // 3. กำหนด Backend URL
+        // ถ้าอยู่บนเครื่องเราใช้ localhost ถ้าอยู่บน Railway ให้ใช้ URL ของ Backend ตรงๆ
+        const backendUrl = isLocalhost
+            ? "http://localhost:5000"
+            : "https://mcp-cinema-backend.up.railway.app"; // 👈 ใส่ URL Backend ของ Railway คุณตรงนี้
 
         const cleanPath = posterPath.startsWith('/') ? posterPath : `/${posterPath}`;
+
         return `${backendUrl}${cleanPath}`;
     };
 
