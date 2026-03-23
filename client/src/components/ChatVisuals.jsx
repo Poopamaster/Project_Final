@@ -31,7 +31,6 @@ export const MovieCarousel = ({ data, onAction, isDisabled = false, componentId 
               key={movie._id || movie.id}
               onClick={() => {
                 if (!isDisabled) {
-                  // ส่ง Action พร้อมแนบ CID เพื่อให้บอทรู้ว่ามาจากกล่องไหน
                   onAction(`สนใจดูเรื่อง ${title} (ID: ${movie._id || movie.id}) ครับ`);
                 }
               }}
@@ -387,8 +386,7 @@ export const SeatMap = ({ data, onAction, isDisabled = false, componentId }) => 
         <button
           disabled={selectedSeats.length === 0 || isLocked}
           onClick={() => {
-            // 🚨 แนบ [CID: componentId] กลับไปให้บอทรู้ด้วย
-            onAction(`จองที่นั่ง ${seatLabels} ราคารวม ${totalPrice} บาท สำหรับรอบ ${data.time} เรื่อง ${data.movieName} ${safeCinemaName} [CID: ${componentId}]`);
+            onAction(`จองที่นั่ง ${seatLabels} ราคารวม ${totalPrice} บาท สำหรับรอบ ${data.time} เรื่อง ${data.movieName} ${safeCinemaName}`);
           }}
           style={{
             width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
@@ -909,8 +907,7 @@ export const DateSelector = ({ data, onAction, isDisabled = false, componentId }
               key={index}
               onClick={() => {
                 if (!isDisabled) {
-                  // ส่ง Action พร้อมแนบ CID
-                  onAction(`ดูรอบฉายวันที่ ${dateStr} [CID: ${componentId}]`);
+                  onAction(`ดูรอบฉายวันที่ ${dateStr} `);
                 }
               }}
               style={{
