@@ -11,6 +11,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import MoviePage from './pages/MoviePage';
 import BookingPage from './pages/BookingPage';
 import SeatSelectionPage from "./pages/SeatSelectionPage";
+import NotFoundCinema from './pages/NotFoundCinema';
 import AdminPage from './pages/AdminPage';
 import './style.css';
 import HistoryPage from './pages/HistoryPage';
@@ -169,13 +170,25 @@ const GoogleAuthHandler = () => {
 const NavbarController = () => {
     const location = useLocation();
 
-    // ซ่อน Navbar กลาง เมื่ออยู่หน้าเหล่านี้
+    // รายชื่อ Path ที่ถูกต้องทั้งหมดในระบบ
+    const validPaths = [
+        '/', '/login', '/register', '/forgot-password', '/verify-email',
+        '/chatbot', '/movies', '/payment', '/history', '/seat-selection'
+    ];
+
+    // เช็คว่าหน้าปัจจุบันคือหน้า 404 หรือไม่ (คือไม่อยู่ในรายการ path ปกติ และไม่ใช่พวก dynamic path)
+    const isUnknownPath = !validPaths.includes(location.pathname) &&
+        !location.pathname.startsWith('/booking') &&
+        !location.pathname.startsWith('/admin') &&
+        !location.pathname.startsWith('/reset-password');
+
+    // ซ่อน Navbar ถ้าเป็นหน้าพิเศษ หรือหน้า 404
     if (location.pathname === '/chatbot' ||
         location.pathname === '/movies' ||
-        location.pathname === '/payment' || // <--- เพิ่ม payment เข้าไป เพื่อไม่ให้ Navbar ซ้อนกัน
+        location.pathname === '/payment' ||
         location.pathname.startsWith('/booking') ||
-        location.pathname.startsWith('/admin')
-
+        location.pathname.startsWith('/admin') ||
+        isUnknownPath // <--- ซ่อนถ้าไป path มั่ว
     ) {
         return null;
     }
@@ -206,7 +219,7 @@ function App() {
                 <Route path="/booking/:id" element={<BookingPage />} />
                 <Route path="/history" element={<HistoryPage />} />
 
-                {/* หน้า Chatbot ยังคงต้อง Login */}
+                {/* หน้า Chatbot */}
                 <Route
                     path="/chatbot"
                     element={
@@ -228,6 +241,9 @@ function App() {
                         <AdminPage />
                     </AdminGuard>
                 } />
+
+                {/* 🚨 เพิ่มบรรทัดนี้ลงไปเป็นลำดับสุดท้ายเสมอ 🚨 */}
+                <Route path="*" element={<NotFoundCinema />} />
 
             </Routes>
         </AuthProvider>
