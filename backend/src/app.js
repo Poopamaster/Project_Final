@@ -30,7 +30,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // 3. ✅ Logger และ Static Files
 app.use(logger);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // 4. 🚀 Routes (ย้ายมาไว้หลัง Middleware ทั้งหมด)
 app.use('/api/admin', adminRoutes); // ✅ แนะนำให้เอา Admin ไว้บนๆ เพื่อเช็ค Permission ก่อน

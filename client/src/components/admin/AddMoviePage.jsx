@@ -8,9 +8,24 @@ export default function AddMoviePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
-    
+
     // โหมดหน้าจอ: 'list', 'tmdb', 'manual'
-    const [viewMode, setViewMode] = useState('list'); 
+    const [viewMode, setViewMode] = useState('list');
+
+    const getImageUrl = (posterPath) => {
+        if (!posterPath) return "https://placehold.co/500x750?text=No+Image";
+
+        // หากเป็น URL จากภายนอก (TMDB) หรือ Base64 ให้ใช้งานได้เลย
+        if (posterPath.startsWith("http") || posterPath.startsWith("data:")) {
+            return posterPath;
+        }
+
+        // หากเป็นไฟล์ที่อัปโหลดเอง ให้เติม URL ของ Backend นำหน้า
+        // ⚠️ เปลี่ยน "http://localhost:5000" ให้ตรงกับ Port Backend ของคุณ
+        const backendUrl = "http://localhost:5000";
+
+        return `${backendUrl}${posterPath.startsWith('/') ? '' : '/'}${posterPath}`;
+    };
 
     // ✅ State สำหรับจัดการ Checkbox เลือกหนังหลายรายการ
     const [selectedMovies, setSelectedMovies] = useState([]);
@@ -120,7 +135,7 @@ export default function AddMoviePage() {
 
     const handleManualSubmit = async (e) => {
         e.preventDefault();
-        
+
         const formData = new FormData();
         formData.append('title_th', manualMovie.title_th);
         formData.append('title_en', manualMovie.title_en);
@@ -129,7 +144,7 @@ export default function AddMoviePage() {
         formData.append('start_date', manualMovie.start_date);
         formData.append('due_date', manualMovie.due_date);
         formData.append('language', manualMovie.language);
-        
+
         if (posterFile) {
             formData.append('poster', posterFile);
         }
@@ -247,11 +262,11 @@ export default function AddMoviePage() {
                             <div style={{ display: 'flex', gap: '30px' }}>
                                 <div style={{ width: '200px', flexShrink: 0 }}>
                                     <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>อัปโหลด Poster</label>
-                                    <div 
-                                        style={{ 
-                                            width: '100%', height: '300px', background: '#0d0f17', border: '2px dashed #334155', borderRadius: '12px', 
-                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-                                            position: 'relative', overflow: 'hidden', cursor: 'pointer' 
+                                    <div
+                                        style={{
+                                            width: '100%', height: '300px', background: '#0d0f17', border: '2px dashed #334155', borderRadius: '12px',
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                            position: 'relative', overflow: 'hidden', cursor: 'pointer'
                                         }}
                                         onClick={() => document.getElementById('posterInput').click()}
                                     >
@@ -327,7 +342,7 @@ export default function AddMoviePage() {
                             {searchResults.map(result => (
                                 <div key={result.id} className="movie-figma-card">
                                     {/* ✅ ตัด getImageUrl ทิ้งแล้วใช้รูปตรงๆ */}
-                                    <img src={result.poster_url || "https://placehold.co/500x750?text=No+Image"} className="movie-poster-img" alt={result.title_th} />
+                                    <img src={getImageUrl(result.poster_url)} className="movie-poster-img" alt={result.title_th} />
                                     <div className="movie-card-info">
                                         <h3>{result.title_th}</h3>
                                         <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{result.title_en}</p>
@@ -354,20 +369,20 @@ export default function AddMoviePage() {
                                         {categorizeMovies(status).map(movie => (
                                             // ✅ ใส่ position: 'relative' เพื่อให้ Checkbox ลอยอยู่บนการ์ดได้
                                             <div key={movie._id} className="movie-figma-card" style={{ background: '#1e212f', position: 'relative' }}>
-                                                
+
                                                 {/* ✅ Checkbox สำหรับเลือกทีละหลายรายการ */}
                                                 <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
-                                                    <input 
-                                                        type="checkbox" 
+                                                    <input
+                                                        type="checkbox"
                                                         checked={selectedMovies.includes(movie._id)}
                                                         onChange={() => toggleSelectMovie(movie._id)}
-                                                        style={{ width: '22px', height: '22px', cursor: 'pointer', accentColor: '#ef4444' }} 
+                                                        style={{ width: '22px', height: '22px', cursor: 'pointer', accentColor: '#ef4444' }}
                                                     />
                                                 </div>
 
                                                 {/* ✅ ตัด getImageUrl ทิ้ง ใช้ URL จาก Mongoose Getter ได้เลย */}
                                                 <img src={movie.poster_url || "https://placehold.co/500x750?text=No+Image"} className="movie-poster-img" alt={movie.title_th} />
-                                                
+
                                                 <div className="movie-card-info">
                                                     <h3 style={{ fontSize: '1rem', color: 'white', marginBottom: '5px' }}>{movie.title_th}</h3>
                                                     <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>{movie.title_en}</p>
@@ -403,7 +418,7 @@ export default function AddMoviePage() {
                         </div>
 
                         <form onSubmit={handleUpdateMovie} className="settings-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            
+
                             <div className="input-field-figma">
                                 <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>ชื่อภาพยนตร์ (TH) <span style={{ color: 'red' }}>*</span></label>
                                 <input type="text" value={editingMovie.title_th || ''} onChange={(e) => setEditingMovie({ ...editingMovie, title_th: e.target.value })} required
@@ -420,7 +435,7 @@ export default function AddMoviePage() {
                                 <label style={{ color: '#94a3b8', display: 'block', marginBottom: '8px' }}>Poster URL (ลิงก์รูปภาพ หรือ Path ระบบ)</label>
                                 <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
                                     {/* ✅ ตัด getImageUrl ออกแล้ว */}
-                                    <img src={editingMovie.poster_url || "https://placehold.co/50x75?text=No+Image"} alt="preview" style={{ width: '50px', height: '75px', objectFit: 'cover', borderRadius: '8px' }} />
+                                    <img src={getImageUrl(editingMovie.poster_url)} alt="preview" style={{ width: '50px', height: '75px', objectFit: 'cover', borderRadius: '8px' }} />
                                     <input type="text" value={editingMovie.poster_url || ''} onChange={(e) => setEditingMovie({ ...editingMovie, poster_url: e.target.value })}
                                         style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#0d0f17', border: '1px solid #334155', color: 'white' }} />
                                 </div>
