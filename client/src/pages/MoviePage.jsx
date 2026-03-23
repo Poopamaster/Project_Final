@@ -137,27 +137,6 @@ function MoviePage() {
       </div>
 
       <div className="content-wrapper">
-        
-        {/* ✅ เพิ่มปุ่มย้อนกลับตรงนี้ */}
-        <button 
-          onClick={() => navigate(-1)} 
-          style={{
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            background: 'none', 
-            border: 'none', 
-            color: '#94a3b8', 
-            fontSize: '1rem', 
-            cursor: 'pointer', 
-            marginBottom: '20px',
-            padding: '0'
-          }}
-          onMouseEnter={(e) => e.target.style.color = '#fff'}
-          onMouseLeave={(e) => e.target.style.color = '#94a3b8'}
-        >
-          <ArrowLeft size={20} style={{ pointerEvents: 'none' }} /> ย้อนกลับ
-        </button>
 
         <h1 className="section-title">
           {activeTab === 'now_showing' ? 'กำลังฉาย' : 'โปรแกรมล่วงหน้า'}

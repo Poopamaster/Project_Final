@@ -18,6 +18,42 @@
 /* =========================================
    2. Header Section
    ========================================= */
+   /* --- Back Button --- */
+.back-btn-container {
+    width: 100%;
+    margin: 0 auto 15px auto;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    color: #666; /* สีเทากลางๆ ไม่แย่งความสนใจ */
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+}
+
+.back-btn svg {
+    transition: transform 0.2s ease;
+}
+
+.back-btn:hover {
+    color: #e50914; /* เปลี่ยนเป็นสีธีมหลัก (เช่นสีแดง) ตอนเอาเมาส์ชี้ */
+    background-color: rgba(229, 9, 20, 0.05); /* มีพื้นหลังจางๆ โผล่มานิดนึง */
+}
+
+.back-btn:hover svg {
+    transform: translateX(-3px); /* ลูกเล่นขยับลูกศรไปทางซ้ายนิดนึงตอน Hover */
+}
+
 .movie-header-card {
     background: white;
     border-radius: 15px;
@@ -80,6 +116,22 @@
     gap: 10px;
     padding-bottom: 10px; 
     scrollbar-width: thin; 
+}
+
+/* สถานะปุ่มเวลาที่หมดรอบไปแล้ว */
+.time-btn.past-time {
+    background-color: #f0f0f0;  /* พื้นหลังสีเทาอ่อน */
+    color: #a0a0a0;            /* ตัวหนังสือสีเทา */
+    border-color: #e0e0e0;     /* ขอบสีเทาอ่อน */
+    cursor: not-allowed;       /* เปลี่ยนรูปเมาส์เป็นเครื่องหมายห้าม */
+    opacity: 0.6;              /* ทำให้ดูจางๆ ลง */
+    box-shadow: none;          /* เอาเงาออก */
+}
+
+/* ทำให้ป้ายระบบ (เช่น 2D) กลายเป็นสีเทาตามไปด้วย */
+.time-btn.past-time .sys-type {
+    background-color: #d0d0d0;
+    color: #888;
 }
 .date-scroll-wrapper::-webkit-scrollbar { height: 6px; }
 .date-scroll-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }

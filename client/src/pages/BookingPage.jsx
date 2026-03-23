@@ -67,8 +67,7 @@ const BookingPage = () => {
 
     // 2. Filter รอบฉายตามวันที่
     useEffect(() => {
-
-        // Reset ค่า
+        // Reset ค่าเมื่อเปลี่ยนวัน
         setSelectedShowtime(null);
         setSelectedSeats([]);
         setShowPayment(false);
@@ -76,28 +75,14 @@ const BookingPage = () => {
 
         if (dates.length > 0 && allShowtimes.length > 0) {
             const selectedDateObj = new Date(dates[selectedDateIndex].fullDate);
-            const now = new Date();
 
             const filtered = allShowtimes.filter(st => {
                 const showtimeDate = new Date(st.start_time);
-
-                // --- แก้จุดที่ 1: เทียบวันที่แบบแม่นยำ (ตัดเวลาทิ้ง เทียบแค่วัน/เดือน/ปี) ---
-                // ใช้ 'en-CA' เพื่อให้ได้ format YYYY-MM-DD ตรงกันทั้งคู่
-                const isSameDate = showtimeDate.toLocaleDateString('en-CA') === selectedDateObj.toLocaleDateString('en-CA');
-
-                if (!isSameDate) return false;
-
-                // --- แก้จุดที่ 2: เช็ครอบฉายที่ผ่านไปแล้ว ---
-                // ถ้าพี่กำลังเทสระบบ ให้ comment 2 บรรทัดข้างล่างนี้ทิ้งไปก่อนครับ! 
-                // เพราะถ้าพี่เพิ่มรอบ 10:00 โมง แต่ตอนนี้ 16:00 มันจะโดนซ่อน
-                // if (selectedDateIndex === 0 && showtimeDate < now) {
-                //      return false; 
-                // }
-
-                return true;
+                // เทียบแค่วันที่อย่างเดียว ไม่ต้องสนเวลาแล้ว
+                return showtimeDate.toLocaleDateString('en-CA') === selectedDateObj.toLocaleDateString('en-CA');
             });
 
-            // เรียงเวลา
+            // เรียงเวลาจากเช้าไปดึก
             filtered.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
             setCurrentShowtimes(filtered);
         } else {
@@ -250,6 +235,15 @@ const BookingPage = () => {
             <Navbar />
 
             <div className="booking-content">
+
+            <div className="back-btn-container">
+                    <button className="back-btn" onClick={() => navigate(-1)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                        </svg>
+                        ย้อนกลับ
+                    </button>
+                </div>
                 {/* Header หนัง */}
                 <div className="movie-header-card">
                     <div className="poster-area">
@@ -287,16 +281,23 @@ const BookingPage = () => {
 
                     <div className="time-selection-area">
                         <div className="times-list">
-                            {currentShowtimes.length > 0 ? currentShowtimes.map((st) => (
-                                <button
-                                    key={st._id}
-                                    className={`time-btn ${selectedShowtime?._id === st._id ? 'active' : ''}`}
-                                    onClick={() => handleTimeSelect(st)}
-                                >
-                                    {formatTime(st.start_time)}
-                                    <div className="sys-type">{st.system_type || "2D"}</div>
-                                </button>
-                            )) : (
+                            {currentShowtimes.length > 0 ? currentShowtimes.map((st) => {
+                                // 🌟 เช็คว่ารอบฉายนี้ "น้อยกว่าเวลาปัจจุบัน" (เลยเวลาแล้ว) หรือไม่
+                                const isPast = new Date(st.start_time) < new Date();
+
+                                return (
+                                    <button
+                                        key={st._id}
+                                        className={`time-btn ${selectedShowtime?._id === st._id ? 'active' : ''} ${isPast ? 'past-time' : ''}`}
+                                        onClick={() => !isPast && handleTimeSelect(st)} // 👈 ถ้าเป็นอดีต สั่งห้ามกด!
+                                        disabled={isPast} // 👈 ปิดการใช้งานปุ่มในระดับ HTML ด้วยเพื่อความชัวร์
+                                        title={isPast ? "รอบฉายนี้จบลงแล้ว" : ""}
+                                    >
+                                        {formatTime(st.start_time)}
+                                        <div className="sys-type">{st.system_type || "2D"}</div>
+                                    </button>
+                                );
+                            }) : (
                                 <div className="no-showtime">ไม่มีรอบฉายในวันนี้</div>
                             )}
                         </div>
