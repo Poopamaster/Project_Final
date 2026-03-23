@@ -14,20 +14,16 @@ export default function AddMoviePage() {
 
     const getImageUrl = (posterPath) => {
         if (!posterPath) return "https://placehold.co/500x750?text=No+Image";
+        if (posterPath.startsWith("http") || posterPath.startsWith("data:")) return posterPath;
 
-        // หากเป็น URL จากภายนอก (TMDB) หรือ Base64 ให้ใช้งานได้เลย
-        if (posterPath.startsWith("http") || posterPath.startsWith("data:")) {
-            return posterPath;
-        }
+        // ลอง log ค่าออกมาดูใน console (เฉพาะตอนพัฒนา)
+        const envUrl = import.meta.env.VITE_API_URL;
 
-        // 🌐 ดึงค่าจาก Environment Variable
-        // ถ้าใช้ Vite ให้ใช้: import.meta.env.VITE_API_URL
-        // ถ้าใช้ Create React App ให้ใช้: process.env.REACT_APP_API_URL
-        const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        // ถ้า envUrl ไม่มีค่า ให้ใช้ / เฉยๆ (เพื่อให้มันดึงจาก domain เดียวกัน) 
+        // หรือใส่ URL ของ Backend ตรงๆ ไปเลยถ้าแก้ Env ไม่ผ่านจริงๆ
+        const backendUrl = envUrl ? envUrl.replace(/\/+$/, "") : "https://mcp-cinema-backend.up.railway.app";
 
-        // ตรวจสอบตัวเริ่มต้นของ path เพื่อไม่ให้เกิดเครื่องหมาย // ซ้อนกัน
         const cleanPath = posterPath.startsWith('/') ? posterPath : `/${posterPath}`;
-
         return `${backendUrl}${cleanPath}`;
     };
 
