@@ -20,11 +20,15 @@ export default function AddMoviePage() {
             return posterPath;
         }
 
-        // หากเป็นไฟล์ที่อัปโหลดเอง ให้เติม URL ของ Backend นำหน้า
-        // ⚠️ เปลี่ยน "http://localhost:5000" ให้ตรงกับ Port Backend ของคุณ
-        const backendUrl = "http://localhost:5000";
+        // 🌐 ดึงค่าจาก Environment Variable
+        // ถ้าใช้ Vite ให้ใช้: import.meta.env.VITE_API_URL
+        // ถ้าใช้ Create React App ให้ใช้: process.env.REACT_APP_API_URL
+        const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-        return `${backendUrl}${posterPath.startsWith('/') ? '' : '/'}${posterPath}`;
+        // ตรวจสอบตัวเริ่มต้นของ path เพื่อไม่ให้เกิดเครื่องหมาย // ซ้อนกัน
+        const cleanPath = posterPath.startsWith('/') ? posterPath : `/${posterPath}`;
+
+        return `${backendUrl}${cleanPath}`;
     };
 
     // ✅ State สำหรับจัดการ Checkbox เลือกหนังหลายรายการ
