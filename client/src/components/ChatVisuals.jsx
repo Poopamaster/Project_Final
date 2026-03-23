@@ -3,47 +3,36 @@ import PaymentSection from './PaymentSection'; // 👈 สำคัญมาก!
 import { Film, Clock, Star, CheckCircle2, CreditCard, Ticket, MapPin, ChevronRight, Trash2, ShieldCheck } from 'lucide-react';
 
 // 1. Movie Carousel (Design ตามต้นฉบับเป๊ะๆ)
-// 🚨 อย่าลืมรับ componentId เข้ามาใน props ด้วยนะครับ (เห็นในโค้ดมีการเรียกใช้แล้ว)
-export const MovieCarousel = ({ data, onAction, messages = [], isDisabled = false, componentId }) => {
+export const MovieCarousel = ({ data, onAction, isDisabled = false, componentId }) => {
   return (
-    // 🚨 1. เพิ่มกล่องหุ้ม (Wrapper) ล็อคขนาดไม่ให้ถ่างทะลุแชทบับเบิ้ล
     <div style={{
       width: '100%',
       maxWidth: '100%',
       minWidth: 0,
       overflow: 'hidden'
     }}>
-      {/* 🚨 2. กล่องแสดงผลหลักที่เลื่อนซ้ายขวาได้ */}
       <div style={{
         display: 'flex',
         gap: '15px',
         overflowX: 'auto',
         padding: '10px 5px',
-        width: '100%', // บังคับให้กางเต็มแค่พื้นที่ที่แม่ยอมให้
+        width: '100%',
         boxSizing: 'border-box',
-        WebkitOverflowScrolling: 'touch', // 👈 สำคัญ: ทำให้มือถือปัดได้ลื่นไหล (Smooth Swipe)
+        WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
-        opacity: isDisabled ? 0.7 : 1 // จางลงเมื่อเป็นแชทในอดีต หรือถูกเลือกไปแล้ว
+        opacity: isDisabled ? 0.7 : 1 // จางลงเมื่อถูกล็อค (จบ flow แล้ว)
       }} className="no-scrollbar">
         {data.map((movie) => {
           const title = movie.title_th || movie.title;
-
-          // เช็คว่า ในแชทมี user พิมพ์เลือกเรื่องนี้ "และมี componentId ของเราแนบไป" หรือไม่
-          const isThisMovieSelected = messages.some(msg =>
-            msg.sender === 'user' &&
-            msg.text?.includes(`สนใจดูเรื่อง ${title}`) &&
-            msg.text?.includes(`[CID: ${componentId}]`)
-          );
 
           return (
             <div
               key={movie._id || movie.id}
               onClick={() => {
-                // เช็คจาก prop isDisabled แทน
                 if (!isDisabled) {
-                  // 🚨 🚀 ล็อค ID ของ Component ลงไปตอนส่ง Action ด้วย
-                  onAction(`สนใจดูเรื่อง ${title} (ID: ${movie._id || movie.id}) ครับ `);
+                  // ส่ง Action พร้อมแนบ CID เพื่อให้บอทรู้ว่ามาจากกล่องไหน
+                  onAction(`สนใจดูเรื่อง ${title} (ID: ${movie._id || movie.id}) ครับ`);
                 }
               }}
               style={{
@@ -52,27 +41,13 @@ export const MovieCarousel = ({ data, onAction, messages = [], isDisabled = fals
                 borderRadius: '12px',
                 overflow: 'hidden',
                 cursor: isDisabled ? 'default' : 'pointer',
-                // เปลี่ยนสีขอบถ้าเคยเลือกเรื่องนี้ไปแล้ว
-                border: isThisMovieSelected ? '2px solid #3b82f6' : '1px solid #334155',
+                border: '1px solid #334155',
                 transition: 'all 0.2s',
-                flexShrink: 0, // 👈 บังคับไม่ให้การ์ดโดนบีบจนแบน
+                flexShrink: 0,
                 position: 'relative',
-                transform: isThisMovieSelected ? 'scale(1.02)' : 'scale(1)',
-                pointerEvents: isDisabled ? 'none' : 'auto' // ล็อคการคลิก 100%
+                pointerEvents: isDisabled ? 'none' : 'auto' // ล็อคการคลิกเมื่อจบ flow
               }}
             >
-              {/* Badge แสดงสถานะถ้าเคยเลือกเรื่องนี้ */}
-              {isThisMovieSelected && (
-                <div style={{
-                  position: 'absolute', top: '8px', right: '8px',
-                  backgroundColor: '#3b82f6', color: 'white',
-                  padding: '2px 8px', borderRadius: '10px',
-                  fontSize: '0.65rem', fontWeight: 'bold', zIndex: 2
-                }}>
-                  เลือกแล้ว
-                </div>
-              )}
-
               <div style={{
                 height: '220px',
                 background: movie.color || '#334155',
@@ -80,8 +55,7 @@ export const MovieCarousel = ({ data, onAction, messages = [], isDisabled = fals
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
-                // ถ้า Carousel นี้ถูกล็อค และไม่ใช่เรื่องที่เลือก ให้เป็นภาพขาวดำ
-                filter: (isDisabled && !isThisMovieSelected) ? 'grayscale(0.8)' : 'none'
+                filter: isDisabled ? 'grayscale(0.8)' : 'none' // ขาวดำเมื่อถูกล็อค
               }}>
                 {movie.poster_url ?
                   <img src={movie.poster_url} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
@@ -96,7 +70,7 @@ export const MovieCarousel = ({ data, onAction, messages = [], isDisabled = fals
                 <h3 style={{
                   margin: 0, fontSize: '0.9rem', fontWeight: 600,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  color: isThisMovieSelected ? '#3b82f6' : '#f8fafc'
+                  color: '#f8fafc'
                 }}>
                   {title}
                 </h3>
@@ -109,7 +83,7 @@ export const MovieCarousel = ({ data, onAction, messages = [], isDisabled = fals
                   <button
                     disabled={isDisabled}
                     style={{
-                      background: isThisMovieSelected ? '#22C55E' : (isDisabled ? '#475569' : '#3b82f6'),
+                      background: isDisabled ? '#475569' : '#3b82f6',
                       color: 'white',
                       border: 'none',
                       borderRadius: '12px',
@@ -118,7 +92,7 @@ export const MovieCarousel = ({ data, onAction, messages = [], isDisabled = fals
                       cursor: isDisabled ? 'default' : 'pointer'
                     }}
                   >
-                    {isThisMovieSelected ? 'เลือกแล้ว' : 'เลือก'}
+                    เลือก
                   </button>
                 </div>
               </div>
@@ -131,105 +105,80 @@ export const MovieCarousel = ({ data, onAction, messages = [], isDisabled = fals
 };
 
 // 2. Showtime Selector
-export const ShowtimeSelector = ({ data, onAction, messages = [], isDisabled = false }) => {
-  // 1. ดึงข้อมูลมา และใช้ .slice(0, 7) เพื่อจำกัดให้แสดงแค่ 7 วัน / 7 รอบแรกเท่านั้น!
-  const allShowtimes = Array.isArray(data) ? data : (data?.showtimes || []);
-  const showtimes = allShowtimes.slice(0, 7);
+export const ShowtimeSelector = ({ data, onAction, isDisabled = false, componentId }) => {
+  if (!data) return null;
 
-  const movieName = data?.movieName || "";
+  const movieName = data.movieName || 'ภาพยนตร์';
+  const branchName = data.branchName || 'โรงภาพยนตร์';
+  const showtimes = data.showtimes || [];
 
   return (
     <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: '8px',
-      marginTop: '10px',
       width: '100%',
-      maxWidth: '350px',
-      // ✅ ใช้ isDisabled ที่ตัวแม่ส่งมาในการล็อค UI
-      opacity: isDisabled ? 0.7 : 1,
-      pointerEvents: isDisabled ? 'none' : 'auto'
+      backgroundColor: '#1e293b',
+      borderRadius: '12px',
+      padding: '12px',
+      border: '1px solid #334155'
     }}>
-      {showtimes.length === 0 ? (
-        <div style={{ gridColumn: 'span 2', textAlign: 'center', padding: '15px', background: '#1E293B', borderRadius: '8px', border: '1px solid #334155' }}>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: '#f87171' }}>ขออภัยครับ ไม่พบรอบฉาย 😥</p>
+      <div style={{ marginBottom: '12px' }}>
+        <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: '#f8fafc', fontWeight: 'bold' }}>
+          {movieName}
+        </h4>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94a3b8', fontSize: '0.8rem' }}>
+          <MapPin size={12} />
+          {branchName}
         </div>
-      ) : (
-        showtimes.map((st) => {
-          // เช็คแค่ว่าปุ่มเวลานี้คือรอบที่เคยถูกเลือกไปหรือเปล่า (เพื่อโชว์เครื่องหมายติ๊กถูกเฉยๆ)
-          // ลบของเก่าทิ้ง แล้วใช้แบบนี้แทนครับ
-          const isThisTimeSelected = messages.some(msg =>
-            msg.sender === 'user' &&
-            msg.text?.includes('ดึงผังที่นั่ง') &&
-            (msg.text?.includes(st.showtimeId) || msg.text?.includes(st._id)) // 👈 เช็คจาก ID ที่ฝังไปในข้อความแทน ชัวร์กว่า!
-          );
+      </div>
 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+        gap: '8px'
+      }}>
+        {showtimes.map((st, i) => {
           return (
             <button
-              key={st.showtimeId || st._id || st.time}
-              disabled={isDisabled}
+              key={i}
               onClick={() => {
                 if (!isDisabled) {
                   onAction(`ดึงผังที่นั่งรอบเวลา ${st.time} (ShowtimeID: ${st.showtimeId || st._id}) เรื่อง ${movieName}`);
                 }
               }}
+              disabled={isDisabled}
               style={{
-                padding: '10px',
-                background: isThisTimeSelected ? '#1e3a8a' : '#1E293B',
-                border: isThisTimeSelected ? '1px solid #3b82f6' : '1px solid #334155',
-                color: isThisTimeSelected ? '#ffffff' : '#e2e8f0',
+                position: 'relative',
+                padding: '8px 4px',
                 borderRadius: '8px',
-                fontSize: '0.9rem',
+                border: '1px solid #3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                color: '#f8fafc',
                 cursor: isDisabled ? 'not-allowed' : 'pointer',
+                opacity: isDisabled ? 0.5 : 1, // จางลงเมื่อถูกล็อค
+                transition: 'all 0.2s',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                transition: 'all 0.2s',
-                position: 'relative',
-                // ถ้าไม่ใช่รอบที่เลือก และแชทโดนล็อคแล้ว ให้สีเทาๆ จางๆ
-                filter: (isDisabled && !isThisTimeSelected) ? 'grayscale(0.5)' : 'none'
+                gap: '2px'
               }}
             >
-              {/* แสดงเครื่องหมายถูกบนรอบที่เลือก */}
-              {isThisTimeSelected && (
-                <div style={{
-                  position: 'absolute', top: '-5px', right: '-5px',
-                  background: '#22C55E', borderRadius: '50%', width: '18px', height: '18px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '10px', color: 'white', fontWeight: 'bold', border: '2px solid #0f172a', zIndex: 2
-                }}>✓</div>
-              )}
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-                <Clock size={14} color={isThisTimeSelected ? "#FFF" : "#3b82f6"} /> {st.time}
-              </div>
-              <span style={{ fontSize: '0.7rem', color: isThisTimeSelected ? '#bfdbfe' : '#94a3b8' }}>
-                {st.auditorium || 'โรงปกติ'} • {st.price || 220} ฿
-              </span>
+              <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{st.time}</span>
+              <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{st.screen || 'Theater'}</span>
             </button>
           );
-        })
-      )}
+        })}
+      </div>
     </div>
   );
 };
 
 
 // 3. Seat Map (ฉบับสมบูรณ์: แก้ undefined + ล็อคการกดซ้ำเมื่อจองแล้ว)
-export const SeatMap = ({ data, onAction, messages = [], isDisabled = false, componentId }) => {
+export const SeatMap = ({ data, onAction, isDisabled = false, componentId }) => {
   const seatsData = data.seatsData || [];
   const [selectedSeats, setSelectedSeats] = useState([]);
 
-  // 1. ตรวจสอบสถานะการจองจากประวัติแชท
-  const isAlreadyProcessed = messages.some(msg =>
-    msg.sender === 'user' &&
-    msg.text?.includes('จองที่นั่ง') &&
-    msg.text?.includes(`[CID: ${componentId}]`)
-  );
-
-  const isLocked = isDisabled || isAlreadyProcessed;
+  // 1. ลบการเช็คประวัติแชทออก ใช้แค่ isDisabled ตัวเดียวในการล็อค
+  const isLocked = isDisabled;
 
   // 2. จัดเตรียมข้อมูลที่นั่ง
   const normalizedSeats = seatsData.map((seat) => {
@@ -294,11 +243,10 @@ export const SeatMap = ({ data, onAction, messages = [], isDisabled = false, com
       justifyContent: 'center',
       alignItems: 'flex-start',
       padding: '5px 0',
-      opacity: isLocked ? 0.8 : 1,
+      opacity: isLocked ? 0.7 : 1, // เมื่อถูกล็อค (จบ flow) จะจางลงทั้งก้อน
       pointerEvents: isLocked ? 'none' : 'auto',
       boxSizing: 'border-box'
     }}>
-      {/* 🚨 ไม้ตาย: สไตล์ซ่อนสกอร์บาร์ของเบราว์เซอร์ทั้งหมด แต่ยังเลื่อน/ปัด ได้อยู่ */}
       <style>
         {`
           .hide-scroll::-webkit-scrollbar {
@@ -307,31 +255,21 @@ export const SeatMap = ({ data, onAction, messages = [], isDisabled = false, com
         `}
       </style>
 
-      {/* 🎬 ส่วนผังที่นั่ง (ย่อขนาดอัตโนมัติตามจอ) */}
+      {/* 🎬 ส่วนผังที่นั่ง */}
       <div style={{
-        flex: '1 1 auto', // 🚨 ให้ผังที่นั่งกางออกกินพื้นที่ที่เหลือทั้งหมดบน Desktop
+        flex: '1 1 auto',
         minWidth: '0',
         maxWidth: '100%',
-        backgroundColor: isLocked ? '#F8FAFC' : '#FFFFFF',
+        backgroundColor: '#FFFFFF', // ถอดกรอบเขียวออก
         borderRadius: '20px',
         padding: '20px 10px',
         boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)',
-        border: isLocked ? '2px solid #22C55E' : '1px solid #F1F5F9',
+        border: '1px solid #F1F5F9',
         position: 'relative',
         boxSizing: 'border-box',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        filter: isLocked ? 'grayscale(0.3)' : 'none' // ทำให้สีดรอปลงเล็กน้อยเวลาล็อค
       }}>
-
-        {isAlreadyProcessed && (
-          <div style={{
-            position: 'absolute', top: '10px', right: '10px',
-            backgroundColor: '#22C55E', color: 'white',
-            padding: '4px 10px', borderRadius: '20px',
-            fontSize: '0.7rem', fontWeight: 'bold', zIndex: 10
-          }}>
-            ✓ ยืนยันแล้ว
-          </div>
-        )}
 
         {/* จอหนัง */}
         <div style={{ marginBottom: '25px', textAlign: 'center' }}>
@@ -341,14 +279,14 @@ export const SeatMap = ({ data, onAction, messages = [], isDisabled = false, com
 
         {/* ผังที่นั่ง */}
         <div
-          className="hide-scroll" // เรียกใช้ style ด้านบน
+          className="hide-scroll"
           style={{
             width: '100%',
             overflowX: 'auto',
             paddingBottom: '5px',
             WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none', // ซ่อนใน Firefox
-            msOverflowStyle: 'none' // ซ่อนใน IE/Edge
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
           }}
         >
           <div style={{ width: 'max-content', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'clamp(3px, 1vw, 6px)', padding: '0 5px' }}>
@@ -365,7 +303,9 @@ export const SeatMap = ({ data, onAction, messages = [], isDisabled = false, com
                       let seatColor = seat.type === 'Normal' ? '#F97316' : '#EF4444';
                       if (seat.isBooked) seatColor = '#E2E8F0';
                       if (isSelected) seatColor = '#22C55E';
-                      if (isLocked) seatColor = isSelected ? '#22C55E' : '#CBD5E1';
+
+                      // ถ้าผังที่นั่งถูกล็อคแล้ว (และไม่ได้เลือกไว้) สีจะดรอปเป็นสีเทาอ่อนๆ
+                      if (isLocked && !isSelected && !seat.isBooked) seatColor = '#CBD5E1';
 
                       return (
                         <button
@@ -373,7 +313,6 @@ export const SeatMap = ({ data, onAction, messages = [], isDisabled = false, com
                           disabled={seat.isBooked || isLocked}
                           onClick={() => toggleSeat(seat)}
                           style={{
-                            // บีบขนาดสูงสุดลงมานิดนึงเพื่อรับประกันว่า Desktop จะไม่แน่นเกินไป
                             width: 'clamp(14px, 4vw, 22px)',
                             height: 'clamp(14px, 4vw, 22px)',
                             borderRadius: '4px', border: 'none',
@@ -408,7 +347,7 @@ export const SeatMap = ({ data, onAction, messages = [], isDisabled = false, com
 
       {/* 📋 ส่วนสรุปข้อมูล */}
       <div style={{
-        flex: '0 1 280px', // 🚨 บังคับฝั่งขวาห้ามขยายแย่งที่ฝั่งซ้าย (flex-grow เป็น 0)
+        flex: '0 1 280px',
         minWidth: '0',
         width: '100%',
         backgroundColor: '#FFFFFF', borderRadius: '20px', padding: '20px',
@@ -435,7 +374,7 @@ export const SeatMap = ({ data, onAction, messages = [], isDisabled = false, com
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
             <span style={{ color: '#64748B', fontSize: '0.85rem' }}>ที่นั่ง:</span>
             <span style={{ color: '#0F172A', fontWeight: '700', fontSize: '0.85rem', textAlign: 'right', flex: 1, marginLeft: '10px', wordBreak: 'break-word' }}>
-              {selectedSeats.length > 0 ? seatLabels : (isAlreadyProcessed ? 'ทำรายการสำเร็จ' : '-')}
+              {selectedSeats.length > 0 ? seatLabels : (isLocked ? 'ถูกล็อคแล้ว' : '-')}
             </span>
           </div>
           <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '10px 0' }} />
@@ -448,19 +387,20 @@ export const SeatMap = ({ data, onAction, messages = [], isDisabled = false, com
         <button
           disabled={selectedSeats.length === 0 || isLocked}
           onClick={() => {
-            onAction(`จองที่นั่ง ${seatLabels} ราคารวม ${totalPrice} บาท สำหรับรอบ ${data.time} เรื่อง ${data.movieName} ${safeCinemaName}`);
+            // 🚨 แนบ [CID: componentId] กลับไปให้บอทรู้ด้วย
+            onAction(`จองที่นั่ง ${seatLabels} ราคารวม ${totalPrice} บาท สำหรับรอบ ${data.time} เรื่อง ${data.movieName} ${safeCinemaName} [CID: ${componentId}]`);
           }}
           style={{
             width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
-            backgroundColor: isAlreadyProcessed ? '#94A3B8' : (selectedSeats.length > 0 ? '#22C55E' : '#E2E8F0'),
-            color: (selectedSeats.length > 0 || isAlreadyProcessed) ? '#FFFFFF' : '#94A3B8',
+            backgroundColor: isLocked ? '#94A3B8' : (selectedSeats.length > 0 ? '#22C55E' : '#E2E8F0'),
+            color: (selectedSeats.length > 0 || isLocked) ? '#FFFFFF' : '#94A3B8',
             fontSize: '0.95rem', fontWeight: '700',
             cursor: (selectedSeats.length > 0 && !isLocked) ? 'pointer' : 'not-allowed',
             transition: 'all 0.2s',
             boxShadow: (selectedSeats.length > 0 && !isLocked) ? '0 4px 12px rgba(34, 197, 94, 0.3)' : 'none'
           }}
         >
-          {isAlreadyProcessed ? 'ยืนยันการจอง' : (selectedSeats.length > 0 ? `ชำระเงิน (${selectedSeats.length})` : 'กรุณาเลือกที่นั่ง')}
+          {isLocked ? 'จบรายการแล้ว' : (selectedSeats.length > 0 ? `ชำระเงิน (${selectedSeats.length})` : 'กรุณาเลือกที่นั่ง')}
         </button>
       </div>
     </div>
@@ -920,7 +860,7 @@ export const BranchList = ({ data, onAction }) => {
 };
 
 // 📅 4. Date Selector (เลือกวันที่ฉาย)
-export const DateSelector = ({ data, onAction, messages = [], isDisabled = false, componentId }) => {
+export const DateSelector = ({ data, onAction, isDisabled = false, componentId }) => {
   const { movieId, movieName, branchId, availableDates = [] } = data;
 
   // 1. ตัดให้เหลือแค่ 7 วันแรกเท่านั้น!
@@ -957,26 +897,20 @@ export const DateSelector = ({ data, onAction, messages = [], isDisabled = false
         scrollbarWidth: 'none', /* Firefox */
         msOverflowStyle: 'none', /* IE/Edge */
         WebkitOverflowScrolling: 'touch',
-        opacity: isDisabled ? 0.7 : 1,
-        pointerEvents: isDisabled ? 'none' : 'auto'
+        opacity: isDisabled ? 0.7 : 1, // เมื่อกล่องนี้ถูกล็อค (จบ flow หรือไปกล่องอื่นแล้ว) สีจะจางลง
+        pointerEvents: isDisabled ? 'none' : 'auto' // ล็อคการคลิกโดยสมบูรณ์
       }} className="no-scrollbar">
 
         {datesToShow.map((dateStr, index) => {
           const tDate = formatDateThai(dateStr);
-
-          // เช็คว่าปุ่มวันที่นี้ถูกกดเลือกไปหรือยัง
-          const isThisDateSelected = messages.some(msg =>
-            msg.sender === 'user' &&
-            msg.text?.includes(`ดูรอบฉายวันที่ ${dateStr}`) &&
-            msg.text?.includes(`[CID: ${componentId}]`)
-          );
 
           return (
             <button
               key={index}
               onClick={() => {
                 if (!isDisabled) {
-                  onAction(`ดูรอบฉายวันที่ ${dateStr}`);
+                  // ส่ง Action พร้อมแนบ CID
+                  onAction(`ดูรอบฉายวันที่ ${dateStr} [CID: ${componentId}]`);
                 }
               }}
               style={{
@@ -986,46 +920,37 @@ export const DateSelector = ({ data, onAction, messages = [], isDisabled = false
                 justifyContent: 'center',
                 minWidth: '70px',
                 height: '85px',
-                backgroundColor: isThisDateSelected ? '#1e3a8a' : '#1e293b',
-                border: isThisDateSelected ? '2px solid #3b82f6' : '1px solid #334155',
+                backgroundColor: '#1e293b',
+                border: '1px solid #334155',
                 borderRadius: '12px',
                 cursor: isDisabled ? 'default' : 'pointer',
                 transition: 'all 0.2s ease',
                 flexShrink: 0, // สำคัญ: ป้องกันปุ่มโดนบีบจนแบน
                 position: 'relative',
-                filter: (isDisabled && !isThisDateSelected) ? 'grayscale(0.5)' : 'none'
+                filter: isDisabled ? 'grayscale(0.5)' : 'none' // ทำสีให้ตุ่นลงนิดหน่อยเมื่อถูกล็อค
               }}
               onMouseOver={(e) => {
-                if (!isDisabled && !isThisDateSelected) {
+                if (!isDisabled) {
                   e.currentTarget.style.borderColor = '#3b82f6';
                   e.currentTarget.style.backgroundColor = '#2dd4bf20';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }
               }}
               onMouseOut={(e) => {
-                if (!isDisabled && !isThisDateSelected) {
+                if (!isDisabled) {
                   e.currentTarget.style.borderColor = '#334155';
                   e.currentTarget.style.backgroundColor = '#1e293b';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }
               }}
             >
-              {isThisDateSelected && (
-                <div style={{
-                  position: 'absolute', top: '-6px', right: '-6px',
-                  background: '#22C55E', borderRadius: '50%', width: '18px', height: '18px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '10px', color: 'white', fontWeight: 'bold', border: '2px solid #0f172a'
-                }}>✓</div>
-              )}
-
-              <span style={{ fontSize: '0.8rem', color: isThisDateSelected ? '#bfdbfe' : '#94a3b8', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
                 {tDate.dayOfWeek}
               </span>
               <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#f8fafc', lineHeight: '1' }}>
                 {tDate.date}
               </span>
-              <span style={{ fontSize: '0.8rem', color: isThisDateSelected ? '#bfdbfe' : '#94a3b8', marginTop: '4px' }}>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
                 {tDate.month}
               </span>
             </button>
