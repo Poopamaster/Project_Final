@@ -2,34 +2,40 @@ const Showtime = require('../models/showtimeModel');
 const Movie = require('../models/movieModel');
 const Seat = require('../models/seatModel');
 const dayjs = require('dayjs');
-const crypto = require('crypto'); // <--- เพิ่มตัวนี้แทน
+const crypto = require('crypto');
+const systemLog = require('../utils/logger'); // 🌟 1. นำเข้า systemLog
 
 // 1. สร้างรอบฉาย (Admin)
 exports.createShowtime = async (req, res) => {
     try {
         const { movie_id, auditorium_id, start_time, base_price, language } = req.body;
 
-        // 1. ไปหาข้อมูลหนังก่อน เพื่อเอาความยาว (duration_min)
         const movie = await Movie.findById(movie_id);
         if (!movie) return res.status(404).json({ message: "ไม่พบข้อมูลหนัง (Movie not found)" });
 
-        // 2. คำนวณเวลาจบ (End Time) ** จุดสำคัญ **
         const start = new Date(start_time);
-        const duration = movie.duration_min || 120; // ถ้าไม่มีความยาว ให้ Default 2 ชม.
-        // เวลาจบ = เวลาเริ่ม + (นาทีหนัง + พักโรง 20 นาที)
+        const duration = movie.duration_min || 120;
         const end = new Date(start.getTime() + (duration + 20) * 60000);
 
-        // 3. (Optional) เช็คเวลาชนกันที่นี่...
-
-        // 4. สร้าง Object และยัด end_time เข้าไปให้ครบตาม Model
         const newShowtime = await Showtime.create({
             movie_id,
             auditorium_id,
             start_time: start,
-            end_time: end,      // ✅ ใส่ให้แล้ว Model จะไม่ด่า
+            end_time: end,
             language: language || "TH",
             base_price: base_price || 160
         });
+
+        // 📝 บันทึก Log แบบปลอดภัย (ไม่ให้กระทบการทำงานหลักถ้า Log พัง)
+        if (typeof systemLog === 'function') {
+            systemLog({
+                level: 'INFO',
+                actor: req.user || { id: 'unknown', name: 'System' }, // เผื่อ req.user เป็น undefined
+                context: { action: 'create', table: 'showtimes', target_id: newShowtime._id },
+                note: `สร้างรอบฉายใหม่ หนัง ID: ${movie_id}`,
+                req: req
+            }).catch(err => console.error("Log Error:", err));
+        }
 
         res.status(201).json({ success: true, data: newShowtime });
 
@@ -39,39 +45,32 @@ exports.createShowtime = async (req, res) => {
     }
 };
 
-// 1.5 สร้างรอบฉายแบบกลุ่ม (Bulk Create) - 🌟 ฟีเจอร์ใหม่
+// 1.5 สร้างรอบฉายแบบกลุ่ม (Bulk Create)
 exports.createBulkShowtimes = async (req, res) => {
     try {
         const { movie_id, auditorium_id, start_date, end_date, time_slots, base_price, language } = req.body;
+
+        // 🛡️ ป้องกันบั๊ก 'length': เช็คให้ชัวร์ว่า time_slots มีค่า และเป็น Array แน่นอน
+        if (!time_slots || !Array.isArray(time_slots) || time_slots.length === 0) {
+            return res.status(400).json({ success: false, message: "กรุณาระบุเวลาฉาย (time_slots) ให้ถูกต้อง" });
+        }
 
         const movie = await Movie.findById(movie_id);
         if (!movie) return res.status(404).json({ message: "ไม่พบข้อมูลหนัง" });
 
         const duration = movie.duration_min || 120;
         const showtimesToInsert = [];
-        
-        // --- แก้ไขบรรทัดนี้ ---
         const batchId = crypto.randomUUID(); 
-        // ---------------------
 
         let currentDate = dayjs(start_date);
         const lastDate = dayjs(end_date);
 
-        // 3. วนลูป: ตั้งแต่วันแรก จนถึงวันสุดท้าย
         while (currentDate.isBefore(lastDate) || currentDate.isSame(lastDate, 'day')) {
-            
-            // 4. วนลูป: ตามเวลาที่เลือกในแต่ละวัน (Time Slots)
             for (const timeStr of time_slots) {
-                // timeStr format = "HH:mm" เช่น "14:30"
                 const [hour, minute] = timeStr.split(':');
-
-                // สร้าง start_time โดยเอา วันที่ปัจจุบัน + เวลาจาก timeStr
                 const start = currentDate.hour(hour).minute(minute).second(0).toDate();
+                const end = new Date(start.getTime() + (duration + 20) * 60000);
 
-                // คำนวณ end_time
-                const end = new Date(start.getTime() + (duration + 20) * 60000); // หนัง + พัก 20 นาที
-
-                // สร้าง Object เตรียมบันทึก
                 showtimesToInsert.push({
                     movie_id,
                     auditorium_id,
@@ -79,17 +78,26 @@ exports.createBulkShowtimes = async (req, res) => {
                     end_time: end,
                     language: language || "TH",
                     base_price: base_price || 160,
-                    batch_id: batchId // ✅ เก็บ Batch ID ไว้เผื่อลบยกแก๊ง
+                    batch_id: batchId 
                 });
             }
-
-            // ขยับไปวันถัดไป
             currentDate = currentDate.add(1, 'day');
         }
 
-        // 5. บันทึกข้อมูลทั้งหมดลง Database ทีเดียว (ประสิทธิภาพสูงกว่าวน create ทีละรอบ)
         if (showtimesToInsert.length > 0) {
             await Showtime.insertMany(showtimesToInsert);
+
+            // 📝 บันทึก Log สร้างแบบกลุ่ม
+            if (typeof systemLog === 'function') {
+                systemLog({
+                    level: 'INFO',
+                    actor: req.user || { id: 'unknown' },
+                    context: { action: 'create', table: 'showtimes', target_id: batchId },
+                    note: `สร้างรอบฉายแบบกลุ่มสำเร็จ ${showtimesToInsert.length} รอบ`,
+                    req: req
+                }).catch(err => console.error("Log Error:", err));
+            }
+
             res.status(201).json({ 
                 success: true, 
                 message: `สร้างรอบฉายสำเร็จทั้งหมด ${showtimesToInsert.length} รอบ`,
@@ -106,20 +114,17 @@ exports.createBulkShowtimes = async (req, res) => {
     }
 };
 
-// 2. ดึงรอบฉายทั้งหมด (สำหรับตาราง Admin)
+// 2. ดึงรอบฉายทั้งหมด
 exports.getAllShowtimes = async (req, res) => {
     try {
         const showtimes = await Showtime.find()
-            .populate('movie_id', 'title_th title_en poster_url duration_min') // ดึงข้อมูลหนัง
+            .populate('movie_id', 'title_th title_en poster_url duration_min')
             .populate({
                 path: 'auditorium_id',
                 select: 'name cinema_id',
-                populate: {
-                    path: 'cinema_id',
-                    select: 'name' // ดึงชื่อสาขา
-                }
+                populate: { path: 'cinema_id', select: 'name' }
             })
-            .sort({ start_time: -1 }); // เรียงจากใหม่ไปเก่า
+            .sort({ start_time: -1 });
 
         res.status(200).json({ success: true, data: showtimes });
     } catch (error) {
@@ -127,7 +132,7 @@ exports.getAllShowtimes = async (req, res) => {
     }
 };
 
-// 3. ลบรอบฉาย (Admin) - ✅ เพิ่มส่วนนี้เพื่อให้ปุ่มถังขยะทำงาน
+// 3. ลบรอบฉาย (Admin)
 exports.deleteShowtime = async (req, res) => {
     try {
         const { id } = req.params;
@@ -137,22 +142,28 @@ exports.deleteShowtime = async (req, res) => {
             return res.status(404).json({ success: false, message: "ไม่พบรอบฉายที่ต้องการลบ" });
         }
 
+        // 📝 บันทึก Log การลบ
+        if (typeof systemLog === 'function') {
+            systemLog({
+                level: 'WARN',
+                actor: req.user || { id: 'unknown' },
+                context: { action: 'delete', table: 'showtimes', target_id: id },
+                note: `ลบรอบฉาย ID: ${id}`,
+                req: req
+            }).catch(err => console.error("Log Error:", err));
+        }
+
         res.status(200).json({ success: true, message: "ลบรอบฉายเรียบร้อยแล้ว" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// 4. ดึงรอบฉาย "ตามหนัง" (สำหรับหน้า Movie Details ของ User)
+// 4. ดึงรอบฉาย "ตามหนัง"
 exports.getShowtimesByMovie = async (req, res) => {
     try {
         const { movieId } = req.params;
-        
-        // ✅ แก้ไข: ลบเงื่อนไข start_time ออก เพื่อให้ดึงรอบฉายทั้งหมด (รวมรอบที่ผ่านไปแล้วด้วย)
-        const showtimes = await Showtime.find({ 
-            movie_id: movieId 
-            // start_time: { $gte: new Date() } // <-- Comment บรรทัดนี้ทิ้งไปก่อนครับ
-        })
+        const showtimes = await Showtime.find({ movie_id: movieId })
             .populate('auditorium_id')
             .sort({ start_time: 1 });
 
@@ -162,7 +173,7 @@ exports.getShowtimesByMovie = async (req, res) => {
     }
 };
 
-// 5. ดึงข้อมูลรอบฉายเดี่ยวๆ (สำหรับหน้า Booking)
+// 5. ดึงข้อมูลรอบฉายเดี่ยวๆ
 exports.getShowtimeById = async (req, res) => {
     try {
         const showtime = await Showtime.findById(req.params.id)
@@ -180,16 +191,15 @@ exports.getShowtimeById = async (req, res) => {
     }
 };
 
-// 6. ดึงที่นั่ง (ถ้ามี Logic แยก)
+// 6. ดึงที่นั่ง
 exports.getShowtimeSeats = async (req, res) => {
     try {
         const { id } = req.params;
         const showtime = await Showtime.findById(id);
         if (!showtime) return res.status(404).json({ message: "Showtime not found" });
 
-        // ✅ แก้ตรงนี้: เพิ่ม .populate('seat_type_id')
         const seats = await Seat.find({ auditorium_id: showtime.auditorium_id })
-            .populate('seat_type_id') // <--- หัวใจสำคัญ! ต้องดึงข้อมูลประเภทที่นั่ง (และราคา) มาด้วย
+            .populate('seat_type_id')
             .sort({ row_label: 1, seat_number: 1 });
 
         res.status(200).json({ success: true, data: seats });
@@ -201,14 +211,25 @@ exports.getShowtimeSeats = async (req, res) => {
 // 7. ลบรอบฉายแบบกลุ่ม (Delete Batch)
 exports.deleteMultipleShowtimes = async (req, res) => {
     try {
-        const { ids } = req.body; // รับ Array ของ _id เช่น ["id1", "id2", "id3"]
+        const { ids } = req.body; 
 
-        if (!ids || ids.length === 0) {
-            return res.status(400).json({ success: false, message: "กรุณาระบุรายการที่ต้องการลบ" });
+        // 🛡️ ป้องกันบั๊ก 'length': เช็คว่า ids เป็น Array แน่นอน
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ success: false, message: "กรุณาระบุรายการที่ต้องการลบให้ถูกต้อง" });
         }
 
-        // คำสั่ง deleteMany โดยเช็คว่า _id อยู่ใน list ที่ส่งมาไหม ($in)
         const result = await Showtime.deleteMany({ _id: { $in: ids } });
+
+        // 📝 บันทึก Log การลบแบบกลุ่ม
+        if (typeof systemLog === 'function') {
+            systemLog({
+                level: 'WARN',
+                actor: req.user || { id: 'unknown' },
+                context: { action: 'delete', table: 'showtimes' },
+                note: `ลบรอบฉายแบบกลุ่มจำนวน ${result.deletedCount} รายการ`,
+                req: req
+            }).catch(err => console.error("Log Error:", err));
+        }
 
         res.status(200).json({ 
             success: true, 

@@ -3,46 +3,47 @@ const { StdioClientTransport } = require("@modelcontextprotocol/sdk/client/stdio
 const path = require("path");
 const fs = require("fs");
 
-const mcpServerScriptPath = path.resolve(__dirname, "../../../mcp-server/dist/index.js");
+// 🎯 ชี้เป้าไปที่ 2 ไฟล์ที่เราเพิ่ง Build เสร็จ
+const customerScriptPath = path.resolve(__dirname, "../../../mcp-server/dist/customer.js");
+const adminScriptPath = path.resolve(__dirname, "../../../mcp-server/dist/admin.js");
 
-console.log("Checking MCP Server Path:", mcpServerScriptPath);
-if (!fs.existsSync(mcpServerScriptPath)) {
-    console.error("Error: Could not find MCP Server file. Did you run 'npm run build' in mcp-server?");
+// เช็คว่าหาไฟล์เจอไหม
+if (!fs.existsSync(customerScriptPath) || !fs.existsSync(adminScriptPath)) {
+    console.error("❌ Error: Could not find MCP Server files. Did you run 'npm run build' in mcp-server?");
     process.exit(1);
 }
 
-// 🚨 จุดที่แก้ไข: เพิ่ม env เข้าไปเพื่อให้ตัวลูกรู้จัก MONGO_URI
-const transport = new StdioClientTransport({
+// สร้าง Transport 2 ตัว แยกกันชัดเจน!
+const customerTransport = new StdioClientTransport({
     command: "node",
-    args: [mcpServerScriptPath],
-    env: process.env // 👈👈👈 พระเอกของเราอยู่บรรทัดนี้ครับ!
+    args: [customerScriptPath],
+    env: process.env 
 });
 
-const client = new Client(
-    {
-        name: "cinema-backend-client",
-        version: "1.0.0",
-    },
-    {
-        capabilities: {},
-    }
-);
+const adminTransport = new StdioClientTransport({
+    command: "node",
+    args: [adminScriptPath],
+    env: process.env 
+});
+
+// สร้าง Client 2 ตัว
+const customerClient = new Client({ name: "cinema-customer-client", version: "1.0.0" }, { capabilities: {} });
+const adminClient = new Client({ name: "cinema-admin-client", version: "1.0.0" }, { capabilities: {} });
 
 async function startMcpClient() {
     try {
-        console.log("Connecting to MCP Server...");
-        await client.connect(transport);
-        console.log("Connected to MCP Server!");
-
-        const tools = await client.listTools();
-        console.log("\n--- Available Tools ---");
-        console.log(JSON.stringify(tools, null, 2));
-        console.log("-----------------------\n");
+        console.log("⏳ Connecting to Split MCP Servers...");
         
-        return client;
+        await Promise.all([
+            customerClient.connect(customerTransport),
+            adminClient.connect(adminTransport)
+        ]);
+
+        console.log("✅ Successfully connected to BOTH Customer & Admin MCP Servers!");
+        
     } catch (error) {
-        console.error("Failed to connect to MCP Server:", error);
+        console.error("❌ Failed to connect to MCP Servers:", error);
     }
 }
 
-module.exports = { startMcpClient, client };
+module.exports = { startMcpClient, customerClient, adminClient };

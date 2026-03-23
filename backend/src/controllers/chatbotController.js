@@ -1,17 +1,13 @@
 const { chatWithAI } = require("../services/aiService");
 const ChatHistory = require("../models/ChatHistory");
 const { getToolsForUser } = require("../config/toolPermissions");
-const systemLog = require('../utils/logger');
+const systemLog = require('../utils/logger'); // ✅ นำเข้า Logger
 
+// 1. ดึงประวัติ (GET) - ไม่ต้องใส่ Log เพื่อป้องกัน Database บวมจากการแค่เปิดหน้าแชท
 exports.getHistory = async (req, res) => {
   try {
     let history = await ChatHistory.findOne({ user: req.user._id });
-    
-    // ถ้าไม่เคยมีประวัติ ให้ส่ง Array ว่าง (หรือข้อความต้อนรับ) กลับไป
-    if (!history) {
-      return res.json([]); 
-    }
-    
+    if (!history) return res.json([]);
     res.json(history.messages);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch history" });
@@ -22,66 +18,80 @@ exports.getHistory = async (req, res) => {
 exports.chat = async (req, res) => {
   try {
     const { message, image } = req.body;
-    const user = req.user; // ในนี้มี user.role แล้ว (จาก middleware auth)
+    const user = req.user;
 
-    // 🛡️ SECURITY STEP: ดึงรายชื่อ Tools ที่คนนี้มีสิทธิ์ใช้
     const allowedTools = getToolsForUser(user.role);
 
     console.log(`👤 User: ${user.name} (${user.role}) is chatting.`);
     console.log(`🛠️ Allowed Tools: ${allowedTools.join(", ")}`);
 
-    // A. ส่งให้ AI คิด (โดยส่ง allowedTools ไปกำกับด้วย)
-    // *คุณต้องไปแก้ aiService ให้รับ parameter นี้ด้วยนะ ดูข้อ 3*
-    const botReply = await chatWithAI(user, message, image, allowedTools);
+    let historyDoc = await ChatHistory.findOne({ user: user._id });
+    const previousMessages = historyDoc ? historyDoc.messages : [];
 
-    await systemLog({
-            level: 'INFO',
-            actor: user,
-            context: { action: 'chat', table: 'chathistories', target_id: user._id },
-            content: {
-                user_message: message,
-                ai_response: botReply,
-                image_url: image || null,
-                tools_used: allowedTools
-            },
-            req: req
-        });
+    // A. ส่งให้ AI คิด
+    const botReply = await chatWithAI(user, message, image, allowedTools, previousMessages);
+
+    // 📝 เก็บ Log System (โครงสร้างคุณเขียนมาดีมากแล้ว เพิ่มแค่ note กะ catch)
+    systemLog({
+      level: 'INFO',
+      actor: user,
+      context: { action: 'chat', table: 'chathistories', target_id: user._id },
+      note: 'User สนทนากับ AI (Gemini)', // 👈 เพิ่ม Note ให้อ่านง่ายเวลา Export CSV
+      content: {
+        user_message: message,
+        ai_response: botReply,
+        image_url: image || null,
+        tools_used: allowedTools // ถ้าอนาคตแกะ Tool ที่ใช้จริงจาก AI ได้ ค่อยมาปรับแก้ตรงนี้
+      },
+      req: req
+    }).catch(err => console.error("Chat Log Error:", err)); // 👈 ใส่ catch กันระบบล่มเวลา Log พัง
 
     // B. เตรียมข้อความ User และ Bot
     const userMsg = {
-        id: Date.now(),
-        sender: 'user',
-        text: message || '',
-        image: image || null
+      id: Date.now(),
+      sender: 'user',
+      text: message || '',
+      image: image || null
     };
 
     const botMsg = {
-        id: Date.now() + 1,
-        sender: 'bot',
-        text: botReply
+      id: Date.now() + 1,
+      sender: 'bot',
+      text: botReply
     };
 
-    // C. บันทึกลง MongoDB (Code เดิมของคุณ)
-    let history = await ChatHistory.findOne({ user: user._id });
+    // C. บันทึกลง MongoDB
+    let finalMessagesToReturn;
 
-    if (!history) {
-        history = await ChatHistory.create({
-            user: user._id,
-            messages: [userMsg, botMsg]
-        });
+    if (!historyDoc) {
+      historyDoc = await ChatHistory.create({
+        user: user._id,
+        messages: [userMsg, botMsg]
+      });
+      finalMessagesToReturn = historyDoc.messages;
     } else {
-        history.messages.push(userMsg, botMsg);
-        await history.save();
+      historyDoc.messages.push(userMsg, botMsg);
+      await historyDoc.save();
+      finalMessagesToReturn = historyDoc.messages;
     }
 
     // D. ส่งคำตอบกลับ
     res.json({
       success: true,
       reply: botReply,
-      history: history.messages
+      history: finalMessagesToReturn
     });
 
   } catch (error) {
+    // 📝 Log กรณี AI พัง
+    systemLog({
+      level: 'ERROR',
+      actor: req.user,
+      context: { action: 'chat_error', table: 'chathistories' },
+      note: `AI Chat Error: ${error.message}`,
+      req: req
+    }).catch(() => {});
+    
     console.error(error);
     res.status(500).json({ error: "Chat Error" });
   }
@@ -89,10 +99,20 @@ exports.chat = async (req, res) => {
 
 // 3. ล้างประวัติ (DELETE)
 exports.clearHistory = async (req, res) => {
-    try {
-        await ChatHistory.findOneAndDelete({ user: req.user._id });
-        res.json({ success: true, message: "History cleared" });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to clear history" });
-    }
+  try {
+    await ChatHistory.findOneAndDelete({ user: req.user._id });
+
+    // 📝 บันทึก Log: ผู้ใช้กดลบประวัติแชทตัวเอง
+    systemLog({
+      level: 'WARN', // ใช้ WARN ให้เห็นชัดเจนว่าเป็น Action เชิงทำลายข้อมูล
+      actor: req.user,
+      context: { action: 'delete', table: 'chathistories', target_id: req.user._id },
+      note: 'ผู้ใช้ล้างประวัติการสนทนากับ AI ทั้งหมด',
+      req: req
+    }).catch(err => console.error("Clear Chat Log Error:", err));
+
+    res.json({ success: true, message: "History cleared" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to clear history" });
+  }
 };

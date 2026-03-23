@@ -1,9 +1,9 @@
-const { client } = require("../services/mcpClient");
+// src/controllers/mcpController.js
+const { customerClient, adminClient } = require("../services/mcpClient");
+const systemLog = require('../utils/logger'); // ✅ 1. นำเข้า Logger
 
-// Helper function: แปลงผลลัพธ์จาก MCP (Text JSON) เป็น Object ปกติ
 const parseMcpResult = (result) => {
     try {
-        // MCP ส่งกลับมาเป็น { content: [{ type: 'text', text: 'JSON_STRING' }] }
         const textData = result.content[0].text;
         return JSON.parse(textData);
     } catch (error) {
@@ -12,13 +12,17 @@ const parseMcpResult = (result) => {
     }
 };
 
+// ==========================================
+// 🧑‍💻 USER TOOLS - ใช้ customerClient (ไม่เก็บ Log เพื่อประหยัดพื้นที่ DB)
+// ==========================================
+
 // 1. ค้นหาหนัง (User Tool)
 exports.searchMovies = async (req, res) => {
     try {
-        const { keyword } = req.query; // รับจาก URL query parameter
+        const { keyword } = req.query; 
         if (!keyword) return res.status(400).json({ error: "Keyword required" });
 
-        const result = await client.callTool({
+        const result = await customerClient.callTool({
             name: "search_movies",
             arguments: { keyword }
         });
@@ -33,7 +37,7 @@ exports.searchMovies = async (req, res) => {
 exports.findMoviesByGenre = async (req, res) => {
     try {
         const { genre } = req.query;
-        const result = await client.callTool({
+        const result = await customerClient.callTool({
             name: "find_movies_by_genre",
             arguments: { genre }
         });
@@ -47,7 +51,7 @@ exports.findMoviesByGenre = async (req, res) => {
 exports.findLatestMovies = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
-        const result = await client.callTool({
+        const result = await customerClient.callTool({
             name: "find_latest_movies",
             arguments: { limit }
         });
@@ -57,25 +61,57 @@ exports.findLatestMovies = async (req, res) => {
     }
 };
 
-// 4. เพิ่มหนัง (Admin Tool)
-exports.addMovie = async (req, res) => {
+// 6. นับจำนวนหนังทั้งหมด (User Tool)
+exports.countTotalMovies = async (req, res) => {
     try {
-        // รับข้อมูลจาก Body (JSON)
-        const { title_th, title_en, genre, start_date, due_date } = req.body;
-
-        const result = await client.callTool({
-            name: "add_movie",
-            arguments: { 
-                title_th, 
-                title_en, 
-                genre, 
-                start_date, 
-                due_date 
-            }
+        const result = await customerClient.callTool({
+            name: "count_total_movies",
+            arguments: {}
         });
 
         res.json(parseMcpResult(result));
     } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ==========================================
+// 🛡️ ADMIN TOOLS - ใช้ adminClient (เก็บ Log ทุก Action)
+// ==========================================
+
+// 4. เพิ่มหนัง (Admin Tool)
+exports.addMovie = async (req, res) => {
+    try {
+        const { title_th, title_en, genre, start_date, due_date } = req.body;
+
+        const result = await adminClient.callTool({
+            name: "add_movie",
+            arguments: { title_th, title_en, genre, start_date, due_date }
+        });
+
+        const parsedResult = parseMcpResult(result);
+
+        // 📝 บันทึก Log: Admin ใช้ MCP Tool ในการเพิ่มหนัง
+        systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'create', table: 'movies' }, // ถือว่าเปลี่ยนข้อมูลตาราง movies
+            note: `[MCP Tool] เพิ่มภาพยนตร์: "${title_th} (${title_en})"`,
+            content: { genre, start_date },
+            req: req
+        }).catch(err => console.error("MCP Add Movie Log Error:", err));
+
+        res.json(parsedResult);
+    } catch (error) {
+        // 📝 บันทึก Log: Error
+        systemLog({
+            level: 'ERROR',
+            actor: req.user,
+            context: { action: 'create', table: 'movies' },
+            note: `[MCP Tool] เพิ่มหนังไม่สำเร็จ: ${error.message}`,
+            req: req
+        }).catch(() => {});
+
         res.status(500).json({ error: error.message });
     }
 };
@@ -83,29 +119,35 @@ exports.addMovie = async (req, res) => {
 // 5. ลบหนัง (Admin Tool)
 exports.deleteMovie = async (req, res) => {
     try {
-        const { id } = req.params; // รับ ID จาก URL Parameter
+        const { id } = req.params;
 
-        const result = await client.callTool({
+        const result = await adminClient.callTool({
             name: "delete_movie",
             arguments: { movie_id: id }
         });
 
-        res.json(parseMcpResult(result));
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+        const parsedResult = parseMcpResult(result);
 
-// 6. นับจำนวนหนังทั้งหมด (User Tool)
-exports.countTotalMovies = async (req, res) => {
-    try {
-        const result = await client.callTool({
-            name: "count_total_movies",
-            arguments: {}
-        });
+        // 📝 บันทึก Log: Admin ใช้ MCP Tool ในการลบหนัง
+        systemLog({
+            level: 'WARN', // ใช้ WARN สำหรับการลบ
+            actor: req.user,
+            context: { action: 'delete', table: 'movies', target_id: id },
+            note: `[MCP Tool] ลบภาพยนตร์ ID: ${id}`,
+            req: req
+        }).catch(err => console.error("MCP Delete Movie Log Error:", err));
 
-        res.json(parseMcpResult(result));
+        res.json(parsedResult);
     } catch (error) {
+        // 📝 บันทึก Log: Error
+        systemLog({
+            level: 'ERROR',
+            actor: req.user,
+            context: { action: 'delete', table: 'movies', target_id: req.params.id },
+            note: `[MCP Tool] ลบหนังไม่สำเร็จ: ${error.message}`,
+            req: req
+        }).catch(() => {});
+
         res.status(500).json({ error: error.message });
     }
 };

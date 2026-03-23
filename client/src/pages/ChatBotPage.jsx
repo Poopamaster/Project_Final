@@ -49,6 +49,11 @@ const ChatBotPage = ({ isEmbedded = false }) => {
       let base64Image = selectedImage ? await convertToBase64(selectedImage) : null;
       const data = await sendMessageToBot(textToSend, base64Image);
 
+      // ✨ ดักจับกรณี API ส่ง status 200 แต่แนบ success: false มา (ขึ้นอยู่กับการเขียนฝั่ง API)
+      if (data && data.success === false && data.error) {
+        throw new Error(data.error);
+      }
+
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         sender: 'bot',
@@ -56,10 +61,28 @@ const ChatBotPage = ({ isEmbedded = false }) => {
       }]);
     } catch (error) {
       console.error("Chat Error:", error);
+
+      // ✨ สร้างตัวแปรเก็บข้อความ Error เริ่มต้น
+      let errorMessage = '⚠️ ระบบเกิดข้อผิดพลาดในการส่งข้อความ';
+
+      // 🛡️ ตรวจสอบ Error จาก Backend (รองรับทั้ง Axios และ Fetch)
+      if (error.response && error.response.status === 429) {
+        // กรณีใช้ Axios: ดึง message จาก response.data
+        errorMessage = `⏳ ${error.response.data.error || "คุณส่งข้อความถี่เกินไป กรุณารอสักครู่ครับ"}`;
+      } else if (error.message) {
+        // กรณีใช้ Fetch หรือ Backend โยน Error message มาตรงๆ
+        if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
+          errorMessage = "⏳ คุณส่งข้อความถี่เกินไป กรุณารอสักครู่ครับ";
+        } else {
+          // ดึงข้อความ Error ที่ถูกส่งมาจาก Data (เช่น error ตัวที่เรา Throw ไว้ด้านบน)
+          errorMessage = `⚠️ ${error.message}`;
+        }
+      }
+
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         sender: 'bot',
-        text: '⚠️ ระบบเกิดข้อผิดพลาดในการส่งข้อความ'
+        text: errorMessage // แสดงข้อความ Rate Limit ให้ User เห็น
       }]);
     } finally {
       setIsLoading(false);

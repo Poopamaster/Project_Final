@@ -20,19 +20,19 @@ const getAuthHeaders = () => {
 export const sendMessageToBot = async (message, imageBase64 = null) => {
     try {
         const response = await axiosInstance.post(
-            `/chatbot/chat`, // ❌ ไม่ต้องใส่ ${API_URL} แล้ว เพราะ axiosInstance จัดการให้
+            `/chatbot/chat`,
             { message, image: imageBase64 }
         );
         return response.data;
     } catch (error) {
-        throw error.response ? error.response.data : error;
+        throw error;
     }
 };
 
 // 2. ✅ ดึงประวัติการสนทนา (GET)
 export const getChatHistory = async () => {
     try {
-        const response = await axiosInstance.get(`/chatbot/chathistory`); 
+        const response = await axiosInstance.get(`/chatbot/chathistory`);
         return response.data;
     } catch (error) {
         console.error("Error fetching history:", error);
@@ -58,12 +58,12 @@ export const importExcelMovies = async (file) => {
 
         // ✅ ใช้ axiosInstance แทน axios เพียวๆ
         const response = await axiosInstance.post(
-            '/admin/import-excel', 
+            '/admin/import-excel',
             formData,
             {
                 headers: {
                     // ✅ ไม่ต้องใส่ Authorization เองแล้ว เพราะ axiosInstance ใส่ให้จาก localStorage แล้ว
-                    'Content-Type': 'multipart/form-data' 
+                    'Content-Type': 'multipart/form-data'
                 }
             }
         );

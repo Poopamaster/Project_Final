@@ -412,7 +412,7 @@ export const movieTools = [
         }
     },
 
-    // 🎟️ 5. สรุปการจอง (ตัด Omise ออก ให้ Frontend จัดการแทน)
+    // 🎟️ 5. สรุปการจอง (ปรับปรุงความปลอดภัยและการเช็คที่นั่งซ้ำ)
     {
         name: "confirm_booking",
         description: "สรุปการจองและส่งข้อมูลไปให้ระบบ Payment ของ Frontend จัดการชำระเงิน",
@@ -422,25 +422,47 @@ export const movieTools = [
             seatIds: z.array(z.string()).describe("Array ของ Seat ID ที่ผู้ใช้เลือก")
         },
         handler: async ({ userId, showtimeId, seatIds }: any) => {
-            await connectDB(); // 1. ต้องต่อ DB ก่อน
+            await connectDB();
             try {
-                // 2. ใช้ .lean() เพื่อให้ได้ plain JS object ที่ส่งออกไปง่ายๆ
+                // 🛡️ 1. Security Check: ป้องกันการจองแทนกัน (IDOR)
+                // หมายเหตุ: userId นี้ควรถูก override มาจาก backend controller แล้ว
+                if (!userId) {
+                    return { content: [{ type: "text", text: "ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบก่อนจองครับ" }] };
+                }
+
+                // 🔍 2. ดึงข้อมูลรอบฉายมาตรวจสอบ
                 const showtime: any = await ShowtimeModel.findById(showtimeId)
                     .populate('movie_id')
                     .lean();
 
-                if (!showtime) throw new Error("ไม่พบรอบฉาย");
+                if (!showtime) throw new Error("ไม่พบข้อมูลรอบฉายที่ระบุ");
 
-                // 3. ดึงค่าออกมาพักไว้ในตัวแปรแยก (เพื่อความชัวร์)
-                const posterUrl = showtime.movie_id?.poster_url || "";
-
-                // 2. ดึงค่าออกมาเก็บในตัวแปรแยกชัดๆ กันพลาด
                 const movieInfo = showtime.movie_id;
                 const movieTitle = movieInfo.title_th || "ไม่ระบุชื่อเรื่อง";
-                const moviePoster = movieInfo.poster_url || ""; // ตรวจสอบชื่อฟิลด์ใน Schema ว่าเป็น poster_url เป๊ะๆ นะครับ
+                const posterUrl = movieInfo.poster_url || "";
 
+                // 🛡️ 3. Double Booking Check: ตรวจสอบว่าที่นั่งยังว่างอยู่จริงๆ ไหม
+                // เช็คใน BookingModel ว่ามีใครจองที่นั่งเหล่านี้ในรอบนี้ไปหรือยัง (ยกเว้นสถานะ cancelled)
+                const existingBooking = await BookingModel.findOne({
+                    showtime_id: showtimeId,
+                    seats: { $in: seatIds },
+                    status: { $ne: 'cancelled' }
+                });
+
+                if (existingBooking) {
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `ขออภัยครับ ที่นั่งบางส่วนที่คุณเลือกถูกจองไปเมื่อสักครู่นี้เอง 😥 รบกวนเลือกที่นั่งใหม่อีกครั้งครับ`
+                        }]
+                    };
+                }
+
+                // 💺 4. ดึงข้อมูลโรงและที่นั่งเพื่อคำนวณราคา
                 const auditorium: any = await AuditoriumModel.findById(showtime.auditorium_id).lean();
                 const seats: any = await SeatModel.find({ _id: { $in: seatIds } }).populate('seat_type_id').lean();
+
+                if (seats.length === 0) throw new Error("ข้อมูลที่นั่งไม่ถูกต้อง");
 
                 let totalPrice = 0;
                 const seatNames: string[] = [];
@@ -451,8 +473,10 @@ export const movieTools = [
                     seatNames.push(`${seat.row_label}${seat.seat_number}`);
                 });
 
+                // 🆔 5. สร้างเลขที่การจอง
                 const bookingNumber = `BK-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
 
+                // 💾 6. บันทึกลงฐานข้อมูลสถานะ pending
                 const newBooking = new BookingModel({
                     user_id: userId === "guest_user" ? null : userId,
                     showtime_id: showtimeId,
@@ -463,9 +487,10 @@ export const movieTools = [
                     total_price: totalPrice,
                     status: 'pending'
                 });
+
                 const savedBooking = await newBooking.save();
 
-                // 3. ส่งข้อมูลกลับโดยใช้ตัวแปรที่เราดึงมาพักไว้
+                // 🎨 7. ส่ง Visual กลับไปโชว์บิลชำระเงิน
                 return sendVisual(
                     `สรุปรายการจองเรื่อง ${movieTitle} เรียบร้อยครับ กรุณาดำเนินการชำระเงินด้านล่างได้เลยครับ`,
                     "CHECKOUT_SUMMARY",
@@ -474,15 +499,15 @@ export const movieTools = [
                         bookingNumber: bookingNumber,
                         movieName: movieTitle,
                         poster_url: posterUrl,
-                        time: new Date(showtime.start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                        time: new Date(showtime.start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }),
                         seats: seatNames.join(", "),
                         totalPrice: totalPrice,
-                        price: totalPrice
+                        price: totalPrice // ส่งไปทั้งสองชื่อเพื่อความยืดหยุ่นของ Frontend
                     }
                 );
             } catch (error: any) {
                 console.error("❌ Error confirm_booking:", error);
-                return { content: [{ type: "text", text: `เกิดข้อผิดพลาด: ${error.message}` }] };
+                return { content: [{ type: "text", text: `เกิดข้อผิดพลาดทางเทคนิค: ${error.message}` }] };
             }
         }
     },
@@ -492,20 +517,20 @@ export const movieTools = [
         name: "issue_ticket",
         description: "เปลี่ยนสถานะเป็น confirmed และออกตั๋วให้ผู้ใช้ พร้อมส่งอีเมลยืนยัน",
         args: {
-            bookingId: z.string().describe("รหัสการจอง ObjectId (จากที่ PaymentCard ส่งมา) หรือ BK-XXXXX"),
+            userId: z.string().describe("User ID ปัจจุบันของผู้ใช้ (ระบบจะส่งมาให้เอง)"), // ✨ 1. เพิ่ม userId
+            bookingId: z.string().describe("รหัสการจอง ObjectId หรือ BK-XXXXX"),
             movieName: z.string().describe("ชื่อภาพยนตร์").optional(),
             time: z.string().describe("เวลาฉาย").optional(),
             seats: z.string().describe("ที่นั่ง").optional()
         },
-        handler: async ({ bookingId, movieName, time, seats }: any) => {
+        // ✨ 2. รับ userId เข้ามาใน handler
+        handler: async ({ userId, bookingId, movieName, time, seats }: any) => {
             await connectDB();
 
             try {
                 const isObjectId = mongoose.Types.ObjectId.isValid(bookingId);
                 const query = isObjectId ? { _id: bookingId } : { booking_number: bookingId };
 
-
-                // 1. ดึง Booking และ Populate ข้อมูลให้ลึกพอที่ emailService.js ต้องการ
                 const booking: any = await BookingModel.findOne(query)
                     .populate({
                         path: 'showtime_id',
@@ -520,12 +545,25 @@ export const movieTools = [
                     return { content: [{ type: "text", text: `ไม่พบข้อมูลการจองรหัส ${bookingId}` }] };
                 }
 
+                // 🛡️ 2. ตรวจสอบความเป็นเจ้าของ (Ownership Validation)
+                // ถ้ามีการส่ง userId มา (ซึ่งควรถูก Override จาก Backend) และตั๋วนี้ผูกกับ User
+                if (userId !== "guest_user" && booking.user_id && booking.user_id.toString() !== userId) {
+                    console.error(`🚨 ตรวจพบการพยายามเข้าถึงตั๋วข้ามสิทธิ์! User: ${userId} พยายามเปิดตั๋วของ User: ${booking.user_id}`);
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `🚨 ขออภัยครับ คุณไม่มีสิทธิ์จัดการข้อมูลการจองรหัส ${bookingId} นี้ครับ (Permission Denied)`
+                        }]
+                    };
+                }
+
                 const posterUrl = booking.showtime_id?.movie_id?.poster_url || "";
-                // 2. เปลี่ยนสถานะเป็น Confirmed
+
+                // 3. เปลี่ยนสถานะเป็น Confirmed
                 booking.status = 'confirmed';
                 await booking.save();
 
-                // 3. ดึงอีเมลลูกค้าและส่งตั๋ว
+                // 4. ดึงอีเมลลูกค้าและส่งตั๋ว
                 let emailStatusMsg = "";
                 if (booking.user_id) {
                     const user = await User.findById(booking.user_id);
@@ -542,14 +580,14 @@ export const movieTools = [
                     }
                 }
 
-                // 4. ส่ง Visual กลับไปโชว์ในแชท
+                // 5. ส่ง Visual กลับไปโชว์ในแชท
                 return sendVisual(
                     `ขอบคุณที่ชำระเงินครับ! 🎉 สถานะการจองได้รับการยืนยัน${emailStatusMsg} นี่คือตั๋วของคุณ ขอให้สนุกกับการชมภาพยนตร์นะครับ 🍿`,
                     "TICKET_SLIP",
                     {
                         bookingId: booking.booking_number,
-                        movieName: movieName || booking.showtime_id.movie_id.title_th,
-                        time: time || new Date(booking.showtime_id.start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                        movieName: movieName || booking.showtime_id?.movie_id?.title_th,
+                        time: time || new Date(booking.showtime_id?.start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
                         seats: seats || "ตามที่เลือกไว้",
                         poster_url: posterUrl,
                         status: booking.status
@@ -562,20 +600,19 @@ export const movieTools = [
         }
     },
 
-    // 🚀 7. จองด่วน (Fast-Track) ข้ามสเต็ปมาหน้าเลือกที่นั่งเลย
     {
         name: "fast_track_booking",
         description: "ใช้เมื่อผู้ใช้บอกข้อมูลครบถ้วนในครั้งเดียว (ชื่อหนัง, สาขา, วันที่, เวลา) เพื่อค้นหารอบฉาย แล้วแสดงผังที่นั่งให้ทันที",
         args: {
             movieName: z.string().describe("ชื่อหนัง (เช่น ดาบพิฆาตอสูร)"),
-            branchName: z.string().describe("ชื่อสาขาแบบสั้นๆ (ตัดคำว่าสาขาออก เช่น รังสิต, rangsit)"),
-            date: z.string().describe("วันที่ในรูปแบบ YYYY-MM-DD (ห้ามส่งคำว่า วันนี้ ให้แปลงเป็นวันที่จริงๆ เสมอ)"),
+            branchName: z.string().describe("ชื่อสาขาแบบสั้นๆ (ตัดคำว่าสาขาออก เช่น รังสิต)"),
+            date: z.string().describe("วันที่ในรูปแบบ YYYY-MM-DD"),
             time: z.string().describe("เวลาที่ต้องการดู (เช่น 10:00)")
         },
         handler: async ({ movieName, branchName, date, time }: any) => {
             await connectDB();
             try {
-                // 1. ค้นหา ID หนังจากชื่อ
+                // 1. ค้นหาภาพยนตร์
                 const movie = await MovieModel.findOne({
                     $or: [
                         { title_th: { $regex: movieName, $options: "i" } },
@@ -584,7 +621,7 @@ export const movieTools = [
                 });
                 if (!movie) return { content: [{ type: "text", text: `ไม่พบภาพยนตร์ชื่อ "${movieName}" ครับ` }] };
 
-                // 2. ค้นหา ID สาขา (ตัดคำว่า สาขา ออกเผื่อ AI ติดมา)
+                // 2. ค้นหาสาขา
                 const cleanBranchName = branchName.replace(/สาขา/g, '').trim();
                 const branch = await CinemaModel.findOne({
                     $or: [
@@ -592,56 +629,46 @@ export const movieTools = [
                         { province: { $regex: cleanBranchName, $options: "i" } }
                     ]
                 });
-                if (!branch) return { content: [{ type: "text", text: `ไม่พบสาขา "${branchName}" ครับ รบกวนพิมพ์ชื่อสาขาให้ชัดเจนอีกนิดนะครับ` }] };
+                if (!branch) return { content: [{ type: "text", text: `ไม่พบสาขา "${branchName}" ครับ รบกวนระบุชื่อสาขาให้ชัดเจนอีกครั้งนะ` }] };
 
-                // 3. ค้นหาโรงหนังทั้งหมดในสาขานี้
-                const auditoriums = await AuditoriumModel.find({ cinema_id: branch._id });
-                if (auditoriums.length === 0) return { content: [{ type: "text", text: `สาขา ${branch.name} ยังไม่มีข้อมูลโรงภาพยนตร์ครับ` }] };
+                // 3. ดึงโรงหนังในสาขา
+                const auditoriums = await AuditoriumModel.find({ cinema_id: branch._id as any });
+                if (auditoriums.length === 0) return { content: [{ type: "text", text: `สาขา ${branch.name} ยังไม่เปิดให้บริการโรงภาพยนตร์ในขณะนี้ครับ` }] };
                 const audIds = auditoriums.map(a => a._id);
 
-                // 4. จัดการเรื่อง วันที่และเวลา (กันเหนียวกรณี AI พิมพ์ "วันนี้" มา)
-                let targetDate = new Date();
-                if (date !== "วันนี้" && date !== "today" && date.includes("-")) {
-                    targetDate = new Date(date);
-                }
+                // 🕒 4. จัดการเรื่องวันที่และเวลา (Lock Timezone ไทย UTC+7)
+                const formattedTime = time.replace('.', ':');
+                const targetTimeISO = `${date}T${formattedTime}:00.000+07:00`;
+                const targetTime = new Date(targetTimeISO);
 
-                const cleanTime = time.replace('.', ':');
-                const [hours, minutes] = cleanTime.split(':');
-                targetDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-                // 🔥 5. สร้างขอบเขตเวลาค้นหารอบฉาย (ขยายเป็น ก่อนเวลาขอ 1 ชม. และหลัง 2 ชม.)
-                const startRange = new Date(targetDate);
-                startRange.setHours(startRange.getHours() - 1);
-
-                const endRange = new Date(targetDate);
-                endRange.setHours(endRange.getHours() + 2);
+                // 🔍 5. สร้างช่วงเวลาค้นหา
+                const startRange = new Date(targetTime.getTime() - (30 * 60 * 1000));
+                const endRange = new Date(targetTime.getTime() + (150 * 60 * 1000));
 
                 const showtimes = await ShowtimeModel.find({
-                    movie_id: movie._id,
-                    auditorium_id: { $in: audIds },
+                    movie_id: movie._id as any,
+                    auditorium_id: { $in: audIds as any },
                     start_time: { $gte: startRange, $lte: endRange }
-                }).sort({ start_time: 1 }); // เรียงจากเวลาใกล้สุดไปไกลสุด
+                }).sort({ start_time: 1 }).lean();
 
-                if (showtimes.length === 0) {
-                    return { content: [{ type: "text", text: `ไม่พบรอบฉายเรื่อง ${movie.title_th} ที่สาขา ${branch.name} วันที่ ${date} ช่วงเวลา ${cleanTime} ครับ ลองเปลี่ยนเวลาดูไหมครับ?` }] };
+                if (!showtimes || showtimes.length === 0) {
+                    return { content: [{ type: "text", text: `ขออภัยครับ ไม่พบรอบฉายเรื่อง ${movie.title_th} ที่สาขา ${branch.name} ในช่วงเวลาประมาณ ${time} ของวันที่ ${date} ครับ` }] };
                 }
 
-                // 6. หากเจอรอบฉาย ให้ดึงผังที่นั่งมาโชว์ทันที
-                const showtimeId = showtimes[0]._id.toString();
-                const audId = showtimes[0].auditorium_id.toString();
+                // 6. เลือกรอบที่ใกล้เคียงที่สุด
+                const selectedShowtime: any = showtimes[0];
+                const showtimeId = selectedShowtime._id.toString();
 
-                let seats = await SeatModel.find({ auditorium_id: audId as any }).populate({ path: 'seat_type_id', model: SeatTypeModel });
-                if (seats.length === 0) {
-                    const objectId = new mongoose.Types.ObjectId(audId);
-                    seats = await SeatModel.find({ auditorium_id: objectId as any }).populate({ path: 'seat_type_id', model: SeatTypeModel });
-                }
-
-                if (seats.length === 0) return { content: [{ type: "text", text: `ไม่พบข้อมูลที่นั่งของรอบฉายนี้ครับ` }] };
+                // 💺 7. ดึงข้อมูลที่นั่งและสถานะการจอง (ใส่ as any เพื่อแก้ Error TS2769)
+                const seats = await SeatModel.find({
+                    auditorium_id: selectedShowtime.auditorium_id as any
+                }).populate('seat_type_id').lean();
 
                 const bookings = await BookingModel.find({
-                    showtime_id: showtimeId,
+                    showtime_id: selectedShowtime._id as any,
                     status: { $ne: 'cancelled' }
-                } as any);
+                }).lean();
+
                 const bookedSeatIds = bookings.flatMap((b: any) => (b.seats || []).map((s: any) => s.toString()));
 
                 const formattedSeats = seats.map((s: any) => ({
@@ -654,6 +681,7 @@ export const movieTools = [
                     isBooked: bookedSeatIds.includes(s._id.toString()) || s.is_blocked === true
                 }));
 
+                // 8. จัดกลุ่มผังที่นั่ง
                 const groupedRows = formattedSeats.reduce((acc: any, seat: any) => {
                     if (!acc[seat.row]) acc[seat.row] = [];
                     acc[seat.row].push(seat);
@@ -663,27 +691,37 @@ export const movieTools = [
                 const rowLabels = Object.keys(groupedRows).sort();
                 const seatTypesSummary = Array.from(new Map(formattedSeats.map((seat: any) => [seat.type, { name: seat.type, price: seat.price }])).values()).sort((a: any, b: any) => a.price - b.price);
 
-                // 🎉 ข้าม Flow ปกติ ตรงดิ่งไปหน้าเลือกที่นั่งเลย พร้อมดึงเวลาจริง (actualTime) มาโชว์
-                const actualTime = new Date(showtimes[0].start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                const actualTime = new Date(selectedShowtime.start_time).toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                    timeZone: 'Asia/Bangkok'
+                });
+
+                // 🎨 9. ส่ง Visual SEAT_PICKER
+                // @ts-ignore
                 return sendVisual(
-                    `พบรอบฉายเวลา ${actualTime} ครับ! นี่คือผังที่นั่งของเรื่อง ${movie.title_th} สาขา ${branch.name} เชิญเลือกที่นั่งได้เลยครับ 🎟️`,
+                    `จัดให้ครับ! พบรอบฉายเวลา ${actualTime} น. ที่สาขา ${branch.name} เชิญเลือกที่นั่งเรื่อง ${movie.title_th} ได้เลยครับ 🎟️`,
                     "SEAT_PICKER",
                     {
-                        showtimeId, // 👈 ส่ง ObjectID ของแท้ไปให้ Frontend
+                        showtimeId,
                         movieName: movie.title_th,
                         time: actualTime,
                         date,
                         cinemaName: branch.name,
                         seatsData: formattedSeats,
-                        layout: { rowLabels, totalColumns: Math.max(...rowLabels.map((row) => groupedRows[row].length), 0) },
+                        layout: {
+                            rowLabels,
+                            totalColumns: Math.max(...rowLabels.map((row) => groupedRows[row].length), 0)
+                        },
                         pricing: seatTypesSummary
                     }
                 );
 
             } catch (error: any) {
                 console.error("❌ Error in fast_track_booking:", error);
-                return { content: [{ type: "text", text: `เกิดข้อผิดพลาดในการค้นหารอบฉายด่วน: ${error.message}` }] };
+                return { content: [{ type: "text", text: `ระบบขัดข้องชั่วคราว: ${error.message}` }] };
             }
         }
-    }
+        }
 ];

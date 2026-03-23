@@ -84,18 +84,32 @@ const RenderEventText = ({ context, changes, note, content, onViewFull }) => {
   }
 
   // 🔵 CASE 2: USER ACTIONS
-  if (context?.table === 'users') {
+  if (['users', 'movies', 'bookings', 'cinemas'].includes(context?.table)) {
+    const getActionLabel = () => {
+      switch (context?.action) {
+        case 'create': return 'เพิ่มข้อมูลใหม่';
+        case 'update': return 'แก้ไขข้อมูล';
+        case 'delete': return 'ลบข้อมูล';
+        case 'import': return 'นำเข้าข้อมูล';
+        default: return note || 'ดำเนินการสำเร็จ';
+      }
+    };
+
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Chip
           label={context?.action?.toUpperCase()}
           size="small"
-          color={context?.action === 'delete' ? 'error' : 'primary'}
-          sx={{ height: 22, fontSize: '10px', fontWeight: 'bold' }}
+          sx={{
+            height: 22, fontSize: '10px', fontWeight: 'bold',
+            bgcolor: context?.action === 'delete' ? '#f44336' : theme.accent
+          }}
         />
         <Typography variant="body2" sx={{ color: '#9cdcfe' }}>
-          {context?.action === 'create' ? 'สร้างบัญชีผู้ใช้ใหม่' : 'มีการแก้ไขข้อมูลผู้ใช้'}
-          <span style={{ color: theme.textDim, marginLeft: 8 }}>({context?.target_id})</span>
+          {getActionLabel()}
+          <span style={{ color: theme.textDim, marginLeft: 8 }}>
+            {context?.target_id !== 'N/A' ? `(${context?.target_id})` : ''}
+          </span>
         </Typography>
       </Box>
     );
@@ -118,8 +132,12 @@ const RenderEventText = ({ context, changes, note, content, onViewFull }) => {
             return (
               <Box key={key} sx={{ fontSize: '12px', display: 'flex', gap: 1, alignItems: 'center', fontFamily: 'Consolas, monospace' }}>
                 <span style={{ color: theme.textDim }}>{key}:</span>
-                <span style={{ color: '#f44336', textDecoration: 'line-through', opacity: 0.8 }}>{String(oldVal)}</span>
-                <span style={{ color: '#4caf50' }}>➔ {String(val)}</span>
+                <span style={{ color: '#f44336', textDecoration: 'line-through', opacity: 0.8 }}>
+                  {typeof oldVal === 'object' ? JSON.stringify(oldVal) : String(oldVal)}
+                </span>
+                <span style={{ color: '#4caf50' }}>
+                  ➔ {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                </span>
               </Box>
             );
           })}

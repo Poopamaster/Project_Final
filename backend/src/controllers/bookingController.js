@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Booking = require('../models/bookingModel');
 const Seat = require('../models/seatModel');
 const emailService = require('../services/emailService');
+const systemLog = require('../utils/logger');
 
 // 1. ฟังก์ชันดึงที่นั่งที่ถูกจองแล้ว
 exports.getBookedSeatsByShowtime = async (req, res) => {
@@ -92,6 +93,19 @@ exports.createBooking = async (req, res) => {
         await session.commitTransaction();
         session.endSession();
 
+        systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'create', table: 'bookings', target_id: newBooking._id },
+            note: `จองตั๋วสำเร็จ หมายเลข: ${bookingNumber} จำนวน ${seat_ids.length} ที่นั่ง`,
+            content: {
+                booking_number: bookingNumber,
+                total_price: totalPrice,
+                seat_count: seat_ids.length
+            },
+            req
+        });
+
         // --- STEP 4: Populate Data (ทำหลังจากเซฟลง DB แล้ว) ---
         const fullBooking = await Booking.findById(newBooking._id)
             .populate('user_id')
@@ -116,10 +130,16 @@ exports.createBooking = async (req, res) => {
         });
 
     } catch (error) {
-        // 🌟 ถ้าเกิดพังกลางทาง (เน็ตหลุด, หาตัวแปรไม่เจอ) ให้ Rollback ทุกอย่างกลับสู่สภาพเดิม!
         await session.abortTransaction();
         session.endSession();
-        console.error("Create Booking Error:", error);
+        // 📝 3. Log กรณีเกิด Error (ระดับ ERROR)
+        systemLog({
+            level: 'ERROR',
+            actor: req.user,
+            context: { action: 'create', table: 'bookings' },
+            note: `จองตั๋วไม่สำเร็จ: ${error.message}`,
+            req
+        });
         res.status(500).json({ message: "เกิดข้อผิดพลาดในการจอง" });
     }
 };
@@ -157,8 +177,8 @@ exports.getUserBookings = async (req, res) => {
 exports.getBookingById = async (req, res) => {
     try {
         // 🌟 อุด IDOR: ใช้ findOne ค้นหาด้วย _id ของตั๋ว และ user_id พร้อมกันเลย!
-        const booking = await Booking.findOne({ 
-            _id: req.params.id, 
+        const booking = await Booking.findOne({
+            _id: req.params.id,
             user_id: req.user._id // 👈 ถ้าไอดีคนล็อกอิน ไม่ตรงกับไอดีเจ้าของตั๋ว มันจะหาไม่เจอ!
         })
             .populate({
@@ -203,6 +223,15 @@ exports.verifyTicket = async (req, res) => {
         if (!booking) {
             return res.status(404).json({ success: false, status: 'NOT_FOUND', message: "ไม่พบข้อมูลตั๋วใบนี้ในระบบ" });
         }
+
+        systemLog({
+            level: 'INFO',
+            actor: req.user, // Admin หรือ Staff ที่เป็นคน Scan
+            context: { action: 'verify', table: 'bookings', target_id: booking._id },
+            note: `ตรวจสอบตั๋วหมายเลข: ${bookingNumber} (สถานะ: ${booking.status})`,
+            content: { status: booking.status },
+            req
+        });
 
         if (booking.status === 'cancelled') {
             return res.status(400).json({ success: false, status: 'CANCELLED', message: "ตั๋วใบนี้ถูกยกเลิกไปแล้ว" });

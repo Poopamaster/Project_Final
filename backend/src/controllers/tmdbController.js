@@ -1,4 +1,5 @@
 const axios = require('axios');
+const systemLog = require('../utils/logger'); // ✅ 1. นำเข้า Logger
 
 // ฟังก์ชันสำหรับค้นหาหนัง (Search)
 exports.searchTMDB = async (req, res) => {
@@ -19,34 +20,39 @@ exports.searchTMDB = async (req, res) => {
         });
 
         // 2. Data Mapping (จุดสำคัญ!)
-        // แปลงข้อมูลจาก TMDB ให้เป็นโครงสร้างที่ "เกือบจะ" ตรงกับ Model คุณ
-        // เพื่อให้ Frontend เอาไป Auto-fill ลงฟอร์มได้ง่ายๆ
         const formattedMovies = response.data.results.map(movie => ({
-            // ข้อมูลสำหรับโชว์และเตรียม Save
             tmdb_id: movie.id, 
             title_th: movie.title, 
             title_en: movie.original_title,
             description: movie.overview || "ไม่มีเรื่องย่อ",
             release_date: movie.release_date,
             
-            // จัดการรูปภาพ (ถ้าไม่มีรูป ให้ใช้รูป Placeholder)
             poster_url: movie.poster_path 
                 ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
                 : "https://via.placeholder.com/500x750?text=No+Image",
             
             rating: movie.vote_average,
             
-            // *หมายเหตุ: duration_min หาจากหน้า Search ไม่ได้ (ต้องกด Detail) 
-            // เราส่ง 0 ไปก่อน หรือให้ Admin กรอกเอง
             duration_min: 0 
         }));
 
+        // 💡 เราไม่ใส่ INFO Log ตรงนี้เพื่อประหยัดพื้นที่ Database ครับ
+        
         res.status(200).json({
             success: true,
             results: formattedMovies
         });
 
     } catch (error) {
+        // 📝 2. บันทึก Log: กรณีเชื่อมต่อ TMDB ไม่สำเร็จ (สำคัญมาก!)
+        systemLog({
+            level: 'ERROR',
+            actor: req.user,
+            context: { action: 'api_call', table: 'movies' }, // ใช้ api_call เพื่อแยกประเภทให้ชัดเจน
+            note: `เชื่อมต่อ TMDB ล้มเหลว (คำค้นหา: "${req.query?.query || 'ไม่มี'}"): ${error.message}`,
+            req: req
+        }).catch(() => {}); // 👈 ใส่ catch กันระบบหลักพัง
+
         console.error("TMDB Error:", error.message);
         res.status(500).json({ message: "เชื่อมต่อ TMDB ไม่สำเร็จ" });
     }

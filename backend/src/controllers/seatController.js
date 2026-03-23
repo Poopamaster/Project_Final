@@ -1,6 +1,7 @@
 const SeatType = require('../models/seatTypeModel');
 const Seat = require('../models/seatModel');
 const Auditorium = require('../models/auditoriumModel');
+const systemLog = require('../utils/logger'); // ✅ 1. นำเข้า Logger
 
 // --- 1. จัดการ SeatType (ประเภทเก้าอี้) ---
 
@@ -8,8 +9,28 @@ exports.createSeatType = async (req, res) => {
     try {
         // เช่น name: "Premium", price: 200
         const seatType = await SeatType.create(req.body);
+
+        // 📝 2. บันทึก Log: สร้างประเภทที่นั่งใหม่
+        systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'create', table: 'seattypes', target_id: seatType._id },
+            note: `สร้างประเภทที่นั่งใหม่: "${seatType.name}" ราคา ${seatType.price} บาท`,
+            content: { name: seatType.name, price: seatType.price },
+            req: req
+        }).catch(err => console.error("Create SeatType Log Error:", err));
+
         res.status(201).json({ success: true, data: seatType });
     } catch (error) {
+        // 📝 บันทึก Log: สร้างประเภทที่นั่งไม่สำเร็จ
+        systemLog({
+            level: 'ERROR',
+            actor: req.user,
+            context: { action: 'create', table: 'seattypes' },
+            note: `สร้างประเภทที่นั่งไม่สำเร็จ: ${error.message}`,
+            req: req
+        }).catch(() => {});
+
         res.status(400).json({ message: error.message });
     }
 };
@@ -55,18 +76,46 @@ exports.autoGenerateSeats = async (req, res) => {
 
         const createdSeats = await Seat.insertMany(seatsToCreate);
 
+        const startRow = alphabet[start_row_index];
+        const endRow = alphabet[start_row_index + row_count - 1];
+
+        // 📝 3. บันทึก Log: Generate ผังที่นั่ง (Bulk Action)
+        systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'create', table: 'seats', target_id: auditorium_id },
+            note: `Generate ที่นั่งอัตโนมัติ ${createdSeats.length} ตัว (แถว ${startRow} ถึง ${endRow})`,
+            content: { 
+                auditorium_id,
+                seat_type_id,
+                row_count,
+                col_count,
+                total_generated: createdSeats.length
+            },
+            req: req
+        }).catch(err => console.error("Generate Seats Log Error:", err));
+
         res.status(201).json({ 
             success: true, 
-            message: `สร้างเก้าอี้สำเร็จ ${createdSeats.length} ตัว (เริ่มแถว ${alphabet[start_row_index]} ถึง ${alphabet[start_row_index + row_count - 1]})`,
+            message: `สร้างเก้าอี้สำเร็จ ${createdSeats.length} ตัว (เริ่มแถว ${startRow} ถึง ${endRow})`,
             data: createdSeats 
         });
 
     } catch (error) {
+        // 📝 บันทึก Log: Generate ผังที่นั่งไม่สำเร็จ
+        systemLog({
+            level: 'ERROR',
+            actor: req.user,
+            context: { action: 'create', table: 'seats' },
+            note: `Generate ที่นั่งไม่สำเร็จ: ${error.message}`,
+            req: req
+        }).catch(() => {});
+
         res.status(500).json({ message: error.message });
     }
 };
 
-// ดึงเก้าอี้ทั้งหมดในโรง (เอาไว้วาดผังตอนจอง)
+// ดึงเก้าอี้ทั้งหมดในโรง (เอาไว้วาดผังตอนจอง) - ไม่ต้องเก็บ Log
 exports.getSeatsByAuditorium = async (req, res) => {
     try {
         const seats = await Seat.find({ auditorium_id: req.params.auditoriumId })

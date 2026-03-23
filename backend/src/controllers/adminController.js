@@ -5,6 +5,7 @@ const Feedback = require('../models/feedbackModel'); // เพิ่มตัว
 const Log = require('../models/logSystemModel'); // สำหรับระบบ Log
 const ExcelJS = require('exceljs');
 const { chatWithAI } = require('../services/aiService');
+const systemLog = require('../utils/logger');
 const axios = require('axios');
 
 // 1. ค้นหาหนังจาก TMDB
@@ -44,14 +45,10 @@ exports.addMovieFromTMDB = async (req, res) => {
         if (!tmdbId) return res.status(400).json({ message: "ระบุ TMDB ID" });
 
         const response = await axios.get(`${process.env.TMDB_BASE_URL}/movie/${tmdbId}`, {
-            params: {
-                api_key: process.env.TMDB_API_KEY,
-                language: 'th-TH'
-            }
+            params: { api_key: process.env.TMDB_API_KEY, language: 'th-TH' }
         });
 
         const data = response.data;
-
         const newMovieData = {
             title_th: data.title,
             title_en: data.original_title,
@@ -65,15 +62,21 @@ exports.addMovieFromTMDB = async (req, res) => {
         };
 
         const existingMovie = await Movie.findOne({ title_en: newMovieData.title_en });
-        if (existingMovie) {
-            return res.status(400).json({ message: "หนังเรื่องนี้มีในระบบแล้ว" });
-        }
+        if (existingMovie) return res.status(400).json({ message: "หนังเรื่องนี้มีในระบบแล้ว" });
 
         const movie = await Movie.create(newMovieData);
-        res.status(201).json({ success: true, message: "เพิ่มหนังจาก TMDB สำเร็จ", movie });
 
+        // 📝 บันทึก Log
+        await systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'create', table: 'movies', target_id: movie._id },
+            note: `เพิ่มหนังเรื่อง "${movie.title_th}" ผ่าน TMDB (ID: ${tmdbId})`,
+            req
+        });
+
+        res.status(201).json({ success: true, message: "เพิ่มหนังจาก TMDB สำเร็จ", movie });
     } catch (error) {
-        console.error("Add Movie TMDB Error:", error);
         res.status(500).json({ message: "เพิ่มหนังไม่สำเร็จ", error: error.message });
     }
 };
@@ -101,6 +104,14 @@ exports.createMovie = async (req, res) => {
             language
         });
 
+        await systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'create', table: 'movies', target_id: newMovie._id },
+            note: `เพิ่มหนังใหม่ (Manual): ${title_th}`,
+            req
+        });
+
         res.status(201).json({ success: true, message: "เพิ่มหนังเรียบร้อย!", movie: newMovie });
     } catch (error) {
         console.error("🔥🔥🔥 Create Movie Error:", error);
@@ -112,11 +123,22 @@ exports.createMovie = async (req, res) => {
 exports.updateMovie = async (req, res) => {
     try {
         const { id } = req.params;
-        const updatedMovie = await Movie.findByIdAndUpdate(id, req.body, { new: true });
 
-        if (!updatedMovie) {
-            return res.status(404).json({ success: false, message: "ไม่พบหนังเรื่องนี้" });
-        }
+        // 🔍 ดึงข้อมูลเก่าก่อนอัปเดตเพื่อบันทึกการเปลี่ยนแปลง
+        const oldMovie = await Movie.findById(id).lean();
+        if (!oldMovie) return res.status(404).json({ success: false, message: "ไม่พบหนังเรื่องนี้" });
+
+        const updatedMovie = await Movie.findByIdAndUpdate(id, req.body, { new: true }).lean();
+
+        // 📝 บันทึก Log พร้อม Old/New Data
+        await systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'update', table: 'movies', target_id: id },
+            changes: { old: oldMovie, new: updatedMovie },
+            note: `แก้ไขข้อมูลหนัง: ${updatedMovie.title_th}`,
+            req
+        });
 
         res.status(200).json({ success: true, data: updatedMovie });
     } catch (error) {
@@ -137,7 +159,18 @@ exports.getAllMovies = async (req, res) => {
 // 6. ลบหนัง
 exports.deleteMovie = async (req, res) => {
     try {
-        await Movie.findByIdAndDelete(req.params.id);
+        const movie = await Movie.findById(req.params.id);
+        if (movie) {
+            await Movie.findByIdAndDelete(req.params.id);
+            // 📝 บันทึก Log
+            await systemLog({
+                level: 'WARN',
+                actor: req.user,
+                context: { action: 'delete', table: 'movies', target_id: req.params.id },
+                note: `ลบหนังออกจากระบบ: ${movie.title_th}`,
+                req
+            });
+        }
         res.status(200).json({ success: true, message: "ลบหนังเรียบร้อย" });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -195,9 +228,16 @@ exports.addAdmin = async (req, res) => {
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ message: "อีเมลนี้ถูกใช้งานแล้ว" });
 
-        const newAdmin = await User.create({
-            name, email, password, role: 'admin'
+        const newAdmin = await User.create({ name, email, password, role: 'admin' });
+
+        await systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'create', table: 'users', target_id: newAdmin._id },
+            note: `สร้าง Admin ใหม่: ${email}`,
+            req
         });
+
         res.status(201).json({ success: true, data: newAdmin });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -216,28 +256,25 @@ exports.deleteAdmin = async (req, res) => {
 exports.promoteAdmin = async (req, res) => {
     try {
         const { email } = req.body;
-
         const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้งานอีเมลนี้ในระบบ" });
-        }
+        if (!user) return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้งาน" });
 
-        if (user.role === 'admin') {
-            return res.status(400).json({ success: false, message: "ผู้ใช้นี้เป็นผู้ดูแลระบบอยู่แล้ว" });
-        }
-
+        const oldData = { ...user._doc };
         user.role = 'admin';
         await user.save();
 
-        res.status(200).json({
-            success: true,
-            message: `แต่งตั้ง ${user.name} เป็นผู้ดูแลระบบเรียบร้อยแล้ว`,
-            data: user
+        await systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'update', table: 'users', target_id: user._id },
+            changes: { old: oldData, new: user },
+            note: `แต่งตั้ง ${user.email} เป็น Admin`,
+            req
         });
 
+        res.status(200).json({ success: true, message: `แต่งตั้งสำเร็จ`, data: user });
     } catch (error) {
-        console.error("Promote Admin Error:", error);
-        res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการดำเนินการ" });
+        res.status(500).json({ success: false, message: "เกิดข้อผิดพลาด" });
     }
 };
 
@@ -298,12 +335,12 @@ exports.getReports = async (req, res) => {
 exports.getSystemLogs = async (req, res) => {
     try {
         const { page = 0, limit = 15, search = '' } = req.query;
-        
-        const query = search ? { 
+
+        const query = search ? {
             $or: [
                 { 'actor.email': { $regex: search, $options: 'i' } },
                 { 'context.table': { $regex: search, $options: 'i' } }
-            ] 
+            ]
         } : {};
 
         const logs = await Log.find(query)
@@ -330,7 +367,7 @@ exports.importMoviesFromExcel = async (req, res) => {
         const worksheet = workbook.getWorksheet(1); // อ่าน Sheet แรก
 
         const movies = [];
-        
+
         // วนลูปอ่านข้อมูลจากแถว (เริ่มแถวที่ 2 ข้าม Header)
         worksheet.eachRow((row, rowNumber) => {
             if (rowNumber > 1) {
@@ -350,6 +387,15 @@ exports.importMoviesFromExcel = async (req, res) => {
             }
         });
 
+        await systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'import', table: 'movies' },
+            content: { tools_used: ['bulk_add_movies'], data_count: movies.length },
+            note: `นำเข้าข้อมูลหนังจาก Excel จำนวน ${movies.length} เรื่อง`,
+            req
+        });
+
         if (movies.length === 0) {
             return res.status(400).json({ success: false, message: "ไม่พบข้อมูลหนังในไฟล์" });
         }
@@ -358,17 +404,17 @@ exports.importMoviesFromExcel = async (req, res) => {
         // จำลองว่า Admin เป็นคนส่งข้อความ "นำเข้าไฟล์ Excel" พร้อมแนบข้อมูล
         const adminUser = { id: req.user?._id || 'admin_id', role: 'admin' };
         const aiMessage = `นำเข้าข้อมูลหนังจาก Excel จำนวน ${movies.length} เรื่อง ดังนี้: ${JSON.stringify(movies)}`;
-        
+
         // เรียกใช้ aiService (ตัวเดียวกับที่แชทปกติ)
         const aiResponse = await chatWithAI(
-            adminUser, 
-            aiMessage, 
-            null, 
+            adminUser,
+            aiMessage,
+            null,
             ['bulk_add_movies'] // อนุญาตให้ใช้ Tool บันทึกหนัง
         );
 
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             message: "อ่านไฟล์สำเร็จและส่งให้ AI ตรวจสอบแล้ว",
             aiResponse: aiResponse // ส่ง Visual Tag กลับไปให้ Frontend Render ตาราง
         });

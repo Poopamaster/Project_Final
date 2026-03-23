@@ -3,13 +3,13 @@ import { MapPin, CreditCard, CheckCircle, Download, Clock, AlertCircle } from 'l
 import html2canvas from 'html2canvas';
 import '../css/HistoryPage.css';
 import { getMyBookings } from '../api/bookingApi';
-import TicketTemplate from '../components/TicketTemplate'; 
+import TicketTemplate from '../components/TicketTemplate';
 
 const HistoryPage = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
+
     // State และ Ref สำหรับการ Download Ticket
     const ticketRef = useRef(null);
     const [ticketData, setTicketData] = useState(null);
@@ -17,12 +17,22 @@ const HistoryPage = () => {
     // Helper Functions
     const formatDate = (dateString) => {
         if (!dateString) return "-";
-        return new Date(dateString).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+        // ✅ ระบุ Timezone ให้ชัดเจนตอนจัดฟอร์แมต
+        return new Date(dateString).toLocaleDateString('th-TH', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'Asia/Bangkok' // 👈 เพิ่มบรรทัดนี้!
+        });
     };
-    
+
     const formatTime = (dateString) => {
         if (!dateString) return "-";
-        return new Date(dateString).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        return new Date(dateString).toLocaleTimeString('th-TH', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Asia/Bangkok' // 👈 เพิ่มบรรทัดนี้!
+        });
     };
 
     useEffect(() => {
@@ -30,12 +40,12 @@ const HistoryPage = () => {
             try {
                 setLoading(true);
                 const data = await getMyBookings();
-                
+
                 const mappedData = data.map(item => {
                     const movie = item.showtime_id?.movie_id || {};
                     const showtime = item.showtime_id || {};
                     const auditorium = showtime.auditorium_id || {};
-                    
+
                     const seatsArr = item.seats && item.seats.length > 0
                         ? item.seats.map(s => s.row_label ? `${s.row_label}${s.seat_number}` : 'No Seat')
                         : ['-'];
@@ -47,7 +57,7 @@ const HistoryPage = () => {
                         movieTitle: movie.title_th || "ไม่ระบุชื่อภาพยนตร์",
                         duration: movie.duration_min || "-",
                         cinema: auditorium.name || "MCP Cinema",
-                        date: showtime.start_time, 
+                        date: showtime.start_time,
                         seats: seatsStr,
                         seatsCount: item.seats?.length || 0,
                         totalPrice: item.total_price,
@@ -68,14 +78,14 @@ const HistoryPage = () => {
     }, []);
 
     const handleDownloadTicket = async (booking) => {
-        setTicketData(booking); 
+        setTicketData(booking);
 
         setTimeout(async () => {
             if (ticketRef.current) {
                 try {
                     const canvas = await html2canvas(ticketRef.current, {
                         useCORS: true,
-                        scale: 2, 
+                        scale: 2,
                         backgroundColor: '#ffffff',
                     });
 
@@ -84,15 +94,15 @@ const HistoryPage = () => {
                     link.href = image;
                     link.download = `E-Ticket-${booking.id}.png`;
                     link.click();
-                    
-                    setTicketData(null); 
+
+                    setTicketData(null);
                 } catch (err) {
                     console.error("Error generating ticket:", err);
                     alert("เกิดข้อผิดพลาดในการสร้างตั๋ว");
                     setTicketData(null);
                 }
             }
-        }, 800); 
+        }, 800);
     };
 
     // 🚨🚀 จัดกลุ่มตามวันที่
@@ -105,8 +115,8 @@ const HistoryPage = () => {
         return groups;
     }, {});
 
-    if (loading) return <div style={{textAlign:'center', paddingTop:'50px'}}>⏳ กำลังโหลดข้อมูล...</div>;
-    if (error) return <div style={{textAlign:'center', color:'red', paddingTop:'50px'}}>{error}</div>;
+    if (loading) return <div style={{ textAlign: 'center', paddingTop: '50px' }}>⏳ กำลังโหลดข้อมูล...</div>;
+    if (error) return <div style={{ textAlign: 'center', color: 'red', paddingTop: '50px' }}>{error}</div>;
 
     return (
         <div className="history-page-container">
@@ -118,21 +128,21 @@ const HistoryPage = () => {
             {/* Content หน้าเว็บปกติ */}
             <div className="history-content">
                 <h1 className="page-title">ประวัติการจองของฉัน</h1>
-                
+
                 {Object.keys(groupedBookings).length === 0 ? (
                     <div className="empty-state">
-                        <AlertCircle size={64} style={{marginBottom: '10px', color: '#888'}}/>
+                        <AlertCircle size={64} style={{ marginBottom: '10px', color: '#888' }} />
                         <h3>คุณยังไม่มีประวัติการจอง</h3>
                     </div>
                 ) : (
                     Object.keys(groupedBookings).map((dateKey, index) => (
                         <div key={index} className="history-date-section" style={{ marginBottom: '40px' }}>
-                            
+
                             {/* 📅 หัวข้อกลุ่มวันที่ */}
-                            <h3 style={{ 
-                                borderBottom: '2px solid #334155', 
-                                paddingBottom: '10px', 
-                                marginBottom: '20px', 
+                            <h3 style={{
+                                borderBottom: '2px solid #334155',
+                                paddingBottom: '10px',
+                                marginBottom: '20px',
                                 color: '#f8fafc',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -140,7 +150,7 @@ const HistoryPage = () => {
                             }}>
                                 📅 รอบฉายวันที่: {dateKey}
                             </h3>
-                            
+
                             {/* 📱 Grid Layout (จัดเรียงการ์ด) */}
                             <div style={{
                                 display: 'grid',
@@ -160,7 +170,7 @@ const HistoryPage = () => {
                                     }}>
                                         {/* 🎬 ส่วนหัว: รูปหนัง + ชื่อ + สถานะ */}
                                         <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
-                                            <img src={booking.poster} alt="poster" style={{ width: '60px', height: '90px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #334155' }}/>
+                                            <img src={booking.poster} alt="poster" style={{ width: '60px', height: '90px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #334155' }} />
                                             <div style={{ flex: 1, overflow: 'hidden' }}>
                                                 <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                                                     {booking.movieTitle}
@@ -172,11 +182,11 @@ const HistoryPage = () => {
                                         </div>
 
                                         {/* 📋 รายละเอียดแบบ Receipt Style (ครบทุกฟิลด์ตามของเดิมเป๊ะ) */}
-                                        <div style={{ 
-                                            background: '#0F172A', 
-                                            padding: '16px', 
-                                            borderRadius: '12px', 
-                                            fontSize: '0.85rem', 
+                                        <div style={{
+                                            background: '#0F172A',
+                                            padding: '16px',
+                                            borderRadius: '12px',
+                                            fontSize: '0.85rem',
                                             color: '#cbd5e1',
                                             display: 'flex',
                                             flexDirection: 'column',
@@ -186,7 +196,7 @@ const HistoryPage = () => {
                                                 <span style={{ color: '#94a3b8' }}>Booking Ref:</span>
                                                 <span style={{ color: '#fff', fontWeight: 'bold' }}>{booking.id}</span>
                                             </div>
-                                            
+
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <span style={{ color: '#94a3b8' }}>โรงภาพยนตร์:</span>
                                                 <span style={{ color: '#3b82f6', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -225,22 +235,22 @@ const HistoryPage = () => {
                                         </div>
 
                                         {/* 🎟️ ปุ่มดาวน์โหลด */}
-                                        <button 
-                                            className="download-btn" 
+                                        <button
+                                            className="download-btn"
                                             onClick={() => handleDownloadTicket(booking)}
                                             disabled={ticketData !== null}
                                             style={{
-                                                width: '100%', 
-                                                padding: '12px', 
-                                                borderRadius: '10px', 
-                                                background: ticketData && ticketData.id === booking.id ? '#475569' : '#3b82f6', 
-                                                color: 'white', 
-                                                border: 'none', 
-                                                cursor: ticketData !== null ? 'wait' : 'pointer', 
-                                                display: 'flex', 
-                                                justifyContent: 'center', 
-                                                alignItems: 'center', 
-                                                gap: '8px', 
+                                                width: '100%',
+                                                padding: '12px',
+                                                borderRadius: '10px',
+                                                background: ticketData && ticketData.id === booking.id ? '#475569' : '#3b82f6',
+                                                color: 'white',
+                                                border: 'none',
+                                                cursor: ticketData !== null ? 'wait' : 'pointer',
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                gap: '8px',
                                                 fontWeight: 'bold',
                                                 transition: 'background 0.2s'
                                             }}
@@ -254,7 +264,7 @@ const HistoryPage = () => {
                     ))
                 )}
             </div>
-            
+
             <footer className="simple-footer">
                 <p>Copyright © 2026 MCP Cinema Demo. All rights reserved.</p>
             </footer>

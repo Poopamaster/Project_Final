@@ -1,11 +1,41 @@
 const Movie = require('../models/movieModel');
+const systemLog = require('../utils/logger'); // ✅ 1. นำเข้า Logger
 
 // 1. เพิ่มหนังใหม่ (Admin)
 exports.createMovie = async (req, res) => {
     try {
         const newMovie = await Movie.create(req.body);
+
+        // 📝 2. บันทึก Log: การสร้างภาพยนตร์ใหม่
+        systemLog({
+            level: 'INFO',
+            actor: req.user, // Admin คนที่กดสร้าง
+            context: { 
+                action: 'create', 
+                table: 'movies', 
+                target_id: newMovie._id 
+            },
+            // ใช้ fallback เผื่อว่าไม่ได้ใส่ชื่อภาษาไทยมา
+            note: `เพิ่มภาพยนตร์ใหม่: "${newMovie.title_th || newMovie.title_en}"`,
+            content: { 
+                genre: newMovie.genre, 
+                duration_min: newMovie.duration_min,
+                start_date: newMovie.start_date 
+            },
+            req: req
+        }).catch(err => console.error("Movie Create Log Error:", err)); // 👈 ใส่ catch กันระบบล่ม
+
         res.status(201).json({ success: true, data: newMovie });
     } catch (error) {
+        // 📝 3. บันทึก Log: กรณีเกิด Error (เช่น ใส่ข้อมูลมาไม่ครบ หรือผิด Type)
+        systemLog({
+            level: 'ERROR',
+            actor: req.user,
+            context: { action: 'create', table: 'movies' },
+            note: `เพิ่มภาพยนตร์ไม่สำเร็จ: ${error.message}`,
+            req: req
+        }).catch(() => {});
+
         res.status(400).json({ success: false, message: error.message });
     }
 };
