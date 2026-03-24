@@ -31,20 +31,20 @@ exports.chat = async (req, res) => {
     // A. ส่งให้ AI คิด
     const botReply = await chatWithAI(user, message, image, allowedTools, previousMessages);
 
-    // 📝 เก็บ Log System (โครงสร้างคุณเขียนมาดีมากแล้ว เพิ่มแค่ note กะ catch)
+    // 📝 เก็บ Log System
     systemLog({
       level: 'INFO',
       actor: user,
       context: { action: 'chat', table: 'chathistories', target_id: user._id },
-      note: 'User สนทนากับ AI (Gemini)', // 👈 เพิ่ม Note ให้อ่านง่ายเวลา Export CSV
+      note: 'User สนทนากับ AI (Gemini)',
       content: {
         user_message: message,
         ai_response: botReply,
         image_url: image || null,
-        tools_used: allowedTools // ถ้าอนาคตแกะ Tool ที่ใช้จริงจาก AI ได้ ค่อยมาปรับแก้ตรงนี้
+        tools_used: allowedTools
       },
       req: req
-    }).catch(err => console.error("Chat Log Error:", err)); // 👈 ใส่ catch กันระบบล่มเวลา Log พัง
+    }).catch(err => console.error("Chat Log Error:", err));
 
     // B. เตรียมข้อความ User และ Bot
     const userMsg = {
@@ -60,26 +60,18 @@ exports.chat = async (req, res) => {
       text: botReply
     };
 
-    // C. บันทึกลง MongoDB
-    let finalMessagesToReturn;
-
-    if (!historyDoc) {
-      historyDoc = await ChatHistory.create({
-        user: user._id,
-        messages: [userMsg, botMsg]
-      });
-      finalMessagesToReturn = historyDoc.messages;
-    } else {
-      historyDoc.messages.push(userMsg, botMsg);
-      await historyDoc.save();
-      finalMessagesToReturn = historyDoc.messages;
-    }
+    // C. บันทึกลง MongoDB (แก้ไข Race Condition & E11000)
+    const updatedHistory = await ChatHistory.findOneAndUpdate(
+      { user: user._id },
+      { $push: { messages: { $each: [userMsg, botMsg] } } },
+      { returnDocument: 'after', upsert: true }
+    );
 
     // D. ส่งคำตอบกลับ
     res.json({
       success: true,
       reply: botReply,
-      history: finalMessagesToReturn
+      history: updatedHistory.messages
     });
 
   } catch (error) {
@@ -90,8 +82,8 @@ exports.chat = async (req, res) => {
       context: { action: 'chat_error', table: 'chathistories' },
       note: `AI Chat Error: ${error.message}`,
       req: req
-    }).catch(() => {});
-    
+    }).catch(() => { });
+
     console.error(error);
     res.status(500).json({ error: "Chat Error" });
   }

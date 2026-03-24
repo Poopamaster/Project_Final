@@ -1,7 +1,7 @@
 // src/services/aiService.js
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { customerClient, adminClient } = require("./mcpClient");
-const { getSystemPrompt } = require("../utils/promptGenerator"); 
+const { getSystemPrompt } = require("../utils/promptGenerator");
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -145,7 +145,7 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
 
             // 🛡️ 3. SECURITY OVERRIDE (อุดช่องโหว่ IDOR)
             if (['confirm_booking', 'issue_ticket', 'get_my_bookings'].includes(functionName)) {
-                functionArgs.userId = userId; 
+              functionArgs.userId = userId;
             }
 
             // 🌟 4. ใช้ activeMcpClient ในการรัน Tool
@@ -180,11 +180,16 @@ exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = [
 
       } catch (error) {
         console.error(`⚠️ Model [${currentModel}] ขัดข้อง:`, error.message);
-        const isQuotaError = error.status === 429 || error.message.includes('429') || error.message.includes('quota') || error.message.includes('exhausted');
 
-        if (isQuotaError) {
-          console.log(`🔄 Token น่าจะหมด! กำลังสลับไปลองใช้ Model สำรองตัวถัดไป...`);
-          continue; 
+        // 👇 แก้ไขตรงนี้: เพิ่มการดักจับ Error 503 และ High Demand
+        const isQuotaOrServerError =
+          error.status === 429 || error.message.includes('429') ||
+          error.message.includes('quota') || error.message.includes('exhausted') ||
+          error.message.includes('503') || error.message.includes('high demand') || error.message.includes('overloaded');
+
+        if (isQuotaOrServerError) {
+          console.log(`🔄 Model ไม่พร้อมใช้งานหรือ Token หมด! กำลังสลับไปลองใช้ Model สำรองตัวถัดไป...`);
+          continue; // ให้ลูปวิ่งไปใช้โมเดลตัวต่อไปใน Array ทันที
         } else {
           return "ขออภัยครับ ระบบขัดข้อง: " + error.message;
         }
