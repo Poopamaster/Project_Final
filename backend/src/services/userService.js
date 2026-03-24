@@ -41,8 +41,10 @@ exports.requestRegistration = async (userData) => {
     );
 
     // Create Link
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${encodeURIComponent(verificationToken)}`;
-
+    // เพิ่มบรรทัดนี้เพื่อตั้งค่าสำรองให้วิ่งไปที่พอร์ต 5173 ของ Vite เสมอหากตั้ง .env ผิด
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verificationUrl = `${frontendUrl}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+    
     // Send Email
     const message = `
         <h1>ยืนยันการสมัครสมาชิก</h1>
@@ -61,22 +63,45 @@ exports.requestRegistration = async (userData) => {
 
 // 2. Logic ยืนยันอีเมล (แกะ Token -> ลง DB จริง)
 exports.verifyEmailAndCreateUser = async (token) => {
-    if (!token) throw new Error("ไม่พบ Token");
-
-    // Verify Token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { name, email, phone, password } = decoded;
-
-    // Double Check Duplicate
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-        return { message: "บัญชีนี้ถูกยืนยันและสร้างไปแล้ว สามารถ Login ได้เลย" };
+    // 🔔 1. Log เมื่อมี Request เข้ามาถึงฟังก์ชันนี้
+    console.log("----------------------------------------");
+    console.log("📥 [Verify Email]: มีคนกดลิงก์ยืนยันจากอีเมล!");
+    
+    if (!token) {
+        console.log("❌ [Verify Email Error]: ไม่พบ Token ใน Request");
+        throw new Error("ไม่พบ Token");
     }
 
-    // Create Real User in DB
-    const newUser = await User.create({ name, email, phone, password });
+    try {
+        // Verify Token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const { name, email, phone, password } = decoded;
 
-    return { message: "ยืนยันตัวตนสำเร็จ! บัญชีถูกสร้างเรียบร้อยแล้ว", user: newUser };
+        // 🔔 2. Log ว่าเป็นใครที่กดลิงก์
+        console.log(`👤 [Verify Email]: Token ถูกต้องสำหรับผู้ใช้: ${email}`);
+
+        // Double Check Duplicate
+        const userExists = await User.findOne({ email });
+        if (userExists) {
+            console.log(`⚠️ [Verify Email Warning]: บัญชี ${email} เคยยืนยันไปแล้ว`);
+            return { message: "บัญชีนี้ถูกยืนยันและสร้างไปแล้ว สามารถ Login ได้เลย" };
+        }
+
+        // Create Real User in DB
+        const newUser = await User.create({ name, email, phone, password });
+
+        // 🔔 3. Log เมื่อสร้างบัญชีสำเร็จ
+        console.log(`✅ [Verify Email Success]: สร้างบัญชีใหม่ให้ ${email} สำเร็จเรียบร้อย!`);
+        console.log("----------------------------------------");
+
+        return { message: "ยืนยันตัวตนสำเร็จ! บัญชีถูกสร้างเรียบร้อยแล้ว", user: newUser };
+
+    } catch (error) {
+        // 🔔 4. Log เมื่อ Token มีปัญหา (เช่น หมดอายุ หรือโดนแก้ไข)
+        console.log(`❌ [Verify Email Error]: การตรวจสอบ Token ล้มเหลว - ${error.message}`);
+        console.log("----------------------------------------");
+        throw error;
+    }
 };
 
 // 3. Logic Login
