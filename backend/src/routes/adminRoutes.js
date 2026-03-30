@@ -55,7 +55,7 @@ router.get('/logs', adminController.getSystemLogs);
 // --- ส่วนจัดการผู้ใช้และ Admin ---
 router.get('/users', adminController.getAllUsers);
 router.get('/list', adminController.getAllAdmins);
-router.post('/add', adminController.addAdmin);
+router.post('/add', validate(schemas.addAdmin), adminController.addAdmin);
 router.post('/promote', adminController.promoteAdmin);
 router.delete('/delete/:id', adminController.deleteAdmin);
 
