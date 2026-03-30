@@ -47,7 +47,7 @@ const sendBookingConfirmation = async (userEmail, bookingData) => {
         const bookingRef = bookingData.booking_number;
 
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const verificationLink = `${frontendUrl}/verify-ticket/${bookingRef}`;
+        const verificationLink = `${frontendUrl}/verify/${bookingRef}`;
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verificationLink)}`;
 
         const htmlContent = `

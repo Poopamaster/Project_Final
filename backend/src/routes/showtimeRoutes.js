@@ -3,7 +3,7 @@ const router = express.Router();
 const { 
     createShowtime, getShowtimesByMovie, getShowtimeById, 
     getAllShowtimes, getShowtimeSeats, deleteShowtime, 
-    createBulkShowtimes, deleteMultipleShowtimes 
+    createBulkShowtimes, deleteMultipleShowtimes , deleteShowtimesByBatch
 } = require('../controllers/showtimeController');
 const { validate, schemas } = require('../middleware/validate');
 
@@ -16,6 +16,7 @@ router.post('/', authenticate, isAdmin, validate(schemas.createShowtime), create
 router.post('/bulk', authenticate, isAdmin, createBulkShowtimes);
 router.delete('/:id', authenticate, isAdmin, deleteShowtime);
 router.post('/delete-multiple', authenticate, isAdmin, deleteMultipleShowtimes);
+router.delete('/batch/:batchId', authenticate, isAdmin, deleteShowtimesByBatch);
 
 // --- 🌐 ส่วนของ User (Public/Authenticated) ---
 router.get('/', getAllShowtimes);

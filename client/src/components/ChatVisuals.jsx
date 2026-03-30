@@ -629,6 +629,7 @@ export const DigitalTicket = ({ data }) => {
 // 6. Bulk Import Preview Grid (สำหรับ Admin ตรวจสอบไฟล์ Excel)
 export const BulkImportGrid = ({ data, onAction }) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isCancelled, setIsCancelled] = useState(false);
 
   // ดึงข้อมูลหนังเริ่มต้น
   const initialMovies = Array.isArray(data) ? data : (data?.movies || []);
@@ -792,7 +793,7 @@ export const BulkImportGrid = ({ data, onAction }) => {
       <div style={{ padding: '20px', background: '#1E293B', borderTop: '1px solid #334155' }}>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button
-            disabled={isSubmitted || totalErrors > 0 || movies.length === 0}
+            disabled={isSubmitted || isCancelled || totalErrors > 0 || movies.length === 0}
             onClick={handleConfirm}
             style={{
               flex: 2,
@@ -806,10 +807,14 @@ export const BulkImportGrid = ({ data, onAction }) => {
             {isSubmitted ? 'กำลังบันทึก...' : `✅ ยืนยันข้อมูลและนำเข้า Database (${movies.length} เรื่อง)`}
           </button>
           <button
-            onClick={() => onAction("ยกเลิกการนำเข้า")}
-            style={{ flex: 1, background: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '12px', borderRadius: '10px', cursor: 'pointer' }}
+            disabled={isSubmitted || isCancelled} // 👈 ป้องกันการกดซ้ำ
+            onClick={() => {
+              setIsCancelled(true); // 👈 ล็อกตาราง
+              onAction("ยกเลิกการนำเข้า");
+            }}
+            style={{ flex: 1, background: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '12px', borderRadius: '10px', cursor: (isSubmitted || isCancelled) ? 'not-allowed' : 'pointer' }}
           >
-            ยกเลิก
+            {isCancelled ? 'ยกเลิกแล้ว' : 'ยกเลิก'}
           </button>
         </div>
       </div>

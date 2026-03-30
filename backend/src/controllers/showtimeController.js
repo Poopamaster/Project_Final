@@ -240,3 +240,21 @@ exports.deleteMultipleShowtimes = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// ใน showtimeController.js (เพิ่มฟังก์ชันนี้เข้าไป)
+exports.deleteShowtimesByBatch = async (req, res) => {
+    console.log("👉 มีคนเรียก API ลบกลุ่ม! ID:", req.params.batchId); // 👈 เพิ่มบรรทัดนี้
+    try {
+        const { batchId } = req.params; // รับจาก URL Parameter
+
+        // ลบทุกรอบฉายที่มี batch_id ตรงกับที่ส่งมา
+        const result = await Showtime.deleteMany({ batch_id: batchId }); 
+
+        res.status(200).json({ 
+            success: true, 
+            message: `ลบรอบฉายกลุ่มนี้เรียบร้อย ${result.deletedCount} รายการ` 
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

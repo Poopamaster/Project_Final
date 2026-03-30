@@ -15,7 +15,6 @@ import BookingPage from '../components/admin/BookingPageAdmin';
 import CustomerPageAdmin from '../components/admin/CustomerPageAdmin';
 import AdminManagementPage from '../components/admin/AdminManagementPage';
 import AiChatPageAdmin from '../components/admin/AiChatPageAdmin';
-import ReportPage from '../components/admin/ReportPage';
 import LogSystemPage from '../components/admin/LogSystemPage';
 import SettingsPage from '../components/admin/SettingsPage';
 import ShowtimePageAdmin from '../components/admin/ShowtimePageAdmin';
@@ -72,7 +71,6 @@ export default function AdminPage() {
         { id: 'customers', label: 'ลูกค้า', icon: <Users size={20} /> },
         { id: 'admins', label: 'จัดการผู้ดูแล', icon: <ShieldCheck size={20} /> },
         { id: 'ai-chat', label: 'คุยกับ AI', icon: <MessageSquare size={20} /> },
-        { id: 'reports', label: 'รายงาน', icon: <BarChart3 size={20} /> },
         { id: 'logs', label: 'Log System', icon: <ClipboardList size={20} /> },
         { id: 'settings', label: 'ตั้งค่า', icon: <Settings size={20} /> },
     ];
@@ -129,7 +127,6 @@ export default function AdminPage() {
                     {page === 'customers' && <CustomerPageAdmin />}
                     {page === 'admins' && <AdminManagementPage />}
                     {page === 'ai-chat' && <AiChatPageAdmin />}
-                    {page === 'reports' && <ReportPage />}
                     {page === 'logs' && <LogSystemPage />}
                     {page === 'settings' && <SettingsPage />}
                 </div>
