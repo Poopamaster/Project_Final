@@ -14,13 +14,13 @@ const movieSchema = new mongoose.Schema({
             // 2. ถ้าเป็นรูปที่อัปโหลดเอง (เริ่มด้วย /uploads) ให้เติม URL ของ Backend นำหน้า
             // หมายเหตุ: ถ้า Backend ของคุณรันพอร์ตอื่นที่ไม่ใช่ 5000 ให้แก้เลขตรงนี้ด้วยนะครับ
             if (url.startsWith('/uploads')) {
-                return `http://localhost:5000${url}`;
+                const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+                return `${baseUrl}${url}`;
             }
-            
-            // 3. ถ้าเป็นรูปจาก TMDB (http...) ให้ส่งออกแบบเดิมเลย
-            return url; 
+ 
+            return url;
         }
-    }, 
+    },
 
     genre: { type: String, required: true },
     duration_min: { type: Number, required: true },

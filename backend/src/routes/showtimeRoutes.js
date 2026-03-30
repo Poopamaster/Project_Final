@@ -5,12 +5,14 @@ const {
     getAllShowtimes, getShowtimeSeats, deleteShowtime, 
     createBulkShowtimes, deleteMultipleShowtimes 
 } = require('../controllers/showtimeController');
+const { validate, schemas } = require('../middleware/validate');
 
 // Import Middleware
 const { authenticate, isAdmin } = require('../middleware/authMiddleware');
 
 // --- 🔐 ส่วนของ Admin (Protected) ---
-router.post('/', authenticate, isAdmin, createShowtime); 
+router.post('/', authenticate, isAdmin, validate(schemas.createShowtime), createShowtime); 
+
 router.post('/bulk', authenticate, isAdmin, createBulkShowtimes);
 router.delete('/:id', authenticate, isAdmin, deleteShowtime);
 router.post('/delete-multiple', authenticate, isAdmin, deleteMultipleShowtimes);

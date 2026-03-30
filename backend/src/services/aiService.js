@@ -1,206 +1,192 @@
-// src/services/aiService.js
+// backend/src/services/aiService.js
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { customerClient, adminClient } = require("./mcpClient");
 const { getSystemPrompt } = require("../utils/promptGenerator");
+const ChatHistory = require("../models/ChatHistory"); // ✅ ใช้ MongoDB แทน in-memory
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 const GEMINI_MODELS = process.env.GEMINI_MODELS
-  ? process.env.GEMINI_MODELS.split(",").map(m => m.trim())
-  : ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+    ? process.env.GEMINI_MODELS.split(",").map(m => m.trim())
+    : ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
 
-const chatSessions = {};
+// ✅ จำกัดจำนวน message ที่ส่งให้ Gemini เพื่อประหยัด token
+const MAX_HISTORY_MESSAGES = 20;
 
 function fileToGenerativePart(base64String) {
-  if (!base64String) return null;
-  const matches = base64String.match(/^data:(.+);base64,(.+)$/);
-  if (!matches || matches.length !== 3) {
-    return { inlineData: { mimeType: "image/jpeg", data: base64String } };
-  }
-  return { inlineData: { mimeType: matches[1], data: matches[2] } };
+    if (!base64String) return null;
+    const matches = base64String.match(/^data:(.+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+        return { inlineData: { mimeType: "image/jpeg", data: base64String } };
+    }
+    return { inlineData: { mimeType: matches[1], data: matches[2] } };
 }
 
 function forceFormatOutput(rawData) {
-  try {
-    const data = JSON.parse(rawData);
-    if (rawData.includes("::VISUAL::") || data.type) {
-      return rawData;
+    try {
+        const data = JSON.parse(rawData);
+        if (rawData.includes("::VISUAL::") || data.type) return rawData;
+        if (Array.isArray(data)) {
+            const list = data.map((m, index) => {
+                const title = m.Title || m.title_th + ` (${m.title_en || ''})`;
+                const genre = m.Genre || m.genre || "-";
+                const date = m.ReleaseDate || m.ShowingDate || m.start_date || "-";
+                return `### ${index + 1}. 🎬 ${title}\n   - 🎭 แนว: ${genre}\n   - 📅 ฉาย: ${date}`;
+            }).join("\n\n");
+            return `🎬 รายการภาพยนตร์ที่พบ:\n\n${list}\n\n-------------------------------------\n💡 พิมพ์หมายเลขหนังที่ต้องการจองได้เลยครับ`;
+        }
+        if (data.message) return data.message;
+        if (data.content && data.content[0] && data.content[0].text) return data.content[0].text;
+        return rawData;
+    } catch (e) {
+        return rawData;
     }
-    if (Array.isArray(data)) {
-      const list = data.map((m, index) => {
-        const title = m.Title || m.title_th + ` (${m.title_en || ''})`;
-        const genre = m.Genre || m.genre || "-";
-        const date = m.ReleaseDate || m.ShowingDate || m.start_date || "-";
-        return `### ${index + 1}. 🎬 ${title}\n   - 🎭 แนว: ${genre}\n   - 📅 ฉาย: ${date}`;
-      }).join("\n\n");
-      return `🎬 รายการภาพยนตร์ที่พบ:\n\n${list}\n\n-------------------------------------\n💡 พิมพ์หมายเลขหนังที่ต้องการจองได้เลยครับ (เช่น พิมพ์ 1)`;
-    }
-    if (data.message) return data.message;
-    if (data.content && data.content[0] && data.content[0].text) return data.content[0].text;
-    return rawData;
-  } catch (e) {
-    return rawData;
-  }
+}
+
+// ✅ ดึง history จาก MongoDB และแปลงเป็น format ที่ Gemini ต้องการ
+async function getGeminiHistory(userId) {
+    const historyDoc = await ChatHistory.findOne({ user: userId });
+    if (!historyDoc || historyDoc.messages.length === 0) return [];
+
+    // เอาแค่ MAX_HISTORY_MESSAGES ล่าสุด และต้องเป็นคู่ user-bot เสมอ
+    const messages = historyDoc.messages.slice(-MAX_HISTORY_MESSAGES);
+
+    return messages
+        .filter(m => m.text) // กรอง message ที่ไม่มี text (เช่น รูปอย่างเดียว)
+        .map(m => ({
+            role: m.sender === 'user' ? 'user' : 'model',
+            parts: [{ text: m.text }]
+        }));
 }
 
 exports.chatWithAI = async (user, userMessage, imageBase64, allowedToolNames = []) => {
-  try {
-    const userId = user.id || user._id.toString() || "default_user";
-    console.log(`🚀 Request from user: ${userId} (${user.role})`);
-    console.log(`🛡️ Injecting Tools: ${allowedToolNames.join(", ")}`);
+    try {
+        const userId = user.id || user._id.toString() || "default_user";
+        console.log(`🚀 Request from user: ${userId} (${user.role})`);
+        console.log(`🛡️ Injecting Tools: ${allowedToolNames.join(", ")}`);
 
-    // 🌟 1. เลือก Client ให้ถูกตาม Role ของ User
-    const activeMcpClient = user.role === 'admin' ? adminClient : customerClient;
+        const activeMcpClient = user.role === 'admin' ? adminClient : customerClient;
 
-    if (!chatSessions[userId]) {
-      chatSessions[userId] = [];
-    }
-    let history = chatSessions[userId];
+        // ✅ ดึง history จาก MongoDB แทน in-memory object
+        const history = await getGeminiHistory(userId);
 
-    // 🌟 2. ใช้ activeMcpClient แทน client
-    const mcpTools = await activeMcpClient.listTools();
+        const mcpTools = await activeMcpClient.listTools();
+        const filteredTools = mcpTools.tools.filter(tool => allowedToolNames.includes(tool.name));
 
-    const filteredTools = mcpTools.tools.filter(tool =>
-      allowedToolNames.includes(tool.name)
-    );
+        const googleTools = {
+            functionDeclarations: filteredTools.map((tool) => ({
+                name: tool.name,
+                description: tool.description,
+                parameters: {
+                    type: "OBJECT",
+                    properties: tool.inputSchema.properties,
+                    required: tool.inputSchema.required,
+                },
+            })),
+        };
 
-    const googleTools = {
-      functionDeclarations: filteredTools.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        parameters: {
-          type: "OBJECT",
-          properties: tool.inputSchema.properties,
-          required: tool.inputSchema.required,
-        },
-      })),
-    };
-
-    const extraPrompt = `
+        const extraPrompt = `
     [CURRENT USER ROLE]: ${user.role.toUpperCase()}
     
     [ADMIN DATA HANDLING]:
-    1. หากได้รับข้อมูล JSON ที่เป็น "รายการภาพยนตร์" (ซึ่งถูกส่งมาจาก API Backend ที่ Parse Excel แล้ว):
-       - ให้คุณทำการ "สรุป" ข้อมูลสั้นๆ (เช่น พบหนังใหม่ 5 เรื่อง) 
-       - แล้วส่ง Tag Visual สำหรับ Preview ทันที:
-         สรุปผล ::VISUAL::{"type": "BULK_IMPORT_GRID", "data": [ข้อมูล JSON นั้น]}
-       - **ห้าม** เรียกใช้ tool 'bulk_add_movies' จนกว่า Admin จะพิมพ์ยืนยัน
-    
-    2. หาก Admin พิมพ์ว่า "✅ ยืนยันการบันทึก" หรือคลิกปุ่มยืนยันจาก Visual Component:
-       - ให้ดึงข้อมูลชุดเดิมจากประวัติ (Memory) และเรียกใช้ tool 'bulk_add_movies' ทันที
+    1. หากได้รับข้อมูล JSON ที่เป็น "รายการภาพยนตร์":
+       - ให้สรุปข้อมูลสั้นๆ แล้วส่ง Tag Visual ทันที:
+         ::VISUAL::{"type": "BULK_IMPORT_GRID", "data": [ข้อมูล JSON นั้น]}
+       - ห้ามเรียกใช้ tool 'bulk_add_movies' จนกว่า Admin จะพิมพ์ยืนยัน
+    2. หาก Admin พิมพ์ว่า "✅ ยืนยันการบันทึก":
+       - ให้ดึงข้อมูลจากประวัติและเรียก 'bulk_add_movies' ทันที
 
-    [🚀 SHORTCUT & QUICK ACTION RULES - กฎสำหรับปุ่มลัด (สำคัญมาก)]:
-    เมื่อผู้ใช้กดปุ่มลัด หรือพิมพ์ Keyword ต่อไปนี้ **ห้ามชวนคุยหรือถามกลับ ให้เรียกใช้ Tool ทันที**:
-    - หากผู้ใช้พิมพ์ "หนังเข้าใหม่", "แนะนำหนัง", "กำลังเป็นกระแส": ให้เรียก Tool 'search_movie' (หรือ Tool สำหรับดึงข้อมูลหนังทั้งหมดที่คุณมี) โดยเว้นพารามิเตอร์ชื่อหนังให้ว่างไว้ เพื่อดึงหนังทั้งหมดมาแสดง
-    - หากผู้ใช้พิมพ์ "โรงหนังใกล้ฉัน", "สาขา": ให้เรียก Tool 'get_branches' ทันที
-    - หากผู้ใช้พิมพ์ "คำสั่ง Admin": ให้นำเสนอเมนูหรือความสามารถที่ Admin ทำได้ (เช่น อัปโหลด Excel)
+    [TICKET BOOKING RULES]:
+    Step 1: search_movie -> Step 2: get_branches -> Step 3: get_available_dates -> Step 4: get_showtimes -> Step 5: select_seat -> Step 6: confirm_booking -> Step 7: issue_ticket
+    ห้ามข้ามขั้นตอนเด็ดขาด
 
-    [TICKET BOOKING RULES - สำคัญมาก]:
-    คุณคือพนักงานขายตั๋วหนัง หน้าที่ของคุณคือช่วยเหลือผู้ใช้ในการจองตั๋ว
-    คุณต้องทำตามลำดับขั้นตอนต่อไปนี้อย่างเคร่งครัด ห้ามข้ามขั้นตอนเด็ดขาด:
-    1. เมื่อผู้ใช้พิมพ์ชื่อหนัง ให้ใช้ Tool 'search_movie' ก่อน
-    2. เมื่อผู้ใช้เลือกหนังแล้ว ให้ใช้ Tool 'get_branches' เพื่อแสดงสาขา
-    3. 🚨 เมื่อผู้ใช้เลือกสาขาแล้ว **ให้ใช้ Tool 'get_available_dates' ทันที** เพื่อแสดงปุ่มเลือกวันที่ที่มีรอบฉาย
-    4. เมื่อผู้ใช้กดเลือกวันที่แล้ว เท่านั้น! ถึงจะใช้ Tool 'get_showtimes' ได้
-    5. หากคุณเรียก 'get_showtimes' แล้วระบบแจ้ง Error ว่าข้อมูลไม่ครบ ให้คุณกลับมาพิจารณาว่าตกหล่นขั้นตอนใดไป
-    
     [IMPORTANT MEMORY RULE]
-    - If the user selects a number (e.g., "1", "2"), LOOK AT THE PREVIOUS MODEL RESPONSE.
-    - Do NOT search for the number "1" in the database.
-    - You only have access to the tools provided. If a user asks for a feature you don't have, politely refuse.
+    - หากผู้ใช้พิมพ์ตัวเลข ให้ย้อนดูประวัติข้อความล่าสุดว่าหมายถึงอะไร
     `;
 
-    let messagePayload = [];
-    if (userMessage) messagePayload.push(userMessage);
-    if (imageBase64) {
-      const imagePart = fileToGenerativePart(imageBase64);
-      if (imagePart) messagePayload.push(imagePart);
-    }
-    if (messagePayload.length === 0) return "กรุณาส่งข้อความหรือรูปภาพ";
+        let messagePayload = [];
+        if (userMessage) messagePayload.push(userMessage);
+        if (imageBase64) {
+            const imagePart = fileToGenerativePart(imageBase64);
+            if (imagePart) messagePayload.push(imagePart);
+        }
+        if (messagePayload.length === 0) return "กรุณาส่งข้อความหรือรูปภาพ";
 
-    for (const currentModel of GEMINI_MODELS) {
-      try {
-        console.log(`⏳ กำลังพยายามใช้ AI Model: [${currentModel}]`);
+        for (const currentModel of GEMINI_MODELS) {
+            try {
+                console.log(`⏳ กำลังพยายามใช้ AI Model: [${currentModel}]`);
 
-        const model = genAI.getGenerativeModel({
-          model: currentModel,
-          systemInstruction: getSystemPrompt(user) + "\n\n" + extraPrompt,
-          tools: filteredTools.length > 0 ? [googleTools] : [],
-        });
+                const model = genAI.getGenerativeModel({
+                    model: currentModel,
+                    systemInstruction: getSystemPrompt(user) + "\n\n" + extraPrompt,
+                    tools: filteredTools.length > 0 ? [googleTools] : [],
+                });
 
-        const chat = model.startChat({ history: history });
-        const result = await chat.sendMessage(messagePayload);
-        const response = result.response;
-        const functionCalls = response.functionCalls();
+                const chat = model.startChat({ history });
+                const result = await chat.sendMessage(messagePayload);
+                const response = result.response;
+                const functionCalls = response.functionCalls();
 
-        if (functionCalls && functionCalls.length > 0) {
-          console.log(`🤖 [${currentModel}] is calling tools:`, functionCalls.map(fc => fc.name));
+                if (functionCalls && functionCalls.length > 0) {
+                    console.log(`🤖 [${currentModel}] is calling tools:`, functionCalls.map(fc => fc.name));
 
-          let mcpFinalText = "";
+                    let mcpFinalText = "";
 
-          for (const call of functionCalls) {
-            const functionName = call.name;
-            const functionArgs = call.args;
+                    for (const call of functionCalls) {
+                        const functionName = call.name;
+                        const functionArgs = call.args;
 
-            // 🛡️ 3. SECURITY OVERRIDE (อุดช่องโหว่ IDOR)
-            if (['confirm_booking', 'issue_ticket', 'get_my_bookings'].includes(functionName)) {
-              functionArgs.userId = userId;
+                        // 🛡️ Security Override (IDOR protection)
+                        if (['confirm_booking', 'issue_ticket', 'get_my_bookings'].includes(functionName)) {
+                            functionArgs.userId = userId;
+                        }
+
+                        const mcpResult = await activeMcpClient.callTool({
+                            name: functionName,
+                            arguments: functionArgs,
+                        });
+
+                        const toolOutput = mcpResult.content[0].text;
+
+                        if (toolOutput.includes("::VISUAL::")) {
+                            console.log("🎨 Visual Layout detected, returning directly.");
+                            return toolOutput;
+                        }
+
+                        mcpFinalText = forceFormatOutput(toolOutput);
+                    }
+
+                    if (mcpFinalText) return mcpFinalText;
+                }
+
+                return response.text();
+
+            } catch (error) {
+                console.error(`⚠️ Model [${currentModel}] ขัดข้อง:`, error.message);
+
+                const isQuotaOrServerError =
+                    error.status === 429 || error.message.includes('429') ||
+                    error.message.includes('quota') || error.message.includes('exhausted') ||
+                    error.message.includes('503') || error.message.includes('high demand') ||
+                    error.message.includes('overloaded');
+
+                if (isQuotaOrServerError) {
+                    console.log(`🔄 กำลังสลับไปโมเดลสำรอง...`);
+                    continue;
+                } else {
+                    // ✅ ไม่เปิดเผย error.message ให้ user เห็น
+                    console.error("Non-quota error:", error.message);
+                    return "ขออภัยครับ ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง";
+                }
             }
-
-            // 🌟 4. ใช้ activeMcpClient ในการรัน Tool
-            const mcpResult = await activeMcpClient.callTool({
-              name: functionName,
-              arguments: functionArgs,
-            });
-
-            const toolOutput = mcpResult.content[0].text;
-
-            if (toolOutput.includes("::VISUAL::")) {
-              console.log("🎨 Visual Layout detected, returning directly.");
-              chatSessions[userId].push({ role: "user", parts: [{ text: userMessage }] });
-              chatSessions[userId].push({ role: "model", parts: [{ text: toolOutput }] });
-              return toolOutput;
-            }
-
-            mcpFinalText = forceFormatOutput(toolOutput);
-          }
-
-          if (mcpFinalText) {
-            chatSessions[userId].push({ role: "user", parts: [{ text: userMessage }] });
-            chatSessions[userId].push({ role: "model", parts: [{ text: mcpFinalText }] });
-            return mcpFinalText;
-          }
         }
 
-        const botText = response.text();
-        chatSessions[userId].push({ role: "user", parts: [{ text: userMessage }] });
-        chatSessions[userId].push({ role: "model", parts: [{ text: botText }] });
-        return botText;
+        console.error("🚨 AI Models สำรองทั้งหมดถูกใช้งานเต็มโควต้าแล้ว");
+        return "ขออภัยครับ ตอนนี้โควต้า AI ประจำวันถูกใช้งานเต็มทุกช่องทางแล้ว กรุณารอสักครู่แล้วลองใหม่ครับ";
 
-      } catch (error) {
-        console.error(`⚠️ Model [${currentModel}] ขัดข้อง:`, error.message);
-
-        // 👇 แก้ไขตรงนี้: เพิ่มการดักจับ Error 503 และ High Demand
-        const isQuotaOrServerError =
-          error.status === 429 || error.message.includes('429') ||
-          error.message.includes('quota') || error.message.includes('exhausted') ||
-          error.message.includes('503') || error.message.includes('high demand') || error.message.includes('overloaded');
-
-        if (isQuotaOrServerError) {
-          console.log(`🔄 Model ไม่พร้อมใช้งานหรือ Token หมด! กำลังสลับไปลองใช้ Model สำรองตัวถัดไป...`);
-          continue; // ให้ลูปวิ่งไปใช้โมเดลตัวต่อไปใน Array ทันที
-        } else {
-          return "ขออภัยครับ ระบบขัดข้อง: " + error.message;
-        }
-      }
+    } catch (error) {
+        console.error("System Error:", error);
+        return "ขออภัยครับ ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง";
     }
-
-    console.error("🚨 AI Models สำรองทั้งหมดถูกใช้งานเต็มโควต้าแล้ว");
-    return "ขออภัยครับ ตอนนี้โควต้า AI ประจำวันถูกใช้งานเต็มทุกช่องทางแล้ว กรุณารอสักครู่แล้วลองใหม่ครับ";
-
-  } catch (error) {
-    console.error("System Error:", error);
-    return "ขออภัยครับ ระบบขัดข้อง: " + error.message;
-  }
 };
