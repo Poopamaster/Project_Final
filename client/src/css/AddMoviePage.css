@@ -1,0 +1,148 @@
+/* AddMoviePage.css */
+.movie-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.movie-figma-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* บังคับให้การ์ดทุกใบในแถวเดียวกันมีความสูงเท่ากัน */
+}
+
+.movie-card-info {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* สำคัญมาก! ตัวนี้จะสั่งให้กล่องข้อมูลขยายตัวเพื่อกินพื้นที่ที่เหลือทั้งหมด */
+}
+
+.card-actions {
+    margin-top: auto; /* ดันกลุ่มปุ่มให้อยู่ชิดขอบล่างสุดเสมอ ไม่ว่าข้อความข้างบนจะยาวแค่ไหน */
+    display: flex;
+    gap: 8px;
+}
+
+.button-group {
+    margin-top: auto; 
+}
+
+/* ส่วนของกลุ่มปุ่ม Action (ขวาบน) */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* รูปแบบปุ่มพื้นฐาน (ทำให้ทุกปุ่มสูงและเรียงสวยเท่ากัน) */
+.btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 16px;
+    height: 42px; /* ล็อคความสูงให้เท่ากันหมด */
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    color: white;
+    transition: all 0.2s ease-in-out;
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+}
+
+/* สีเฉพาะของแต่ละปุ่ม */
+.btn-back { background: #334155; }
+.btn-back:hover { background: #475569; }
+
+.btn-delete { background: #ef4444; }
+.btn-delete:hover { background: #dc2626; }
+
+.btn-tmdb { background: #3b82f6; }
+.btn-tmdb:hover { background: #2563eb; }
+
+.btn-manual { background: #10b981; }
+.btn-manual:hover { background: #059669; }
+
+/* แบบฟอร์มและ Modal */
+.form-card {
+    background: #1e212f;
+    padding: 30px;
+    border-radius: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.modal-overlay {
+    background: rgba(0,0,0,0.85);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.modal-content {
+    width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    background: #1e212f;
+    padding: 30px;
+    border-radius: 24px;
+    margin: auto;
+}
+
+/* Input Fields */
+.form-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    background: #0d0f17;
+    border: 1px solid #334155;
+    color: white;
+    font-family: inherit;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.form-label {
+    color: #94a3b8;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* กล่องอัปโหลดรูป */
+.poster-upload-box {
+    width: 100%;
+    height: 300px;
+    background: #0d0f17;
+    border: 2px dashed #334155;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.poster-upload-box:hover {
+    border-color: #3b82f6;
+}

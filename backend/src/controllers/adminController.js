@@ -424,3 +424,84 @@ exports.importMoviesFromExcel = async (req, res) => {
         res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการประมวลผลไฟล์" });
     }
 };
+
+// 7. สถิติหน้า Dashboard (อัปเดตใหม่ ส่งข้อมูลกราฟด้วย)
+exports.getDashboardStats = async (req, res) => {
+    try {
+        // --- 1. สถิติรวม 3 กล่องด้านบน ---
+        const salesTotal = await Booking.aggregate([
+            { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+        ]);
+        const totalTickets = await Booking.countDocuments();
+        const totalUsers = await User.countDocuments();
+
+        // --- 2. กราฟเส้น: ยอดขาย 7 วันย้อนหลัง ---
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const dailySales = await Booking.aggregate([
+            { $match: { createdAt: { $gte: sevenDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Bangkok" } },
+                    sales: { $sum: "$totalPrice" }
+                }
+            }
+        ]);
+
+        // จัดเตรียมข้อมูล 7 วันให้กราฟ (เผื่อวันไหนยอดเป็น 0 กราฟจะได้ไม่แหว่ง)
+        const daysMap = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+        const chartSales = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(sevenDaysAgo);
+            d.setDate(d.getDate() + i);
+            const dateStr = d.toISOString().split('T')[0];
+            const found = dailySales.find(x => x._id === dateStr);
+            chartSales.push({
+                name: daysMap[d.getDay()], // ชื่อวัน
+                sales: found ? found.sales : 0 // ยอดขาย
+            });
+        }
+
+        // --- 3. กราฟวงกลม: สัดส่วนตั๋วแยกตามภาพยนตร์ (Top 5) ---
+        // ดึง Booking ทั้งหมด พร้อมชื่อหนัง
+        const bookings = await Booking.find().populate({
+            path: 'showtime_id',
+            populate: { path: 'movie_id', select: 'title_th' }
+        });
+
+        const movieCount = {};
+        bookings.forEach(b => {
+            // 🌟 ดึงชื่อหนังแบบเผื่อไว้ก่อน
+            const movieName = b.showtime_id?.movie_id?.title_th;
+
+            // ✅ ถ้าไม่มีชื่อหนัง (เช่น ข้อมูลไม่สมบูรณ์) ให้ข้ามบิลนี้ไปเลย ห้ามใส่ 'ไม่ระบุ'
+            if (!movieName) return;
+
+            const tickets = b.seats ? b.seats.length : 1;
+            if (!movieCount[movieName]) movieCount[movieName] = 0;
+            movieCount[movieName] += tickets;
+        });
+
+        // แปลงเป็น Array แล้วเรียงจากมากไปน้อย (Top 5)
+        const chartMovies = Object.keys(movieCount)
+            .map(key => ({ name: key, value: movieCount[key] }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
+        // --- ส่งกลับไปให้ Frontend ---
+        res.status(200).json({
+            success: true,
+            data: {
+                sales: salesTotal[0]?.total || 0,
+                tickets: totalTickets,
+                users: totalUsers,
+                chartSales: chartSales,   // ข้อมูลกราฟเส้น
+                chartMovies: chartMovies  // ข้อมูลกราฟวงกลม
+            }
+        });
+    } catch (error) {
+        console.error("Dashboard Stats Error:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
