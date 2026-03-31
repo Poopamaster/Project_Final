@@ -19,6 +19,7 @@ import LogSystemPage from '../components/admin/LogSystemPage';
 import SettingsPage from '../components/admin/SettingsPage';
 import ShowtimePageAdmin from '../components/admin/ShowtimePageAdmin';
 import VerifyTicketPage from '../components/admin/VerifyTicketPage'; // 🌟 Import หน้า Verify
+import AdminCinemaPage from '../components/admin/AdminCinemaPage';
 
 const isTokenExpired = (token) => {
     if (!token) return true;
@@ -64,6 +65,7 @@ export default function AdminPage() {
 
     const menuItems = [
         { id: 'dashboard', label: 'ภาพรวม', icon: <LayoutDashboard size={20} /> },
+        { id : 'cinemas', label: 'จัดการโรงหนัง', icon: <Monitor size={20} /> },
         { id: 'add-movie', label: 'จัดการหนัง', icon: <Film size={20} /> },
         { id: 'showtime', label: 'จัดการรอบหนัง', icon: <Monitor size={20} /> },
         { id: 'bookings', label: 'การจอง', icon: <Ticket size={20} /> },
@@ -126,6 +128,7 @@ export default function AdminPage() {
                     {page === 'bookings' && <BookingPage />}
                     {page === 'customers' && <CustomerPageAdmin />}
                     {page === 'admins' && <AdminManagementPage />}
+                    {page === 'cinemas' && <AdminCinemaPage />}
                     {page === 'ai-chat' && <AiChatPageAdmin />}
                     {page === 'logs' && <LogSystemPage />}
                     {page === 'settings' && <SettingsPage />}

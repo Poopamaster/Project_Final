@@ -51,8 +51,10 @@ const isString = () => (value, field) => {
 };
 
 const isNumber = () => (value, field) => {
-    if (value !== undefined && (typeof value !== 'number' || isNaN(value))) {
-        return `${field} must be a number`;
+    if (value !== undefined && value !== null && value !== '') {
+        if (isNaN(Number(value))) {
+            return `${field} must be a valid number`;
+        }
     }
 };
 
@@ -110,41 +112,41 @@ const isMongoId = () => (value, field) => {
 
 const schemas = {
     createShowtime: {
-        movie_id:      [required(), isMongoId()],
+        movie_id: [required(), isMongoId()],
         auditorium_id: [required(), isMongoId()],
-        start_time:    [required(), isDate()],
-        language:      [required(), isIn(['TH', 'EN', 'TH/EN'])],
-        base_price:    [required(), isNumber(), min(0)],
+        start_time: [required(), isDate()],
+        language: [required(), isIn(['TH', 'EN', 'TH/EN'])],
+        base_price: [required(), isNumber(), min(0)],
     },
 
     createCinema: {
-        name:     [required(), isString(), minLength(3), maxLength(100)],
-        address:  [required(), isString(), minLength(5)],
+        name: [required(), isString(), minLength(3), maxLength(100)],
+        address: [required(), isString(), minLength(5)],
         province: [required(), isString()],
-        phone:    [required(), isString(), minLength(9), maxLength(15)],
+        phone: [required(), isString(), minLength(9), maxLength(15)],
     },
 
     createAuditorium: {
         cinema_id: [required(), isMongoId()],
-        name:      [required(), isString(), minLength(1), maxLength(50)],
-        capacity:  [required(), isNumber(), min(1), max(1000)],
-        format:    [isIn(['Standard', 'IMAX', '4DX', 'ScreenX'])],
+        name: [required(), isString(), minLength(1), maxLength(50)],
+        capacity: [required(), isNumber(), min(1), max(1000)],
+        format: [isIn(['Standard', 'IMAX', '4DX', 'ScreenX'])],
     },
 
     createSeatType: {
-        name:  [required(), isString(), minLength(1), maxLength(50)],
+        name: [required(), isString(), minLength(1), maxLength(50)],
         price: [required(), isNumber(), min(0)],
     },
 
     register: {
-        name:     [required(), isString(), minLength(2), maxLength(100)],
-        email:    [required(), isEmail()],
-        phone:    [required(), isString(), minLength(9), maxLength(15)],
+        name: [required(), isString(), minLength(2), maxLength(100)],
+        email: [required(), isEmail()],
+        phone: [required(), isString(), minLength(9), maxLength(15)],
         password: [required(), isString(), minLength(8)],
     },
 
     login: {
-        email:    [required(), isEmail()],
+        email: [required(), isEmail()],
         password: [required(), isString()],
     },
 
@@ -153,19 +155,19 @@ const schemas = {
     },
 
     addAdmin: {
-        name:     [required(), isString()],
-        email:    [required(), isEmail()],
+        name: [required(), isString()],
+        email: [required(), isEmail()],
         password: [required(), isString(), minLength(8)],
     },
 
     createMovie: {
-        title_th:     [required(), isString()],
-        title_en:     [required(), isString()],
-        genre:        [required(), isString()],
+        title_th: [required(), isString()],
+        title_en: [required(), isString()],
+        genre: [required(), isString()],
         duration_min: [required(), isNumber(), min(1)],
-        start_date:   [required(), isDate()],
-        due_date:     [required(), isDate()],
-        language:     [isString()],
+        start_date: [required(), isDate()],
+        due_date: [required(), isDate()],
+        language: [isString()],
     },
 };
 

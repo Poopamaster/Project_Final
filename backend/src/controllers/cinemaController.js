@@ -49,3 +49,77 @@ exports.getAllCinemas = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// 3. แก้ไขข้อมูลสาขา (Update Cinema)
+exports.updateCinema = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, address, province, phone } = req.body;
+
+        const updatedCinema = await Cinema.findByIdAndUpdate(
+            id,
+            { name, address, province, phone },
+            { new: true, runValidators: true } // new: true เพื่อคืนค่าข้อมูลที่ถูกอัปเดตแล้ว
+        );
+
+        if (!updatedCinema) {
+            return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลสาขานี้ในระบบ' });
+        }
+
+        // 📝 บันทึก Log: การแก้ไขข้อมูลสาขา
+        systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'update', table: 'cinemas', target_id: id },
+            note: `แก้ไขข้อมูลสาขา: "${updatedCinema.name}"`,
+            content: { name, address, province, phone },
+            req: req
+        }).catch(() => {});
+
+        res.status(200).json({ success: true, data: updatedCinema });
+    } catch (error) {
+        systemLog({
+            level: 'ERROR',
+            actor: req.user,
+            context: { action: 'update', table: 'cinemas', target_id: req.params.id },
+            note: `แก้ไขสาขาไม่สำเร็จ: ${error.message}`,
+            req: req
+        }).catch(() => {});
+
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+// 4. ลบสาขา (Delete Cinema)
+exports.deleteCinema = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const deletedCinema = await Cinema.findByIdAndDelete(id);
+
+        if (!deletedCinema) {
+            return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลสาขานี้ในระบบ' });
+        }
+
+        // 📝 บันทึก Log: การลบสาขา
+        systemLog({
+            level: 'WARNING', // ใช้ WARNING จะได้รู้ว่ามีการลบข้อมูล
+            actor: req.user,
+            context: { action: 'delete', table: 'cinemas', target_id: id },
+            note: `ลบสาขาโรงภาพยนตร์: "${deletedCinema.name}" จ.${deletedCinema.province}`,
+            req: req
+        }).catch(() => {});
+
+        res.status(200).json({ success: true, message: 'ลบสาขาออกจากระบบสำเร็จ' });
+    } catch (error) {
+        systemLog({
+            level: 'ERROR',
+            actor: req.user,
+            context: { action: 'delete', table: 'cinemas', target_id: req.params.id },
+            note: `ลบสาขาไม่สำเร็จ: ${error.message}`,
+            req: req
+        }).catch(() => {});
+
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

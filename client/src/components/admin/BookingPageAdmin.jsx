@@ -26,55 +26,7 @@ export default function BookingPageAdmin() {
         fetchBookings();
     }, []);
 
-    // ✅ ระบบ Search ที่รองรับ Deep Populate จาก Backend
-    const filteredBookings = bookings.filter(item => {
-        const user = item.user_id || item.userId;
-        const searchLower = searchTerm.toLowerCase();
-
-        // รหัสจอง (แก้ป้องกัน Error หาก _id ไม่มี)
-        const bookingId = (item._id?.substring(18, 24) || '').toLowerCase();
-
-        // ข้อมูลลูกค้า
-        const customerName = (user?.name || '').toLowerCase();
-        const customerEmail = (user?.email || '').toLowerCase();
-
-        // ข้อมูลหนัง (เจาะเข้าไปหา title_th หรือ title_en)
-        const movieObj = item.showtime_id?.movie_id || item.movieId;
-        const movieNameTH = (movieObj?.title_th || '').toLowerCase();
-        const movieNameEN = (movieObj?.title_en || '').toLowerCase();
-
-        // ข้อมูลโรงและสาขา
-        const theaterObj = item.showtime_id?.auditorium_id || item.showtime_id || {};
-        const theaterName = (theaterObj?.name || theaterObj?.theater_name || '').toLowerCase();
-
-        // 💡 ดักจับข้อมูลสาขาคลุมไว้ทุกรูปแบบ
-        const rawBranch =
-            theaterObj?.branch?.name ||
-            theaterObj?.branch ||
-            theaterObj?.theater_id?.name ||
-            item.showtime_id?.theater_id?.name ||
-            item.showtime_id?.branch?.name ||
-            item.showtime_id?.branch ||
-            '';
-        const branchName = String(rawBranch).toLowerCase();
-
-        // ✅ ปรับโลจิกสถานะให้ตรงกับ UI ด้านล่าง (รวม confirmed เข้าไป)
-        const isPaid = item.status === 'paid' || item.status === 'confirmed';
-        const statusText = isPaid ? 'ชำระแล้ว' : 'รอชำระ';
-
-        const price = (item.totalPrice || item.total_price || 0).toString();
-
-        return bookingId.includes(searchLower) ||
-            customerName.includes(searchLower) ||
-            customerEmail.includes(searchLower) ||
-            movieNameTH.includes(searchLower) ||
-            movieNameEN.includes(searchLower) ||
-            theaterName.includes(searchLower) ||
-            branchName.includes(searchLower) ||
-            statusText.includes(searchLower) ||
-            price.includes(searchLower);
-    });
-
+    // 1️⃣ ต้องย้ายฟังก์ชันจัดการเวลาขึ้นมาไว้ด้านบนก่อน เพื่อให้ระบบ Search เรียกใช้ได้
     const formatDate = (dateString) => {
         if (!dateString) return 'ไม่ระบุ';
         return new Date(dateString).toLocaleDateString('th-TH', {
@@ -82,11 +34,69 @@ export default function BookingPageAdmin() {
         });
     };
 
-    // ฟังก์ชันช่วยจัดการเวลา
     const formatTime = (dateString) => {
         if (!dateString) return '';
         return new Date(dateString).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
     };
+
+    // 2️⃣ ✅ ระบบ Search ที่รองรับข้อมูล "ทุกคอลัมน์" ในตาราง
+    const filteredBookings = bookings.filter(item => {
+        const searchLower = searchTerm.toLowerCase();
+
+        // 1. รหัสจอง (ดึงจาก booking_number ที่โชว์ในตารางจริงๆ)
+        const bookingNum = (item.booking_number || '').toLowerCase();
+        const objectId = (item._id || '').toLowerCase(); // เผื่อค้นหาจาก _id ด้วย
+
+        // 2. วันที่และเวลา
+        const dateStr = formatDate(item.createdAt).toLowerCase();
+        const timeStr = formatTime(item.createdAt).toLowerCase();
+
+        // 3. ข้อมูลลูกค้า
+        const user = item.user_id || item.userId;
+        const customerName = (user?.name || '').toLowerCase();
+        const customerEmail = (user?.email || '').toLowerCase();
+
+        // 4. ข้อมูลหนัง
+        const movieObj = item.showtime_id?.movie_id || item.movieId;
+        const movieNameTH = (movieObj?.title_th || '').toLowerCase();
+        const movieNameEN = (movieObj?.title_en || '').toLowerCase();
+
+        // 5. ข้อมูลโรงและสาขา (ปรับให้ตรงกับที่โชว์ใน UI)
+        const theaterInfo = item.showtime_id?.auditorium_id || item.showtime_id || {};
+        const theaterName = (theaterInfo?.name || theaterInfo?.theater_name || '').toLowerCase();
+        const branchDisplay = (
+            item.cinema_id?.name ||
+            item.showtime_id?.auditorium_id?.cinema_id?.name ||
+            ''
+        ).toLowerCase();
+
+        // 6. ข้อมูลที่นั่ง (แปลง Array ที่นั่งให้เป็น String รวมกัน เช่น "A1 B2")
+        const seatsString = (item.seats || []).map(seat => {
+            return typeof seat === 'object' ? `${seat.row_label}${seat.seat_number}` : seat;
+        }).join(' ').toLowerCase();
+
+        // 7. ราคา
+        const price = (item.totalPrice || item.total_price || 0).toString();
+
+        // 8. สถานะ
+        const isPaid = item.status === 'paid' || item.status === 'confirmed';
+        const statusText = isPaid ? 'ชำระแล้ว' : 'รอชำระ';
+
+        // เช็คว่ามีคำค้นหาอยู่ในคอลัมน์ไหนบ้าง
+        return bookingNum.includes(searchLower) ||
+            objectId.includes(searchLower) ||
+            dateStr.includes(searchLower) ||
+            timeStr.includes(searchLower) ||
+            customerName.includes(searchLower) ||
+            customerEmail.includes(searchLower) ||
+            movieNameTH.includes(searchLower) ||
+            movieNameEN.includes(searchLower) ||
+            theaterName.includes(searchLower) ||
+            branchDisplay.includes(searchLower) ||
+            seatsString.includes(searchLower) ||
+            statusText.includes(searchLower) ||
+            price.includes(searchLower);
+    });
 
     return (
         <div className="admin-page-content-inside">

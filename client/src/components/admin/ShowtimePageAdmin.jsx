@@ -25,6 +25,7 @@ export default function ShowtimePageAdmin() {
     const [movies, setMovies] = useState([]);
     const [auditoriums, setAuditoriums] = useState([]);
     const [showtimes, setShowtimes] = useState([]);
+    const [cinemas, setCinemas] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const [selectedIds, setSelectedIds] = useState([]);
@@ -54,15 +55,18 @@ export default function ShowtimePageAdmin() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [movieRes, auditoriumRes, showtimeRes] = await Promise.all([
+            // 🛠️ แก้ไข: เพิ่ม cinemaRes เข้าไปใน array destructuring ให้ตรงกับจำนวน API ที่เรียก
+            const [movieRes, auditoriumRes, showtimeRes, cinemaRes] = await Promise.all([
                 axiosInstance.get('/movies'),
                 axiosInstance.get('/auditoriums'),
-                axiosInstance.get('/showtimes')
+                axiosInstance.get('/showtimes'),
+                axiosInstance.get('/cinemas')
             ]);
 
             setMovies(movieRes.data.data || []);
             setAuditoriums(auditoriumRes.data.data || []);
             setShowtimes(showtimeRes.data.data || []);
+            setCinemas(cinemaRes.data.data || []);
             setSelectedIds([]);
 
         } catch (error) {
@@ -280,7 +284,7 @@ export default function ShowtimePageAdmin() {
                                             }}
                                         >
                                             <option value="">-- เลือกสาขา (หรือทั้งหมด) --</option>
-                                            {uniqueCinemas.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                            {cinemas.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                                         </select>
                                     </div>
                                     <div className="form-group">

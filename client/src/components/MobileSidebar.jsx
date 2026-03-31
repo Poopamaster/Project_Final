@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import './MobileSidebar.css';
+import '../css/MobileSidebar.css';
 
 import { 
   Home, MessageSquare, Film, History, LogOut, 
