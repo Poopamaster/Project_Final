@@ -177,7 +177,9 @@ export const movieTools = [
                 const showtimes = await ShowtimeModel.find({
                     movie_id: movieObjectId,
                     auditorium_id: { $in: auditoriumIds },
-                    start_time: { $gte: today }
+                    start_time: { $gte: today },
+                    status: 'active'
+
                 }).select('start_time'); // ดึงมาแค่เวลาเพื่อประหยัดทรัพยากร
 
                 if (showtimes.length === 0) {
@@ -263,7 +265,8 @@ export const movieTools = [
                 const showtimes = await ShowtimeModel.find({
                     movie_id: movieObjectId,
                     auditorium_id: { $in: auditoriumIds },
-                    start_time: { $gte: startOfDay, $lte: endOfDay }
+                    start_time: { $gte: startOfDay, $lte: endOfDay },
+                    status: 'active'
                 }).populate({
                     path: 'auditorium_id',
                     options: { strictPopulate: false }
@@ -316,8 +319,8 @@ export const movieTools = [
                 }
 
                 const showtime = await ShowtimeModel.findById(showtimeId);
-                if (!showtime) {
-                    return { content: [{ type: "text", text: "ไม่พบข้อมูลรอบฉายครับ" }] };
+                if (!showtime || (showtime as any).status === 'cancelled') {
+                    return { content: [{ type: "text", text: "ขออภัยครับ ไม่พบข้อมูลรอบฉาย หรือรอบฉายนี้ถูกยกเลิกไปแล้วครับ รบกวนกดค้นหารอบใหม่อีกครั้งนะครับ" }] };
                 }
 
                 const audId = (showtime as any)?.auditorium_id?._id
@@ -435,7 +438,9 @@ export const movieTools = [
                     .populate('movie_id')
                     .lean();
 
-                if (!showtime) throw new Error("ไม่พบข้อมูลรอบฉายที่ระบุ");
+                if (!showtime || showtime.status === 'cancelled') {
+                    throw new Error("รอบฉายนี้ถูกยกเลิกไปแล้วครับ ไม่สามารถทำรายการจองได้");
+                }
 
                 const movieInfo = showtime.movie_id;
                 const movieTitle = movieInfo.title_th || "ไม่ระบุชื่อเรื่อง";
@@ -648,7 +653,8 @@ export const movieTools = [
                 const showtimes = await ShowtimeModel.find({
                     movie_id: movie._id as any,
                     auditorium_id: { $in: audIds as any },
-                    start_time: { $gte: startRange, $lte: endRange }
+                    start_time: { $gte: startRange, $lte: endRange },
+                    status: 'active'
                 }).sort({ start_time: 1 }).lean();
 
                 if (!showtimes || showtimes.length === 0) {
@@ -723,5 +729,5 @@ export const movieTools = [
                 return { content: [{ type: "text", text: `ระบบขัดข้องชั่วคราว: ${error.message}` }] };
             }
         }
-        }
+    }
 ];

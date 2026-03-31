@@ -46,8 +46,14 @@ const BookingPage = () => {
         const next7Days = Array.from({ length: 7 }, (_, i) => {
             const d = new Date(today);
             d.setDate(today.getDate() + i);
+
+            // ✅ แก้ไข: ประกอบ YYYY-MM-DD เองตามเวลาเครื่อง (Local Time) ป้องกันปัญหา Timezone
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+
             return {
-                fullDate: d.toISOString().split('T')[0],
+                fullDate: `${year}-${month}-${day}`, // ได้สตริงที่ตรงกับตาเห็น 100%
                 day: d.toLocaleDateString('th-TH', { weekday: 'short' }),
                 date: d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
             };
@@ -74,12 +80,25 @@ const BookingPage = () => {
         setBookingId(null);
 
         if (dates.length > 0 && allShowtimes.length > 0) {
-            const selectedDateObj = new Date(dates[selectedDateIndex].fullDate);
+            // ดึง "YYYY-MM-DD" ของวันที่เรากดเลือก
+            const selectedFullDateStr = dates[selectedDateIndex].fullDate;
 
             const filtered = allShowtimes.filter(st => {
                 const showtimeDate = new Date(st.start_time);
-                // เทียบแค่วันที่อย่างเดียว ไม่ต้องสนเวลาแล้ว
-                return showtimeDate.toLocaleDateString('en-CA') === selectedDateObj.toLocaleDateString('en-CA');
+
+                // ✅ แก้ไข: แปลงเวลาฉายให้เป็นสตริง YYYY-MM-DD รูปแบบเดียวกัน
+                const stYear = showtimeDate.getFullYear();
+                const stMonth = String(showtimeDate.getMonth() + 1).padStart(2, '0');
+                const stDay = String(showtimeDate.getDate()).padStart(2, '0');
+                const showtimeFullDateStr = `${stYear}-${stMonth}-${stDay}`;
+
+                // เทียบสตริงข้อความตรงๆ ไปเลย ปลอดภัยที่สุด
+                const isSameDate = showtimeFullDateStr === selectedFullDateStr;
+
+                // ตรวจสอบว่าต้องไม่ใช่รอบที่ถูกยกเลิกไปแล้ว
+                const isActive = st.status !== 'cancelled';
+
+                return isSameDate && isActive;
             });
 
             // เรียงเวลาจากเช้าไปดึก
@@ -236,10 +255,10 @@ const BookingPage = () => {
 
             <div className="booking-content">
 
-            <div className="back-btn-container">
+                <div className="back-btn-container">
                     <button className="back-btn" onClick={() => navigate(-1)}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                            <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                            <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z" />
                         </svg>
                         ย้อนกลับ
                     </button>

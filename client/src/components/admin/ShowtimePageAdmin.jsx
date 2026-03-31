@@ -71,9 +71,9 @@ export default function ShowtimePageAdmin() {
 
         } catch (error) {
             console.error("Fetch error:", error);
-            adminSwal.fire({ 
-                icon: 'error', 
-                title: 'Error', 
+            adminSwal.fire({
+                icon: 'error',
+                title: 'Error',
                 text: 'ไม่สามารถโหลดข้อมูลได้'
             });
         } finally {
@@ -118,8 +118,18 @@ export default function ShowtimePageAdmin() {
     }, [auditoriums]);
 
     const filteredAuditoriumsForCreate = useMemo(() => {
-        if (!selectedCreateCinema) return auditoriums;
-        return auditoriums.filter(a => a.cinema_id?._id === selectedCreateCinema);
+        // 1. ถ้ายังไม่เลือกสาขา ไม่ต้องโชว์โรง (ป้องกันการเลือกผิดสาขา)
+        if (!selectedCreateCinema) return [];
+
+        return auditoriums.filter(a => {
+            // 2. ดึง Cinema ID จากโรงหนัง (เช็คทั้งแบบ Object และ String)
+            const auditoriumCinemaId = (a.cinema_id && typeof a.cinema_id === 'object')
+                ? a.cinema_id._id
+                : a.cinema_id;
+
+            // 3. เทียบกับสาขาที่เลือกอยู่ใน Dropdown "เลือกสาขา"
+            return String(auditoriumCinemaId) === String(selectedCreateCinema);
+        });
     }, [auditoriums, selectedCreateCinema]);
 
     // --- Handlers ---
@@ -223,24 +233,34 @@ export default function ShowtimePageAdmin() {
         }
     };
 
-    const deleteApi = async (id) => { 
-        try { 
-            await axiosInstance.delete(`/showtimes/${id}`); 
-            adminSwal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1000, showConfirmButton: false });
-            fetchData(); 
-        } catch (e) { 
-            adminSwal.fire({ icon: 'error', title: 'ลบไม่สำเร็จ', text: e.message }); 
-        } 
+    const deleteApi = async (id) => {
+        try {
+            await axiosInstance.delete(`/showtimes/${id}`);
+            adminSwal.fire({ icon: 'success', title: 'ยกเลิกรอบฉายสำเร็จ', timer: 1000, showConfirmButton: false });
+            fetchData();
+        } catch (e) {
+            // ✅ แก้ไข: ดึงข้อความอธิบายที่ Backend ส่งมาให้ (e.response.data.message)
+            adminSwal.fire({
+                icon: 'error',
+                title: 'ไม่สามารถยกเลิกได้',
+                text: e.response?.data?.message || e.message
+            });
+        }
     };
 
-    const deleteBatchApi = async (batchId) => { 
-        try { 
-            await axiosInstance.delete(`/showtimes/batch/${batchId}`); 
-            adminSwal.fire({ icon: 'success', title: 'ลบกลุ่มสำเร็จ', timer: 1000, showConfirmButton: false });
-            fetchData(); 
-        } catch (e) { 
-            adminSwal.fire({ icon: 'error', title: 'ลบกลุ่มไม่สำเร็จ', text: e.message }); 
-        } 
+    const deleteBatchApi = async (batchId) => {
+        try {
+            await axiosInstance.delete(`/showtimes/batch/${batchId}`);
+            adminSwal.fire({ icon: 'success', title: 'ยกเลิกกลุ่มสำเร็จ', timer: 1000, showConfirmButton: false });
+            fetchData();
+        } catch (e) {
+            // ✅ แก้ไข: ดึงข้อความอธิบายที่ Backend ส่งมาให้
+            adminSwal.fire({
+                icon: 'error',
+                title: 'ไม่สามารถยกเลิกกลุ่มได้',
+                text: e.response?.data?.message || e.message
+            });
+        }
     };
 
     if (loading) return <div className="flex-center" style={{ marginTop: '50px', display: 'flex', justifyContent: 'center' }}><Loader2 className="animate-spin" color="#8b5cf6" /></div>;
@@ -276,22 +296,37 @@ export default function ShowtimePageAdmin() {
                                     <div className="form-group">
                                         <label className="form-label"><Monitor size={16} /> เลือกสาขา</label>
                                         <select
+                                            required
                                             className="form-select"
                                             value={selectedCreateCinema}
                                             onChange={e => {
                                                 setSelectedCreateCinema(e.target.value);
-                                                setFormData({ ...formData, auditorium_id: '' }); 
+                                                // 🛑 สำคัญมาก: เมื่อเปลี่ยนสาขา ต้องล้างค่าโรงเดิมทิ้งทันที
+                                                setFormData(prev => ({ ...prev, auditorium_id: '' }));
                                             }}
                                         >
-                                            <option value="">-- เลือกสาขา (หรือทั้งหมด) --</option>
+                                            <option value="">-- เลือกสาขา --</option>
                                             {cinemas.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                                         </select>
                                     </div>
+
                                     <div className="form-group">
                                         <label className="form-label"><Monitor size={16} /> เลือกโรงภาพยนตร์</label>
-                                        <select required className="form-select" value={formData.auditorium_id} onChange={e => setFormData({ ...formData, auditorium_id: e.target.value })}>
-                                            <option value="">-- กรุณาเลือกโรง --</option>
-                                            {filteredAuditoriumsForCreate.map(a => <option key={a._id} value={a._id}>{a.name} {(!selectedCreateCinema && a.cinema_id) ? `(${a.cinema_id.name})` : ''}</option>)}
+                                        <select
+                                            required
+                                            className="form-select"
+                                            value={formData.auditorium_id}
+                                            disabled={!selectedCreateCinema} // 🛑 ถ้าไม่เลือกสาขา ห้ามเลือกโรง
+                                            onChange={e => setFormData({ ...formData, auditorium_id: e.target.value })}
+                                        >
+                                            <option value="">
+                                                {selectedCreateCinema ? "-- กรุณาเลือกโรง --" : "-- กรุณาเลือกสาขาก่อน --"}
+                                            </option>
+                                            {filteredAuditoriumsForCreate.map(a => (
+                                                <option key={a._id} value={a._id}>
+                                                    {a.name}
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
                                 </div>
@@ -411,13 +446,14 @@ export default function ShowtimePageAdmin() {
                                 <th style={{ textAlign: 'left' }}>ภาพยนตร์</th>
                                 <th style={{ textAlign: 'center' }}>สาขา / โรง</th>
                                 <th style={{ textAlign: 'center' }}>วันเวลาที่ฉาย</th>
+                                <th style={{ textAlign: 'center' }}>สถานะ</th>
                                 <th style={{ textAlign: 'center' }}>จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredShowtimes.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="empty-state">
+                                    <td colSpan="6" className="empty-state"> {/* 🌟 แก้ colSpan เป็น 6 */}
                                         <div className="empty-content">
                                             <Filter size={40} />
                                             <span>ไม่พบข้อมูลตามเงื่อนไขที่เลือก</span>
@@ -425,35 +461,66 @@ export default function ShowtimePageAdmin() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredShowtimes.map((st) => (
-                                    <tr key={st._id} className={`data-row ${selectedIds.includes(st._id) ? 'selected' : ''}`}>
-                                        <td className="checkbox-cell" style={{ borderRadius: '12px 0 0 12px' }}>
-                                            <input
-                                                type="checkbox"
-                                                className="custom-checkbox"
-                                                checked={selectedIds.includes(st._id)}
-                                                onChange={() => handleSelectRow(st._id)}
-                                            />
-                                        </td>
-                                        <td>
-                                            <div className="text-movie-title">{st.movie_id?.title_th}</div>
-                                            <div className="text-movie-duration">{st.movie_id?.duration_min} นาที</div>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <div className="text-cinema">{st.auditorium_id?.name}</div>
-                                            <div className="text-cinema-loc">{st.auditorium_id?.cinema_id?.name}</div>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <div className="text-date">{dayjs(st.start_time).locale('th').format('DD MMM YYYY')}</div>
-                                            <div className="text-time">{dayjs(st.start_time).format('HH:mm')} น.</div>
-                                        </td>
-                                        <td className="action-cell" style={{ borderRadius: '0 12px 12px 0' }}>
-                                            <button className="btn-icon-delete" onClick={() => handleDeleteSingle(st)}>
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                filteredShowtimes.map((st) => {
+                                    // 🌟 2. เช็คว่า status เป็น cancelled หรือไม่
+                                    const isCancelled = st.status === 'cancelled';
+
+                                    return (
+                                        // 🌟 3. ปรับ Style ให้แถวที่ถูกยกเลิกดูสีดรอปลง (opacity)
+                                        <tr
+                                            key={st._id}
+                                            className={`data-row ${selectedIds.includes(st._id) ? 'selected' : ''}`}
+                                            style={{
+                                                opacity: isCancelled ? 0.6 : 1,
+                                                backgroundColor: isCancelled ? 'rgba(239, 68, 68, 0.05)' : 'transparent'
+                                            }}
+                                        >
+                                            <td className="checkbox-cell" style={{ borderRadius: '12px 0 0 12px' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    className="custom-checkbox"
+                                                    checked={selectedIds.includes(st._id)}
+                                                    onChange={() => handleSelectRow(st._id)}
+                                                    disabled={isCancelled} // 🌟 4. ถ้าโดนยกเลิกแล้ว ปิดไม่ให้ติ๊ก Checkbox ซ้ำ
+                                                />
+                                            </td>
+                                            <td>
+                                                <div className="text-movie-title" style={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>
+                                                    {st.movie_id?.title_th}
+                                                </div>
+                                                <div className="text-movie-duration">{st.movie_id?.duration_min} นาที</div>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div className="text-cinema">{st.auditorium_id?.name}</div>
+                                                <div className="text-cinema-loc">{st.auditorium_id?.cinema_id?.name}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div className="text-date">{dayjs(st.start_time).locale('th').format('DD MMM YYYY')}</div>
+                                                <div className="text-time">{dayjs(st.start_time).format('HH:mm')} น.</div>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                {/* 🌟 5. เพิ่ม Badge แสดงสถานะ */}
+                                                {isCancelled ? (
+                                                    <span style={{ backgroundColor: '#ef4444', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
+                                                        ถูกยกเลิก
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ backgroundColor: '#10b981', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
+                                                        เปิดจอง
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="action-cell" style={{ borderRadius: '0 12px 12px 0' }}>
+                                                {/* 🌟 6. ซ่อนปุ่มลบถ้ารอบถูกยกเลิกไปแล้ว */}
+                                                {!isCancelled && (
+                                                    <button className="btn-icon-delete" onClick={() => handleDeleteSingle(st)} title="ยกเลิกรอบฉาย">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

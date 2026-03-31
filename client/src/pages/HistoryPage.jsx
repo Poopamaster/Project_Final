@@ -62,7 +62,9 @@ const HistoryPage = () => {
                         seatsCount: item.seats?.length || 0,
                         totalPrice: item.total_price,
                         paymentMethod: 'PromptPay',
-                        status: item.status || 'confirmed',
+                        // 🌟 ดึงสถานะมาเช็คว่าถูกยกเลิกหรือไม่ (เช็คทั้งระดับบิลและระดับรอบฉาย)
+                        status: item.status === 'cancelled' || showtime.status === 'cancelled' ? 'cancelled' : (item.status || 'confirmed'),
+                        isCancelled: item.status === 'cancelled' || showtime.status === 'cancelled', // Flag ช่วยเช็คความง่ายในการ Render
                         poster: movie.poster_url || "https://placehold.co/100x150?text=No+Poster"
                     };
                 });
@@ -158,30 +160,47 @@ const HistoryPage = () => {
                                 gap: '20px'
                             }}>
                                 {groupedBookings[dateKey].map((booking, bIndex) => (
-                                    <div key={bIndex} className="ticket-card" style={{
-                                        background: '#1E293B',
+                                    <div key={bIndex} className={`ticket-card ${booking.isCancelled ? 'cancelled-ticket' : ''}`} style={{
+                                        background: booking.isCancelled ? '#1e1e1e' : '#1E293B', // เปลี่ยนสีพื้นหลังถ้าโดนยกเลิก
                                         borderRadius: '16px',
                                         padding: '20px',
-                                        border: '1px solid #334155',
+                                        border: booking.isCancelled ? '1px solid #ef4444' : '1px solid #334155', // ขอบแดงเตือนถ้าโดนยกเลิก
                                         display: 'flex',
                                         flexDirection: 'column',
                                         gap: '15px',
-                                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                                        opacity: booking.isCancelled ? 0.75 : 1 // ดรอปสีลงนิดหน่อย
                                     }}>
                                         {/* 🎬 ส่วนหัว: รูปหนัง + ชื่อ + สถานะ */}
                                         <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
-                                            <img src={booking.poster} alt="poster" style={{ width: '60px', height: '90px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #334155' }} />
+                                            <img src={booking.poster} alt="poster" style={{
+                                                width: '60px', height: '90px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #334155',
+                                                filter: booking.isCancelled ? 'grayscale(100%)' : 'none' // ทำภาพขาวดำถ้าโดนแคนเซิล
+                                            }} />
                                             <div style={{ flex: 1, overflow: 'hidden' }}>
-                                                <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                                <h3 style={{
+                                                    margin: '0 0 6px 0', fontSize: '1.1rem', color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden',
+                                                    textDecoration: booking.isCancelled ? 'line-through' : 'none'
+                                                }}>
                                                     {booking.movieTitle}
                                                 </h3>
-                                                <span className={`status-badge ${booking.status}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '12px' }}>
-                                                    <CheckCircle size={14} /> {booking.status.toUpperCase()}
+                                                <span className={`status-badge ${booking.status}`} style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '12px',
+                                                    backgroundColor: booking.isCancelled ? '#ef4444' : '#10b981', // แดง = ยกเลิก, เขียว = ปกติ
+                                                    color: 'white'
+                                                }}>
+                                                    {booking.isCancelled ? <AlertCircle size={14} /> : <CheckCircle size={14} />}
+                                                    {booking.status.toUpperCase()}
                                                 </span>
+                                                {booking.isCancelled && (
+                                                    <div style={{ fontSize: '0.75rem', color: '#fca5a5', marginTop: '4px' }}>
+                                                        รอบฉายนี้ถูกยกเลิก กรุณาติดต่อพนักงาน
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
-                                        {/* 📋 รายละเอียดแบบ Receipt Style (ครบทุกฟิลด์ตามของเดิมเป๊ะ) */}
+                                        {/* 📋 รายละเอียดแบบ Receipt Style */}
                                         <div style={{
                                             background: '#0F172A',
                                             padding: '16px',
@@ -228,35 +247,54 @@ const HistoryPage = () => {
 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <span style={{ color: '#94a3b8' }}>ยอดรวม:</span>
-                                                <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                                                <span style={{ color: booking.isCancelled ? '#94a3b8' : '#22c55e', fontWeight: 'bold', fontSize: '1.2rem', textDecoration: booking.isCancelled ? 'line-through' : 'none' }}>
                                                     {booking.totalPrice.toLocaleString()} ฿
                                                 </span>
                                             </div>
                                         </div>
 
-                                        {/* 🎟️ ปุ่มดาวน์โหลด */}
-                                        <button
-                                            className="download-btn"
-                                            onClick={() => handleDownloadTicket(booking)}
-                                            disabled={ticketData !== null}
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px',
-                                                borderRadius: '10px',
-                                                background: ticketData && ticketData.id === booking.id ? '#475569' : '#3b82f6',
-                                                color: 'white',
-                                                border: 'none',
-                                                cursor: ticketData !== null ? 'wait' : 'pointer',
-                                                display: 'flex',
-                                                justifyContent: 'center',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                fontWeight: 'bold',
-                                                transition: 'background 0.2s'
-                                            }}
-                                        >
-                                            <Download size={18} /> {ticketData && ticketData.id === booking.id ? 'กำลังสร้างรูป...' : 'Save E-Ticket'}
-                                        </button>
+                                        {/* 🎟️ ปุ่มดาวน์โหลด หรือ ปุ่มติดต่อ */}
+                                        {booking.isCancelled ? (
+                                            <button
+                                                className="refund-btn"
+                                                onClick={() => alert("กรุณาติดต่อเคาน์เตอร์ หรือส่งข้อความหาแอดมินพร้อมระบุ Booking Ref เพื่อขอคืนเงิน")}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '12px',
+                                                    borderRadius: '10px',
+                                                    background: '#3f3f46',
+                                                    color: '#f87171',
+                                                    border: '1px solid #ef4444',
+                                                    cursor: 'pointer',
+                                                    fontWeight: 'bold',
+                                                }}
+                                            >
+                                                ติดต่อขอรับเงินคืน
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="download-btn"
+                                                onClick={() => handleDownloadTicket(booking)}
+                                                disabled={ticketData !== null}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '12px',
+                                                    borderRadius: '10px',
+                                                    background: ticketData && ticketData.id === booking.id ? '#475569' : '#3b82f6',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    cursor: ticketData !== null ? 'wait' : 'pointer',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    fontWeight: 'bold',
+                                                    transition: 'background 0.2s'
+                                                }}
+                                            >
+                                                <Download size={18} /> {ticketData && ticketData.id === booking.id ? 'กำลังสร้างรูป...' : 'Save E-Ticket'}
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>

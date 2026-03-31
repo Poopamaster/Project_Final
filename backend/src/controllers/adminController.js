@@ -1,7 +1,6 @@
 const Movie = require('../models/movieModel');
 const Booking = require('../models/bookingModel');
 const User = require('../models/userModel');
-const Feedback = require('../models/feedbackModel'); // เพิ่มตัวนี้สำหรับหน้า Report
 const Log = require('../models/logSystemModel'); // สำหรับระบบ Log
 const ExcelJS = require('exceljs');
 const { chatWithAI } = require('../services/aiService');

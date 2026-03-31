@@ -1,6 +1,7 @@
 const Showtime = require('../models/showtimeModel');
 const Movie = require('../models/movieModel');
 const Seat = require('../models/seatModel');
+const Booking = require('../models/bookingModel');
 const dayjs = require('dayjs');
 const crypto = require('crypto');
 const systemLog = require('../utils/logger'); // 🌟 1. นำเข้า systemLog
@@ -136,24 +137,39 @@ exports.getAllShowtimes = async (req, res) => {
 exports.deleteShowtime = async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedShowtime = await Showtime.findByIdAndDelete(id);
 
-        if (!deletedShowtime) {
-            return res.status(404).json({ success: false, message: "ไม่พบรอบฉายที่ต้องการลบ" });
+        // 🛡️ 1. เช็คก่อนว่ารอบฉายนี้มีคนจองตั๋วไปหรือยัง?
+        const hasBookings = await Booking.findOne({ showtime_id: id });
+        if (hasBookings) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "ไม่สามารถยกเลิกรอบฉายได้ เนื่องจากมีลูกค้าจองตั๋วแล้ว กรุณาจัดการคืนเงินก่อน" 
+            });
         }
 
-        // 📝 บันทึก Log การลบ
+        // 🌟 2. เปลี่ยนจากการลบทิ้ง เป็นการอัปเดตสถานะ (Soft Delete)
+        const cancelledShowtime = await Showtime.findByIdAndUpdate(
+            id, 
+            { status: 'cancelled' }, 
+            { new: true }
+        );
+
+        if (!cancelledShowtime) {
+            return res.status(404).json({ success: false, message: "ไม่พบรอบฉายที่ต้องการยกเลิก" });
+        }
+
+        // 📝 บันทึก Log การยกเลิก
         if (typeof systemLog === 'function') {
             systemLog({
                 level: 'WARN',
                 actor: req.user || { id: 'unknown' },
-                context: { action: 'delete', table: 'showtimes', target_id: id },
-                note: `ลบรอบฉาย ID: ${id}`,
+                context: { action: 'cancel', table: 'showtimes', target_id: id },
+                note: `ยกเลิกรอบฉาย ID: ${id}`,
                 req: req
             }).catch(err => console.error("Log Error:", err));
         }
 
-        res.status(200).json({ success: true, message: "ลบรอบฉายเรียบร้อยแล้ว" });
+        res.status(200).json({ success: true, message: "ยกเลิกรอบฉายเรียบร้อยแล้ว" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -163,7 +179,12 @@ exports.deleteShowtime = async (req, res) => {
 exports.getShowtimesByMovie = async (req, res) => {
     try {
         const { movieId } = req.params;
-        const showtimes = await Showtime.find({ movie_id: movieId })
+        
+        // 🌟 ดึงเฉพาะรอบที่สถานะเป็น 'active' เท่านั้น (ซ่อน cancelled จากสายตาลูกค้า)
+        const showtimes = await Showtime.find({ 
+            movie_id: movieId, 
+            status: { $ne: 'cancelled' } // 👈 เปลี่ยนเป็นแบบนี้: ดึงทุกอย่างที่ไม่ได้ถูกยกเลิก
+        })
             .populate('auditorium_id')
             .sort({ start_time: 1 });
 
@@ -213,27 +234,39 @@ exports.deleteMultipleShowtimes = async (req, res) => {
     try {
         const { ids } = req.body; 
 
-        // 🛡️ ป้องกันบั๊ก 'length': เช็คว่า ids เป็น Array แน่นอน
         if (!Array.isArray(ids) || ids.length === 0) {
             return res.status(400).json({ success: false, message: "กรุณาระบุรายการที่ต้องการลบให้ถูกต้อง" });
         }
 
-        const result = await Showtime.deleteMany({ _id: { $in: ids } });
+        // 🛡️ เช็คว่าในกลุ่มนี้ มีรอบไหนโดนจองไปแล้วบ้างไหม
+        const hasBookings = await Booking.findOne({ showtime_id: { $in: ids } });
+        if (hasBookings) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "บางรอบฉายมีการจองตั๋วแล้ว ไม่สามารถยกเลิกแบบกลุ่มได้ โปรดตรวจสอบทีละรายการ" 
+            });
+        }
 
-        // 📝 บันทึก Log การลบแบบกลุ่ม
+        // 🌟 อัปเดตสถานะเป็น cancelled แทนการลบ 
+        // (ใช้ modifiedCount แทน deletedCount เพราะเราใช้ updateMany)
+        const result = await Showtime.updateMany(
+            { _id: { $in: ids } },
+            { $set: { status: 'cancelled' } }
+        );
+
         if (typeof systemLog === 'function') {
             systemLog({
                 level: 'WARN',
                 actor: req.user || { id: 'unknown' },
-                context: { action: 'delete', table: 'showtimes' },
-                note: `ลบรอบฉายแบบกลุ่มจำนวน ${result.deletedCount} รายการ`,
+                context: { action: 'cancel_bulk', table: 'showtimes' },
+                note: `ยกเลิกรอบฉายแบบกลุ่มจำนวน ${result.modifiedCount} รายการ`,
                 req: req
             }).catch(err => console.error("Log Error:", err));
         }
 
         res.status(200).json({ 
             success: true, 
-            message: `ลบเรียบร้อย ${result.deletedCount} รายการ` 
+            message: `ยกเลิกเรียบร้อย ${result.modifiedCount} รายการ` 
         });
 
     } catch (error) {
@@ -243,16 +276,30 @@ exports.deleteMultipleShowtimes = async (req, res) => {
 
 // ใน showtimeController.js (เพิ่มฟังก์ชันนี้เข้าไป)
 exports.deleteShowtimesByBatch = async (req, res) => {
-    console.log("👉 มีคนเรียก API ลบกลุ่ม! ID:", req.params.batchId); // 👈 เพิ่มบรรทัดนี้
     try {
-        const { batchId } = req.params; // รับจาก URL Parameter
+        const { batchId } = req.params;
 
-        // ลบทุกรอบฉายที่มี batch_id ตรงกับที่ส่งมา
-        const result = await Showtime.deleteMany({ batch_id: batchId }); 
+        // 🛡️ เช็คคนจองตั๋วใน Batch นี้
+        const hasBookings = await Booking.findOne({ 
+            showtime_id: { $in: await Showtime.find({ batch_id: batchId }).distinct('_id') } 
+        });
+        
+        if (hasBookings) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "บางรอบฉายในกลุ่มนี้มีการจองตั๋วแล้ว ไม่สามารถยกเลิกทั้งกลุ่มได้" 
+            });
+        }
+
+        // 🌟 เปลี่ยนสถานะเป็น cancelled
+        const result = await Showtime.updateMany(
+            { batch_id: batchId },
+            { $set: { status: 'cancelled' } }
+        ); 
 
         res.status(200).json({ 
             success: true, 
-            message: `ลบรอบฉายกลุ่มนี้เรียบร้อย ${result.deletedCount} รายการ` 
+            message: `ยกเลิกรอบฉายกลุ่มนี้เรียบร้อย ${result.modifiedCount} รายการ` 
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

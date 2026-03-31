@@ -8,6 +8,7 @@ const showtimeSchema = new mongoose.Schema({
     language: { type: String, required: true },
     base_price: { type: Number, required: true },
     batch_id: { type: String, default: null },
+    status: { type: String, enum: ['active', 'cancelled'], default: 'active' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Showtime', showtimeSchema);
