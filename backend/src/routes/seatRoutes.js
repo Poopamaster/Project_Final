@@ -4,7 +4,8 @@ const {
     createSeatType, 
     getAllSeatTypes, 
     autoGenerateSeats, 
-    getSeatsByAuditorium 
+    getSeatsByAuditorium ,
+    deleteSeatsByAuditorium
 } = require('../controllers/seatController');
 const { validate, schemas } = require('../middleware/validate');
 
@@ -19,5 +20,6 @@ router.post('/generate', authenticate, isAdmin, autoGenerateSeats);
 // --- 🌐 Authenticated/Public (ดึงข้อมูลไปแสดงผล) ---
 router.get('/type', getAllSeatTypes); // ดึงราคาไปแสดง
 router.get('/auditorium/:auditoriumId', getSeatsByAuditorium); // ดึงผังที่นั่งไปวาดหน้าเว็บ
+router.delete('/auditorium/:auditoriumId', authenticate, isAdmin, deleteSeatsByAuditorium);
 
 module.exports = router;

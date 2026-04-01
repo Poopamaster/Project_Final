@@ -127,3 +127,30 @@ exports.getSeatsByAuditorium = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// DELETE ลบที่นั่งทั้งหมดในโรงภาพยนตร์ (เผื่อสร้างพลาดแล้วอยากล้างผังใหม่)
+exports.deleteSeatsByAuditorium = async (req, res) => {
+    try {
+        const { auditoriumId } = req.params;
+        
+        // ลบที่นั่งทั้งหมดที่มี auditorium_id ตรงกับที่ส่งมา
+        const result = await Seat.deleteMany({ auditorium_id: auditoriumId });
+
+        // (Option) ถ้าพี่มี Logger ก็เปิดคอมเมนต์โค้ดด้านล่างนี้ได้ครับ
+        
+        systemLog({
+            level: 'WARNING',
+            actor: req.user,
+            context: { action: 'delete', table: 'seats', target_id: auditoriumId },
+            note: `ล้างผังที่นั่งในโรงฉาย (ลบไป ${result.deletedCount} ที่นั่ง)`,
+            req: req
+        }).catch(() => {});
+
+        res.status(200).json({ 
+            success: true, 
+            message: `ล้างผังที่นั่งสำเร็จ (ลบไป ${result.deletedCount} ตัว)` 
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

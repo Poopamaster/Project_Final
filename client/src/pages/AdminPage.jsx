@@ -3,8 +3,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom'; // 🌟 เพิ่ม useParams
 import {
     LayoutDashboard, Film, Ticket, Users,
-    MessageSquare, BarChart3, Settings, ShieldCheck,
-    ClipboardList, Monitor, QrCode // 🌟 เพิ่มไอคอน QrCode
+    MessageSquare, Clapperboard, Settings, ShieldCheck,
+    ClipboardList, Monitor, QrCode, Armchair // 🌟 เพิ่มไอคอน QrCode
 } from 'lucide-react';
 import { AuthContext } from '../App';
 import '../css/AdminDashboardPage.css';
@@ -20,6 +20,7 @@ import SettingsPage from '../components/admin/SettingsPage';
 import ShowtimePageAdmin from '../components/admin/ShowtimePageAdmin';
 import VerifyTicketPage from '../components/admin/VerifyTicketPage'; // 🌟 Import หน้า Verify
 import AdminCinemaPage from '../components/admin/AdminCinemaPage';
+import AdminSeatPage from '../components/admin/AdminSeatPage';
 
 const isTokenExpired = (token) => {
     if (!token) return true;
@@ -65,8 +66,9 @@ export default function AdminPage() {
 
     const menuItems = [
         { id: 'dashboard', label: 'ภาพรวม', icon: <LayoutDashboard size={20} /> },
-        { id : 'cinemas', label: 'จัดการโรงหนัง', icon: <Monitor size={20} /> },
+        { id : 'cinemas', label: 'จัดการโรงหนัง', icon: <Clapperboard size={20} /> },
         { id: 'add-movie', label: 'จัดการหนัง', icon: <Film size={20} /> },
+        { id: 'seats', label: 'จัดการที่นั่ง', icon: <Armchair size={20} /> },
         { id: 'showtime', label: 'จัดการรอบหนัง', icon: <Monitor size={20} /> },
         { id: 'bookings', label: 'การจอง', icon: <Ticket size={20} /> },
         { id: 'verify', label: 'ตรวจสอบตั๋ว', icon: <QrCode size={20} /> }, // 🌟 เพิ่มเมนูใหม่
@@ -124,6 +126,7 @@ export default function AdminPage() {
                     {page === 'dashboard' && <DashboardPage />}
                     {page === 'verify' && <VerifyTicketPage />} {/* 🌟 แสดงหน้า Verify */}
                     {page === 'add-movie' && <AddMoviePage onMovieAdded={() => setPage('dashboard')} />}
+                    {page === 'seats' && <AdminSeatPage />}
                     {page === 'showtime' && <ShowtimePageAdmin />}
                     {page === 'bookings' && <BookingPage />}
                     {page === 'customers' && <CustomerPageAdmin />}

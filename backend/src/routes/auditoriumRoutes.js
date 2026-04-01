@@ -3,7 +3,8 @@ const router = express.Router();
 const { 
     createAuditorium, 
     getAllAuditoriums, 
-    getAuditoriumsByCinemaId 
+    getAuditoriumsByCinemaId,
+    updateAuditorium
 } = require('../controllers/auditoriumController');
 const { validate, schemas } = require('../middleware/validate');
 
@@ -18,5 +19,7 @@ router.get('/', authenticate, isAdmin, getAllAuditoriums);
 
 // 3. ดูโรงฉายตามสาขา (User ทั่วไปใช้ตอนจองตั๋ว)
 router.get('/cinema/:cinemaId', authenticate, getAuditoriumsByCinemaId);
+
+router.put('/:id', authenticate, isAdmin, updateAuditorium);
 
 module.exports = router;

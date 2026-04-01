@@ -82,3 +82,35 @@ exports.deleteAuditorium = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// PUT /api/auditoriums/:id (แก้ไขโรงฉาย)
+exports.updateAuditorium = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, capacity, format, cinema_id } = req.body; 
+
+        // อัปเดตข้อมูลโรงหนัง รวมถึง cinema_id ที่ถูกเปลี่ยน
+        const updatedAuditorium = await Auditorium.findByIdAndUpdate(
+            id,
+            { name, capacity, format, cinema_id }, 
+            { new: true, runValidators: true }
+        ).populate('cinema_id', 'name');
+
+        if (!updatedAuditorium) {
+            return res.status(404).json({ success: false, message: "ไม่พบข้อมูลโรงภาพยนตร์" });
+        }
+
+        // 📝 บันทึก Log: การแก้ไขโรงฉาย
+        await systemLog({
+            level: 'INFO',
+            actor: req.user,
+            context: { action: 'update', table: 'auditoriums', target_id: id },
+            note: `แก้ไขโรงฉาย "${updatedAuditorium.name}" เปลี่ยนสาขาเป็น ${updatedAuditorium.cinema_id?.name || 'Unknown'}`,
+            req
+        }).catch(() => {});
+
+        res.status(200).json({ success: true, data: updatedAuditorium });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
