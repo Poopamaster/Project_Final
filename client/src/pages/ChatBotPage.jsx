@@ -19,6 +19,18 @@ const ChatBotPage = ({ isEmbedded = false }) => {
   // ✅ Hook 1: ดึง State พื้นฐาน
   const { messages, setMessages, isLoading, setIsLoading, messagesEndRef, clearChat } = useChatHistory(user);
 
+  React.useEffect(() => {
+    const handleAdminClearChat = () => {
+      clearChat(); // รันฟังก์ชันล้างแชทของหน้าลูก
+    };
+
+    // ดักฟัง Event ชื่อ 'trigger-clear-chat'
+    window.addEventListener('trigger-clear-chat', handleAdminClearChat);
+
+    // คืนค่าเพื่อลบ Event ออกตอนปิดหน้าเว็บ (กันบัคความจำรั่วไหล)
+    return () => window.removeEventListener('trigger-clear-chat', handleAdminClearChat);
+  }, [clearChat]);
+
   // ✅ Hook 2: จัดการ Input และการอัปโหลดไฟล์
   const {
     inputText, setInputText, selectedImage, imagePreview, isListening,
@@ -218,10 +230,46 @@ const ChatBotPage = ({ isEmbedded = false }) => {
         <main className="chat-window" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
 
           {!isEmbedded && (
-            <header className="chat-header">
-              <div className="header-left">
+            <header className="chat-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div className="bot-avatar-header"><Bot size={24} color="white" /></div>
-                <div className="header-text"><h2>CineBot</h2><p>ผู้ช่วยจองตั๋วหนัง</p></div>
+                <div className="header-text">
+                  <h2 style={{ margin: 0 }}>CineBot</h2>
+                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>ผู้ช่วยจองตั๋วหนัง</p>
+                </div>
+              </div>
+
+              {/* ✨ เพิ่มปุ่มลบแชทมุมขวาบน สำหรับ Desktop */}
+              <div className="header-right">
+                <button
+                  onClick={clearChat}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    background: 'rgba(239, 68, 68, 0.1)', // สีแดงจางๆ
+                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                    color: '#ef4444',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = '#ef4444';
+                    e.currentTarget.style.color = '#ffffff';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                    e.currentTarget.style.color = '#ef4444';
+                  }}
+                  title="ล้างประวัติการสนทนา"
+                >
+                  <Trash2 size={16} />
+                  <span className="hidden sm:inline">ล้างแชท</span>
+                </button>
               </div>
             </header>
           )}
