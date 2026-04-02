@@ -71,8 +71,8 @@ const HeroSection = ({
         />
         <Tag 
           icon={<Heart size={16} color="#F472B6" />} 
-          text="หนังโรแมนติก" 
-          onClick={() => handleTagClick("หนังโรแมนติก")}
+          text="โรงหนังใกล้ฉัน" 
+          onClick={() => handleTagClick("โรงหนังใกล้ฉัน")}
           disabled={isLoading}
         />
       </div>
