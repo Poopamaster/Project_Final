@@ -76,8 +76,8 @@ export default function AddMoviePage() {
             try {
                 await Promise.all(selectedMovies.map(id => axiosInstance.delete(`/admin/movies/${id}`)));
                 alert("ลบภาพยนตร์ที่เลือกเรียบร้อยแล้ว");
-                setSelectedMovies([]); 
-                fetchMovies(); 
+                setSelectedMovies([]);
+                fetchMovies();
             } catch (err) {
                 alert("เกิดข้อผิดพลาดในการลบข้อมูลบางรายการ");
             }
@@ -205,7 +205,7 @@ export default function AddMoviePage() {
                     <h2 style={{ color: 'white', fontSize: '1.4rem', margin: 0 }}>
                         {viewMode === 'tmdb' ? "เพิ่มหนังผ่าน TMDB API" : viewMode === 'manual' ? "เพิ่มภาพยนตร์ (Manual)" : `รายการหนังทั้งหมด (${movies.length})`}
                     </h2>
-                    
+
                     {/* ✅ ใช้คลาส CSS ที่แยกออกมาจัดการปุ่มให้เท่ากัน */}
                     <div className="action-buttons">
                         {viewMode !== 'list' && (
@@ -339,7 +339,7 @@ export default function AddMoviePage() {
                                                 <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
                                                     <input type="checkbox" checked={selectedMovies.includes(movie._id)} onChange={() => toggleSelectMovie(movie._id)} style={{ width: '22px', height: '22px', cursor: 'pointer', accentColor: '#ef4444' }} />
                                                 </div>
-                                                <img src={movie.poster_url || "https://placehold.co/500x750?text=No+Image"} className="movie-poster-img" alt={movie.title_th} />
+                                                <img src={getImageUrl(movie.poster_url)} className="movie-poster-img" alt={movie.title_th} />
                                                 <div className="movie-card-info">
                                                     <h3 style={{ fontSize: '1rem', color: 'white', marginBottom: '5px' }}>{movie.title_th}</h3>
                                                     <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>{movie.title_en}</p>
