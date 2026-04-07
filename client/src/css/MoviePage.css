@@ -1,0 +1,335 @@
+/* src/css/MoviePage.css */
+
+/* --- Global Styles --- */
+body {
+    background-color: #0B1120;
+    color: white;
+    font-family: 'Prompt', sans-serif;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- ส่วนแถบค้นหา (Search Bar) --- */
+.filter-section {
+    background-color: #F5F5F5;
+    padding: 20px 0;
+    display: flex;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    
+    position: relative; 
+    z-index: 1;
+}
+
+.search-box {
+    background: white;
+    padding: 10px 20px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+    width: 90%;
+    max-width: 800px;
+    flex-wrap: wrap; /* ให้เนื้อหาตกลงมาได้ในจอเล็ก */
+}
+
+/* Dropdown Styles */
+.dropdown {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    color: #333;
+    font-family: 'Prompt', sans-serif;
+    cursor: pointer;
+    outline: none;
+    flex: 1; /* ยืดเต็มพื้นที่ */
+    padding: 10px;
+    min-width: 150px;
+    
+    /* Custom Arrow */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+}
+
+.dropdown:first-of-type {
+    border-right: 1px solid #ddd;
+}
+
+.search-btn {
+    background-color: #2D9CDB;
+    color: white;
+    border: none;
+    height: 40px;
+    padding: 0 25px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: 'Prompt', sans-serif;
+    transition: all 0.2s ease;
+    white-space: nowrap; /* ห้ามตัวหนังสือขึ้นบรรทัดใหม่ */
+}
+
+.search-btn:hover {
+    background-color: #1a85c0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(45, 156, 219, 0.3);
+}
+
+/* --- ส่วนเนื้อหาหลัก --- */
+.content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 20px;
+    background: linear-gradient(90deg, #fff, #aaa);
+    -webkit-text-fill-color: transparent;
+}
+
+/* --- Tabs --- */
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 0;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding-bottom: 10px;
+    transition: 0.3s;
+    font-family: 'Prompt', sans-serif;
+    position: relative;
+}
+
+.tab-btn:hover {
+    color: #bbb;
+}
+
+.tab-btn.active {
+    color: #7B61FF;
+    font-weight: bold;
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #7B61FF;
+    border-radius: 2px;
+}
+
+.divider {
+    height: 1px;
+    background-color: rgba(255,255,255,0.1);
+    margin-bottom: 40px;
+}
+
+.movie-grid {
+    display: grid;
+    /* ✅ ใช้ minmax 220px และไม่เกิน 1fr */
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+    gap: 30px;
+    padding: 20px;
+    justify-content: center;
+    max-width: 1300px; /* ✅ เพิ่มบรรทัดนี้: ล็อกความกว้างไม่ให้การ์ดขยายจนรูปเบี้ยว */
+    margin: 0 auto;    /* ✅ เพิ่มบรรทัดนี้: จัดกลุ่ม Grid ให้อยู่กลางจอ */
+}
+
+.movie-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.movie-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    border-color: rgba(123, 97, 255, 0.5);
+}
+
+.poster-wrapper {
+    width: 100%;
+    /* ล็อคสัดส่วนภาพเป็น 2:3 (มาตรฐานโปสเตอร์หนัง) เสมอ */
+    aspect-ratio: 2 / 3; 
+    overflow: hidden;
+    position: relative;
+    background-color: #000; /* สีรองพื้นกันโหลดไม่ทัน */
+}
+
+.poster-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
+    display: block; /* ลบช่องว่างเล็กๆ ใต้ภาพ */
+    transition: transform 0.5s ease;
+}
+
+.movie-card:hover .poster-img {
+    transform: scale(1.05); /* ซูมรูปนิดหน่อยตอนเอาเมาส์ชี้ */
+}
+
+/* ส่วนข้อมูลหนัง */
+.movie-info {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* ส่วนนี้จะยืดจนเต็มพื้นที่ที่เหลือ ทำให้ปุ่มถูกดันลงล่างสุด */
+}
+
+.movie-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    
+    /* ตัดคำถ้าชื่อยาวเกิน 1 บรรทัด (ป้องกันปุ่มตกขอบ) */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.movie-meta {
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.audio-badge {
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    width: fit-content;
+    margin-bottom: 15px;
+}
+
+/* ปุ่มกด */
+.detail-btn {
+    width: 100%;
+    padding: 12px;
+    background: white;
+    color: #0B1120;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: auto; /* ***คำสั่งนี้จะดันปุ่มไปล่างสุดของ Card เสมอ*** */
+    transition: all 0.2s;
+}
+
+.detail-btn:hover {
+    background: #7B61FF;
+    color: white;
+    box-shadow: 0 0 15px rgba(123, 97, 255, 0.4);
+}
+
+/* --- Responsive Design (มือถือ & แท็บเล็ต) --- */
+@media (max-width: 768px) {
+    .section-title {
+        font-size: 1.8rem;
+    }
+
+    /* ปรับแถบค้นหาบนมือถือ */
+    .search-box {
+        flex-direction: column; /* เรียงลงมาแนวตั้ง */
+        border-radius: 20px;
+        width: 100%;
+        padding: 15px;
+        gap: 10px;
+    }
+
+    .dropdown {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        padding: 10px 0;
+    }
+    
+    .dropdown:first-of-type {
+        border-right: none;
+    }
+
+    .search-btn {
+        width: 100%; /* ปุ่มเต็มความกว้าง */
+        margin-top: 10px;
+    }
+
+    /* ✅ แก้ไข: ปรับ Grid มือถือให้แสดง 2 คอลัมน์ (ซ้าย-ขวา) */
+    .movie-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* ปรับให้ยืดหยุ่นตามความกว้างจอ */
+        gap: 12px;
+        padding: 10px;
+        justify-content: center; /* จัดกลุ่มการ์ดให้อยู่กลางหน้าจอ */
+    }
+
+    .movie-card {
+        max-width: none;
+        margin: 0;
+        width: 100%;
+    }
+
+    .poster-wrapper {
+        aspect-ratio: 2 / 3;
+        max-height: none;
+    }
+
+    /* ปรับขนาดตัวอักษรให้เหมาะกับ 2 คอลัมน์ */
+    .movie-title {
+        font-size: 0.95rem; 
+        line-height: 1.3;
+        margin-bottom: 5px;
+        white-space: nowrap; 
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .movie-meta {
+        font-size: 0.75rem;
+        gap: 5px;
+        margin-bottom: 8px;
+    }
+
+    .audio-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        margin-bottom: 10px;
+    }
+    
+    .detail-btn {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+    
+    .movie-info {
+        padding: 10px;
+    }
+}

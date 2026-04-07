@@ -1,16 +1,21 @@
+/* src/css/navbar.css */
+
 .navbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  padding: 1rem 0.5rem;
+  padding: 1rem 1.5rem;
   background-color: var(--bg-color);
   border-bottom: 1px solid #1f2937;
+  position: relative;
+  z-index: 1000;
 }
 
 .nav-brand {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  z-index: 1001;
 }
 
 .brand-icon {
@@ -28,46 +33,243 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  color: white;
+  text-decoration: none;
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-grow: 1;
+  justify-content: space-between;
 }
 
 .nav-links {
   display: flex;
   gap: 2rem;
+  margin: 0 auto;
 }
 
 .nav-link {
   color: #d1d5db;
   text-decoration: none;
   transition: color 0.3s;
+  font-size: 1rem;
 }
 
 .nav-link:hover {
   color: white;
 }
 
+.menu-icon {
+  display: none; /* ซ่อนบน Desktop เสมอ */
+  cursor: pointer;
+  z-index: 1001;
+  align-items: center; /* เตรียมไว้สำหรับตอนโชว์ */
+}
+
 .nav-login-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: var(--primary-blue);
+  background-color: var(--primary-blue, #2563eb);
   color: white;
   padding: 0.5rem 1rem;
   border: none;
-  border-radius: 9999px; /* Pill shape */
+  border-radius: 9999px;
   font-family: 'Prompt', sans-serif;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
-  
+  white-space: nowrap;
 }
 
 .nav-login-btn:hover {
-  background-color: #0077c8;
+  background-color: #1d4ed8;
 }
 
-/* Responsive: Hide links on mobile */
+.nav-user-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-name {
+  color: white;
+  font-family: 'Prompt', sans-serif;
+  font-weight: 500;
+}
+
+.nav-logout-btn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-logout-btn:hover {
+  background-color: #dc2626;
+  transform: scale(1.1);
+}
+
+.nav-admin-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.1); /* พื้นหลังใสๆ */
+    color: #fbbf24; /* สีเหลืองทอง ให้ดูพรีเมียม/Admin */
+    border: 1px solid #fbbf24;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin-right: 1rem; /* เว้นระยะห่างจากชื่อ User */
+}
+
+.nav-admin-btn:hover {
+    background-color: #fbbf24;
+    color: black;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+/* ปรับ User Info ให้จัดเรียงสวยขึ้น */
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* ชิดขวา */
+    line-height: 1.2;
+}
+
+.user-badge {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* --- Responsive Layout (Mobile) --- */
 @media (max-width: 768px) {
-  .nav-links {
-    display: none;
+  .menu-icon {
+    display: flex; /* ✅ สั่งให้โชว์เฉพาะ Mobile ตรงนี้ */
   }
+
+  .nav-menu {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: -100%;
+    width: 100%;
+    background-color: var(--bg-color, #111827);
+    padding: 2rem 0;
+    transition: all 0.3s ease-in-out;
+    border-bottom: 1px solid #1f2937;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .nav-menu.active {
+    left: 0;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .nav-link {
+    font-size: 1.1rem;
+    width: 100%;
+    text-align: center;
+    padding: 0.5rem 0;
+  }
+
+  .nav-auth-section {
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .nav-admin-btn {
+        margin-right: 0;
+        width: 100%; /* เต็มจอในมือถือ */
+        justify-content: center;
+        background-color: rgba(251, 191, 36, 0.1);
+    }
+    
+    .nav-user-profile {
+        flex-direction: column;
+        width: 100%;
+        gap: 1.5rem;
+    }
+
+    .user-info {
+        align-items: center;
+    }
+}
+
+/* =========================================
+   ✅ LOADING SCREEN STYLES (เพิ่มส่วนนี้)
+   ========================================= */
+
+/* ฉากหลังคลุมเต็มหน้าจอ */
+.global-loader-overlay {
+    position: fixed;      /* ลอยทับทุกอย่าง */
+    top: 0;
+    left: 0;
+    width: 100vw;         /* กว้างเต็มจอ */
+    height: 100vh;        /* สูงเต็มจอ */
+    background-color: rgba(11, 17, 32, 0.95); /* สีพื้นหลังดำโปร่งแสงนิดๆ */
+    display: flex;        /* ใช้ Flexbox จัดกลาง */
+    justify-content: center; /* กลางแนวนอน */
+    align-items: center;     /* กลางแนวตั้ง */
+    z-index: 99999;       /* เลขเยอะๆ เพื่อให้ทับ Navbar และทุกอย่าง */
+    backdrop-filter: blur(5px); /* เบลอฉากหลังนิดๆ เพื่อความสวยงาม */
+}
+
+/* กล่องเนื้อหาข้างใน (Icon + ข้อความ) */
+.full-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    color: white;
+    text-align: center;
+}
+
+/* ข้อความ Loading */
+.full-loader p {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    color: #fff;
+}
+
+.full-loader small {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+/* Animation หมุนติ้วๆ */
+.spin-animation {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }

@@ -1,0 +1,169 @@
+/* src/pages/VerifyTicketPage.css (หรือที่ไหนที่คุณเก็บ) */
+
+.vf-verify-container {
+    font-family: 'Kanit', sans-serif;
+}
+
+/* การ์ดตั๋วหลัก */
+.vf-ticket-card {
+    background: #1e212f;
+    width: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-top: 8px solid #334155; 
+    margin-top: 20px;
+}
+
+/* 🟢 สถานะ: VALID (ผ่าน) */
+.vf-ticket-card.vf-status-valid {
+    border-top-color: #22c55e;
+}
+.vf-ticket-card.vf-status-valid .vf-status-icon { color: #22c55e; }
+.vf-ticket-card.vf-status-valid .vf-status-title { color: #22c55e; }
+
+/* 🟡 สถานะ: EXPIRED (หมดอายุ) */
+.vf-ticket-card.vf-status-expired {
+    border-top-color: #f59e0b;
+}
+.vf-ticket-card.vf-status-expired .vf-status-icon { color: #f59e0b; }
+.vf-ticket-card.vf-status-expired .vf-status-title { color: #f59e0b; }
+
+/* 🔴 สถานะ: NOT_FOUND / CANCELLED (ไม่ผ่าน) */
+.vf-ticket-card.vf-status-not_found,
+.vf-ticket-card.vf-status-cancelled {
+    border-top-color: #ef4444;
+}
+.vf-ticket-card.vf-status-not_found .vf-status-icon,
+.vf-ticket-card.vf-status-cancelled .vf-status-icon { color: #ef4444; }
+.vf-ticket-card.vf-status-not_found .vf-status-title,
+.vf-ticket-card.vf-status-cancelled .vf-status-title { color: #ef4444; }
+
+
+/* ส่วน Header */
+.vf-ticket-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px 20px;
+    background-color: rgba(0,0,0,0.2);
+    border-bottom: 2px dashed #334155;
+    text-align: center;
+}
+
+.vf-status-icon {
+    font-size: 3.5rem;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+
+.vf-status-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.vf-booking-ref {
+    color: #94a3b8;
+    margin: 10px 0 0 0;
+    font-size: 0.9rem;
+}
+
+
+/* ส่วน Body */
+.vf-ticket-body {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.vf-movie-info {
+    text-align: center;
+    width: 100%;
+}
+
+.vf-movie-title {
+    margin: 0 0 5px 0;
+    font-size: 1.4rem;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.vf-cinema-name {
+    margin: 0;
+    color: #22d3ee;
+    font-size: 0.95rem;
+}
+
+
+/* กล่องเวลา */
+.vf-time-info {
+    display: flex;
+    flex-direction: row; 
+    justify-content: space-around;
+    align-items: center;
+    background: #0f172a;
+    padding: 15px;
+    border-radius: 12px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.vf-time-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.vf-time-label {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    white-space: nowrap; 
+}
+
+.vf-time-value {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #fbbf24;
+    margin-top: 5px;
+}
+
+.vf-time-divider {
+    color: #334155;
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* ข้อมูลที่นั่ง */
+.vf-seat-info {
+    background: #312e81; 
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.vf-seat-label {
+    display: block;
+    color: #a5b4fc;
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+}
+
+.vf-seat-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ffffff;
+    word-break: break-word;
+}
+
+/* ข้อมูลคนจอง */
+.vf-user-info {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 10px;
+}

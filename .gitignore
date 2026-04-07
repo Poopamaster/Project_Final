@@ -36,3 +36,5 @@ coverage/
 
 # --- Vite Specific ---
 *.tsbuildinfo
+
+mcp-config.json

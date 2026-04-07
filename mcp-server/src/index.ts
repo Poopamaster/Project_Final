@@ -1,60 +1,39 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+// src/index.ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
+import { movieTools } from "./tools/movieTools.js";
+import { adminTools } from "./tools/adminTools.js";
 
-// สร้าง Server Instance
-const server = new Server(
-  {
-    name: "my-mcp-server",
-    version: "1.0.0",
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  }
-);
+// เพิ่ม interface สำหรับ Tool
+interface Tool {
+  name: string;
+  description: string;
+  args: any;
+  handler: (...args: any[]) => any;
+}
 
-// นิยาม Tools ที่ AI เรียกใช้ได้
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      {
-        name: "get_server_status",
-        description: "Get the status of the backend server",
-        inputSchema: {
-          type: "object",
-          properties: {},
-        },
-      },
-    ],
-  };
+const server = new McpServer({
+  name: "cinema-mcp-server",
+  version: "1.0.0",
 });
 
-// Logic เมื่อ Tool ถูกเรียกใช้งาน
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name === "get_server_status") {
-    return {
-      content: [
-        {
-          type: "text",
-          text: "Backend Server is active and ready.",
-        },
-      ],
-    };
-  }
-  throw new Error("Tool not found");
+// รวม Tools ทั้งหมดไว้ใน Array เดียว พร้อม type
+const allTools: Tool[] = [...movieTools, ...adminTools];
+
+// วนลูป Register Tools อัตโนมัติ
+allTools.forEach((tool) => {
+  server.tool(
+      tool.name,
+      tool.description, // ✨ ส่ง description ให้ SDK ด้วย
+      tool.args,
+      tool.handler
+  );
 });
 
-// เริ่มต้น Server ผ่าน Stdio (Standard Input/Output)
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("MCP Server running on stdio");
+  console.error("Cinema MCP Server started with Modular Architecture! 🚀");
 }
 
-main().catch((error) => {
-  console.error("Server error:", error);
-  process.exit(1);
-});
+main();

@@ -1,31 +1,195 @@
+/* ไฟล์: src/css/RecommendedSection.css */
+
+/* --- Container --- */
 .rec-container {
-  max-width: 1200px;
+  width: 95%; 
+  max-width: 1800px; 
   margin: 0 auto;
-  padding: 0 2rem 4rem;
+  padding: 1rem 0 3rem; 
+  color: white;
 }
 
 .rec-header {
-  font-size: 1.5rem;
-  font-weight: 700;
   margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding-left: 0.5rem; 
+  border-left: 4px solid #3B82F6; 
+  line-height: 1.2;
 }
 
+/* --- Grid System (Responsive หัวใจสำคัญ) --- */
 .rec-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
+  /* 🚀 แก้ตรงนี้: เปลี่ยน minmax เป็น 130px เพื่อให้มือถือยัดได้อย่างน้อย 2 คอลัมน์ */
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 1rem; /* ลดระยะห่างบนมือถือลงนิดนึง */
 }
 
-/* Tablet */
-@media (min-width: 640px) {
-  .rec-grid {
-    grid-template-columns: repeat(2, 1fr);
+/* --- Movie Card --- */
+.movie-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 2/3; 
+  background-color: #1e293b; 
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.movie-card:hover {
+  transform: translateY(-5px); 
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+}
+
+.movie-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* --- Overlay --- */
+.movie-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.95);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 10px; /* ลด padding บนมือถือ */
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.movie-card:hover .movie-overlay {
+  opacity: 1;
+}
+
+.movie-title {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: white;
+  margin-top: 10px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  
+  /* 🚀 พระเอกของเรา: ล็อคเนื้อที่ให้กินพื้นที่ 2 บรรทัดเป๊ะๆ */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.8em; /* บังคับให้สูงเท่ากับ 2 บรรทัดเสมอ (1.4 * 2) แม้เรื่องนั้นจะมีแค่บรรทัดเดียว */
+}
+
+.movie-info {
+  font-size: 0.75rem; /* ลดขนาดฟอนต์บนมือถือ */
+  color: #cbd5e1;
+  margin: 4px 0;
+}
+
+.btn-view {
+  margin-top: 10px;
+  padding: 6px 14px;
+  background-color: #3B82F6;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem; /* ลดขนาดปุ่มบนมือถือ */
+  transition: background 0.2s;
+}
+
+.btn-view:hover {
+  background-color: #2563EB;
+}
+
+/* --- Date Badges --- */
+.movie-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.date-badge {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px;
+  border-radius: 6px;
+  display: inline-block;
+  width: 100%; 
+}
+
+.badge-expiring {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.badge-upcoming {
+  color: #4ade80;
+  background-color: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.genre-badge {
+  display: block;          
+  width: 100%;
+  margin-top: auto;
+  padding: 6px 8px;        
+  background-color: #334155; 
+  color: #f1f5f9;          
+  border: 1px solid #475569; 
+  font-size: 0.75rem;        
+  text-align: center;      
+  border-radius: 4px;      
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 🚀 --- Media Queries สำหรับหน้าจอใหญ่ (Desktop/Tablet) --- */
+@media (min-width: 768px) {
+  .rec-container {
+    width: 90%;
+    padding: 0 1rem 3rem;
   }
-}
-
-/* Desktop */
-@media (min-width: 1024px) {
+  
   .rec-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* คืนค่าให้จอใหญ่กว้างขึ้น */
+    gap: 1.5rem;
+  }
+
+  .rec-header {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+  }
+
+  .movie-title {
+    font-size: 1.1rem; /* ขยายฟอนต์กลับ */
+    margin-bottom: 8px;
+  }
+
+  .movie-info {
+    font-size: 0.85rem;
+  }
+
+  .btn-view {
+    margin-top: 15px;
+    padding: 8px 20px;
+    font-size: 0.9rem;
+  }
+  
+  .date-badge, .genre-badge {
+    font-size: 0.85rem;
   }
 }

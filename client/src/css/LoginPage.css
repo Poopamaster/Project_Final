@@ -1,0 +1,215 @@
+/* นำเข้าฟอนต์ Prompt (ถ้ายังไม่ได้ใส่ใน index.css) */
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+/* ⭐️ CSS สำหรับการแสดง Alert ที่มุมล่างขวา */
+#fixed-alert-container {
+    /* ใช้ fixed เพื่อให้อยู่คงที่แม้มีการ scroll */
+    position: fixed;
+    bottom: 20px;
+    /* ระยะห่างจากด้านล่าง 20px */
+    right: 20px;
+    /* ระยะห่างจากด้านขวา 20px */
+    width: auto;
+    /* ให้ความกว้างปรับตามเนื้อหา */
+    max-width: 400px;
+    /* จำกัดความกว้างไม่ให้ใหญ่เกินไป */
+    z-index: 1000;
+    /* ให้ Alert อยู่บนสุด */
+}
+
+#fixed-alert-container .MuiAlert-root {
+    width: 100%;
+    /* ทำให้ Alert กว้างเต็ม max-width ที่กำหนด */
+}
+
+/* ------------------------------------------- */
+/* โค้ด CSS เดิม */
+
+.login-page-bg {
+    min-height: 100vh;
+    background-color: #0B1120;
+    /* สีพื้นหลัง Dark Blue ตาม Theme หลัก */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    font-family: 'Prompt', sans-serif;
+}
+
+.login-card-container {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 480px;
+    padding: 2.5rem 2rem;
+    border-radius: 16px;
+    /* มุมโค้งมนตามรูป */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Header */
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+    color: #6b7280;
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+/* Form Styles */
+.login-form {
+    width: 100%;
+}
+
+.login-form.form-group {
+    margin-bottom: 1.25rem;
+    text-align: left;
+}
+
+.login-form.form-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.login-form .form-input {
+    color: black;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    /* Input มนๆ */
+    background-color: #f9fafb;
+    font-size: 1rem;
+    font-family: 'Prompt', sans-serif;
+    outline: none;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    /* สำคัญเพื่อไม่ให้ padding ดัน layout */
+}
+
+.login-form .form-input:focus {
+    border-color: #3b5bdb;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.1);
+}
+
+.login-form .form-input::placeholder {
+    color: #9ca3af;
+}
+
+/* Checkbox */
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.remember-me input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Submit Button */
+.btn-submit {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #2e3b55;
+    /* สีน้ำเงินเข้มอมเทาตามรูป */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-family: 'Prompt', sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-submit:hover {
+    background-color: #1f2937;
+}
+
+.btn-submit:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Divider */
+.divider {
+    width: 100%;
+    text-align: center;
+    border-bottom: 1px solid #e5e7eb;
+    line-height: 0.1em;
+    margin: 2rem 0;
+}
+
+.divider span {
+    background: #fff;
+    padding: 0 10px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+}
+
+/* Google Button */
+.btn-google {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-family: 'Prompt', sans-serif;
+}
+
+.btn-google:hover {
+    background-color: #f9fafb;
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Footer */
+.login-footer {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.register-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+
+}
+
+.register-link:hover {
+    text-decoration: underline;
+}

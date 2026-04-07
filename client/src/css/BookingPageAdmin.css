@@ -1,0 +1,64 @@
+/* Table Styles */
+.admin-custom-table {
+  border-collapse: separate;
+  border-spacing: 0 8px; /* เว้นระยะระหว่างแถว 8px */
+  width: 100%;
+}
+
+.admin-custom-table thead th {
+  padding: 12px 8px;
+  color: #94a3b8;
+  font-weight: 500;
+  text-align: left;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #334155;
+}
+
+.admin-custom-table tbody tr {
+  background-color: #1e212f; /* สีพื้นหลังแถว */
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.admin-custom-table tbody tr:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background-color: #262a3b;
+}
+
+.admin-custom-table tbody td {
+  padding: 16px 10px; /* เพิ่มพื้นที่หายใจในแต่ละช่อง */
+  vertical-align: top; /* สำคัญ! ให้ข้อความเริ่มที่ด้านบนเสมอ */
+  border-top: 1px solid #334155;
+  border-bottom: 1px solid #334155;
+}
+
+/* ปิดหัวท้ายให้โค้งมนสวยงาม */
+.admin-custom-table tbody td:first-child {
+  border-left: 1px solid #334155;
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.admin-custom-table tbody td:last-child {
+  border-right: 1px solid #334155;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Badge Styles */
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  display: inline-block;
+}
+.status-pill.paid {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.status-pill.pending {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
