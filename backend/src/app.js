@@ -20,12 +20,16 @@ const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
+// 🌟 สิ่งที่เพิ่มเข้ามา: บอกให้ Express ไว้ใจ Proxy ของ Vercel (แก้บัค Rate Limit)
+app.set('trust proxy', 1);
+
 // 1. ✅ CORS ต้องอยู่บนสุด เพื่ออนุญาตให้ Frontend คุยกับ Backend
 const allowedOrigins = [
     process.env.FRONTEND_URL,
     'http://localhost:5173',
     'http://localhost:8000',
-    'profound-enchantment-production-90c0.up.railway.app'
+    'profound-enchantment-production-90c0.up.railway.app',
+    'https://mcp-cinema-project-final.vercel.app' // อย่าลืมเพิ่มโดเมนของ Vercel ตัวเองด้วยนะครับ
 ].filter(Boolean); // ✅ กรอง undefined/null ออก
  
 app.use(cors({
@@ -37,6 +41,7 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' })); 
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Rate Limiter
 app.use('/api', generalLimiter);
 
 // 3. ✅ Logger และ Static Files
